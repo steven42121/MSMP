@@ -1,5 +1,6 @@
-import axios from 'axios';
+import client from './client';
 
-export function fetchAgentAssets() {
-    return axios.get('/api/agents/assets/all');
-}
+export const fetchAgentAssets = () => client.get('/hosts');
+
+export const fetchAgentMetrics = (uuid, duration = '1h') =>
+  client.get('/metrics', { params: { host_uuid: uuid, duration } });

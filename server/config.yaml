@@ -1,0 +1,19 @@
+server:
+  addr: ":8080"
+  mode: "debug"
+
+db:
+  driver: "sqlite"      # sqlite 或 postgres
+  sqlitepath: "msmp.db"
+  # dsn: "host=localhost user=msmp password=msmp dbname=msmp port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+
+jwt:
+  secret: "change-me-in-production"
+  expirehour: 24
+
+agent:
+  transport: "http"
+  heartbeatsec: 30
+  assetreportsec: 300
+  metricreportsec: 60
+  offlineaftersec: 120

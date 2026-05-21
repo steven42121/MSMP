@@ -1,0 +1,160 @@
+package controllers
+
+import (
+	"encoding/json"
+	"net/http"
+	"strconv"
+	"strings"
+
+	"MSMP/server/db"
+	"MSMP/server/models"
+)
+
+// HostsHandler 主机列表 / 批量操作
+func HostsHandler(w http.ResponseWriter, r *http.Request) {
+	tenantID := getTenantID(r)
+
+	switch r.Method {
+	case http.MethodGet:
+		// 查询主机列表
+		var hosts []models.Host
+		query := db.DB.Where("tenant_id = ?", tenantID)
+
+		// 筛选条件
+		if status := r.URL.Query().Get("status"); status != "" {
+			query = query.Where("status = ?", status)
+		}
+		if os := r.URL.Query().Get("os"); os != "" {
+			query = query.Where("os = ?", os)
+		}
+		if keyword := r.URL.Query().Get("keyword"); keyword != "" {
+			query = query.Where("hostname LIKE ? OR ip LIKE ?",
+				"%"+keyword+"%", "%"+keyword+"%")
+		}
+
+		// 分页
+		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+		pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+		if page <= 0 {
+			page = 1
+		}
+		if pageSize <= 0 || pageSize > 100 {
+			pageSize = 20
+		}
+
+		var total int64
+		query.Model(&models.Host{}).Count(&total)
+		query.Order("last_heartbeat DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&hosts)
+
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"data":      hosts,
+			"total":     total,
+			"page":      page,
+			"page_size": pageSize,
+		})
+
+	case http.MethodDelete:
+		// 批量删除主机
+		var req struct {
+			IDs []uint `json:"ids"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request"})
+			return
+		}
+		db.DB.Where("tenant_id = ? AND id IN ?", tenantID, req.IDs).Delete(&models.Host{})
+		writeJSON(w, http.StatusOK, map[string]string{"message": "deleted"})
+
+	default:
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+	}
+}
+
+// HostDetailHandler 单个主机详情操作
+func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
+	tenantID := getTenantID(r)
+
+	// 解析路径 /api/hosts/{uuid}
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/hosts/"), "/")
+	if len(parts) == 0 || parts[0] == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "host uuid required"})
+		return
+	}
+	uuid := parts[0]
+	subResource := ""
+	if len(parts) > 1 {
+		subResource = parts[1]
+	}
+
+	var host models.Host
+	if err := db.DB.Where("uuid = ? AND tenant_id = ?", uuid, tenantID).First(&host).Error; err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "host not found"})
+		return
+	}
+
+	switch {
+	case subResource == "tags" && r.Method == http.MethodGet:
+		var tags []models.HostTag
+		db.DB.Where("host_id = ?", host.ID).Find(&tags)
+		writeJSON(w, http.StatusOK, tags)
+
+	case subResource == "tags" && r.Method == http.MethodPost:
+		var tag models.HostTag
+		json.NewDecoder(r.Body).Decode(&tag)
+		tag.HostID = host.ID
+		tag.TenantID = tenantID
+		db.DB.Create(&tag)
+		writeJSON(w, http.StatusCreated, tag)
+
+	case subResource == "tags" && r.Method == http.MethodDelete:
+		tagID := ""
+		if len(parts) > 2 {
+			tagID = parts[2]
+		}
+		db.DB.Where("id = ? AND host_id = ?", tagID, host.ID).Delete(&models.HostTag{})
+		writeJSON(w, http.StatusOK, map[string]string{"message": "deleted"})
+
+	case subResource == "metrics" && r.Method == http.MethodGet:
+		// 查询监控数据
+		var metrics []models.MetricSample
+		limit := 60
+		if l := r.URL.Query().Get("limit"); l != "" {
+			limit, _ = strconv.Atoi(l)
+		}
+		db.DB.Where("host_id = ?", host.ID).
+			Order("timestamp DESC").Limit(limit).Find(&metrics)
+		writeJSON(w, http.StatusOK, metrics)
+
+	case subResource == "events" && r.Method == http.MethodGet:
+		var events []models.HostEvent
+		db.DB.Where("host_id = ?", host.ID).
+			Order("created_at DESC").Limit(100).Find(&events)
+		writeJSON(w, http.StatusOK, events)
+
+	case r.Method == http.MethodGet:
+		writeJSON(w, http.StatusOK, host)
+
+	case r.Method == http.MethodPut:
+		var updates map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&updates)
+		// 只允许更新部分字段
+		allowedFields := map[string]bool{"hostname": true, "os_version": true}
+		filtered := make(map[string]interface{})
+		for k, v := range updates {
+			if allowedFields[k] {
+				filtered[k] = v
+			}
+		}
+		if len(filtered) > 0 {
+			db.DB.Model(&host).Updates(filtered)
+		}
+		writeJSON(w, http.StatusOK, host)
+
+	case r.Method == http.MethodDelete:
+		db.DB.Delete(&host)
+		writeJSON(w, http.StatusOK, map[string]string{"message": "deleted"})
+
+	default:
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+	}
+}
