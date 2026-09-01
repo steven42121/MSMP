@@ -17,3 +17,6 @@ agent:
   assetreportsec: 300
   metricreportsec: 60
   offlineaftersec: 120
+
+security:
+  credentialkey: ""    # base64 编码的 32 字节 AES 密钥，留空则无法保存采集渠道凭据

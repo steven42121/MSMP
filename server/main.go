@@ -28,6 +28,12 @@ func main() {
 	}
 	log.Println("Database initialized successfully")
 
+	// 启动离线检测
+	go controllers.StartOfflineChecker(cfg.Agent.OfflineAfterSec)
+
+	// 启动无 Agent 采集调度器
+	controllers.StartCollectorScheduler()
+
 	// 注册路由
 	mux := http.NewServeMux()
 
@@ -36,28 +42,47 @@ func main() {
 	mux.HandleFunc("/api/agents/heartbeat", controllers.AgentHeartbeatHandler)
 	mux.HandleFunc("/api/agents/assets", controllers.AgentAssetReportHandler)
 	mux.HandleFunc("/api/agents/metrics", controllers.AgentMetricReportHandler)
+	mux.HandleFunc("/api/agents/tasks/", controllers.AgentTaskHandler)
 
 	// 认证接口
 	mux.HandleFunc("/api/auth/login", controllers.LoginHandler)
 	mux.HandleFunc("/api/auth/refresh", controllers.RefreshTokenHandler)
 
 	// 主机管理接口
-	mux.HandleFunc("/api/hosts", controllers.HostsHandler)
+	mux.HandleFunc("/api/hosts", controllers.Audit("manage", "host", controllers.HostsHandler))
 	mux.HandleFunc("/api/hosts/", controllers.HostDetailHandler)
+
+	// 采集渠道管理接口（无 Agent 采集）
+	mux.HandleFunc("/api/channels/ssh-keypair", controllers.RequireRole([]string{"admin"}, controllers.SSHKeypairHandler))
+	mux.HandleFunc("/api/channels/", controllers.RequireRole([]string{"admin"}, controllers.ChannelDetailHandler))
 
 	// 监控数据接口
 	mux.HandleFunc("/api/metrics", controllers.MetricsHandler)
 
 	// 任务管理接口
-	mux.HandleFunc("/api/tasks", controllers.TasksHandler)
+	mux.HandleFunc("/api/tasks", controllers.Audit("manage", "task", controllers.TasksHandler))
 	mux.HandleFunc("/api/tasks/", controllers.TaskDetailHandler)
 
 	// 事件/告警接口
 	mux.HandleFunc("/api/alerts", controllers.AlertsHandler)
+	mux.HandleFunc("/api/alerts/", controllers.AlertDetailHandler)
+	mux.HandleFunc("/api/alert-rules", controllers.Audit("manage", "alert_rule", controllers.RequireRole([]string{"admin"}, controllers.AlertRulesHandler)))
+	mux.HandleFunc("/api/alert-rules/", controllers.RequireRole([]string{"admin"}, controllers.AlertRuleDetailHandler))
 
 	// 租户和用户管理
-	mux.HandleFunc("/api/tenants", controllers.TenantsHandler)
+	mux.HandleFunc("/api/tenants", controllers.Audit("manage", "tenant", controllers.RequireRole([]string{"admin"}, controllers.TenantsHandler)))
 	mux.HandleFunc("/api/users", controllers.UsersHandler)
+	mux.HandleFunc("/api/users/", controllers.Audit("manage", "user", controllers.UserDetailHandler))
+
+	// Agent Token 管理
+	mux.HandleFunc("/api/agent-tokens", controllers.Audit("manage", "agent_token", controllers.RequireRole([]string{"admin"}, controllers.AgentTokensHandler)))
+	mux.HandleFunc("/api/agent-tokens/", controllers.RequireRole([]string{"admin"}, controllers.AgentTokenDetailHandler))
+
+	// 审计日志
+	mux.HandleFunc("/api/audit-logs", controllers.RequireRole([]string{"admin"}, controllers.AuditLogsHandler))
+
+	// 系统设置
+	mux.HandleFunc("/api/settings", controllers.Audit("manage", "setting", controllers.RequireRole([]string{"admin"}, controllers.SettingsHandler)))
 
 	// 健康检查
 	mux.HandleFunc("/api/health", controllers.HealthHandler)

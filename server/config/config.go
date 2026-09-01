@@ -7,10 +7,20 @@ import (
 )
 
 type Config struct {
-	Server ServerConfig
-	DB     DBConfig
-	JWT    JWTConfig
-	Agent  AgentConfig
+	Server       ServerConfig
+	DB           DBConfig
+	JWT          JWTConfig
+	Agent        AgentConfig
+	Notification NotificationConfig
+	Security     SecurityConfig
+}
+
+type SecurityConfig struct {
+	CredentialKey string
+}
+
+type NotificationConfig struct {
+	WebhookURL string
 }
 
 type ServerConfig struct {
@@ -59,6 +69,8 @@ func Load() (*Config, error) {
 	v.SetDefault("agent.assetreportsec", 300)
 	v.SetDefault("agent.metricreportsec", 60)
 	v.SetDefault("agent.offlineaftersec", 120)
+	v.SetDefault("notification.webhookurl", "")
+	v.SetDefault("security.credentialkey", "")
 
 	v.SetEnvPrefix("MSMP")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))

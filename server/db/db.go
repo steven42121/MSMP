@@ -42,5 +42,11 @@ func Init(cfg *config.Config) error {
 		&models.AssetSnapshot{},
 		&models.MetricSample{},
 		&models.HostEvent{},
+		&models.Task{},
+		&models.AlertRule{},
+		&models.AuditLog{},
+		&models.Setting{},
+		&models.ChannelBinding{},
+		&models.CollectEvent{},
 	)
 }

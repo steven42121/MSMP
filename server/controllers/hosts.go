@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -10,7 +12,21 @@ import (
 	"MSMP/server/models"
 )
 
-// HostsHandler 主机列表 / 批量操作
+type HostCreateRequest struct {
+	Hostname  string `json:"hostname"`
+	IP        string `json:"ip"`
+	OS        string `json:"os"`
+	OSVersion string `json:"os_version"`
+	Arch      string `json:"arch"`
+}
+
+func generateToken() string {
+	b := make([]byte, 24)
+	rand.Read(b)
+	return "msmp_" + hex.EncodeToString(b)
+}
+
+// HostsHandler 主机列表 / 批量操作 / 添加
 func HostsHandler(w http.ResponseWriter, r *http.Request) {
 	tenantID := getTenantID(r)
 
@@ -51,6 +67,47 @@ func HostsHandler(w http.ResponseWriter, r *http.Request) {
 			"total":     total,
 			"page":      page,
 			"page_size": pageSize,
+		})
+
+	case http.MethodPost:
+		// 手动添加主机
+		var req HostCreateRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request"})
+			return
+		}
+		if req.Hostname == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "hostname required"})
+			return
+		}
+
+		uuid := generateToken()
+		host := models.Host{
+			TenantID: tenantID,
+			UUID:     uuid,
+			Hostname: req.Hostname,
+			IP:       req.IP,
+			OS:       req.OS,
+			OSVersion: req.OSVersion,
+			Arch:     req.Arch,
+			Status:   "pending",
+		}
+		if err := db.DB.Create(&host).Error; err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create host"})
+			return
+		}
+
+		token := models.AgentToken{
+			TenantID:    tenantID,
+			HostID:      &host.ID,
+			Token:       generateToken(),
+			Description: "manual created for " + req.Hostname,
+		}
+		db.DB.Create(&token)
+
+		writeJSON(w, http.StatusCreated, map[string]interface{}{
+			"host":        host,
+			"agent_token": token.Token,
 		})
 
 	case http.MethodDelete:
@@ -130,6 +187,17 @@ func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
 		db.DB.Where("host_id = ?", host.ID).
 			Order("created_at DESC").Limit(100).Find(&events)
 		writeJSON(w, http.StatusOK, events)
+
+	case subResource == "assets" && r.Method == http.MethodGet:
+		var snapshots []models.AssetSnapshot
+		db.DB.Where("host_id = ?", host.ID).
+			Order("created_at DESC").Limit(10).Find(&snapshots)
+		writeJSON(w, http.StatusOK, snapshots)
+
+	case subResource == "channels" && r.Method == http.MethodGet:
+		ChannelsListHandler(w, r, host, tenantID)
+	case subResource == "channels" && r.Method == http.MethodPost:
+		ChannelsCreateHandler(w, r, host, tenantID, getUserID(r))
 
 	case r.Method == http.MethodGet:
 		writeJSON(w, http.StatusOK, host)
