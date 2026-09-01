@@ -1,0 +1,158 @@
+# 需求实施计划
+
+- [ ] 1. 搭建采集模块基础结构与配置
+  - 新建目录 `server/collectors/`、`server/services/`
+  - 在 `server/config/config.go` 增加 `Security.CredentialKey` 字段（base64 编码的 32 字节密钥）
+  - 在 `server/config.yaml` 增加示例配置 `security.credential_key`，留空时启动不阻断但写凭据时报错
+  - 引入 `golang.org/x/crypto` 依赖到 server/go.mod
+  - 引用：design.md「技术决策」凭据加密；requirements.md Req 2.3
+
+- [ ] 2. 数据模型与数据库迁移
+  - [ ] 2.1 新增 `ChannelBinding` GORM 模型（server/models/models.go）
+    - 字段：ID/TenantID/HostID/Type/Address/AuthMode/Username/Credential/Priority/Enabled/LastProbeAt/LastStatus/FailCount/时间戳
+    - 唯一索引：(host_id, type, enabled) 防止同类型重复启用
+    - 引用：design.md「Data Models」；requirements.md Req 1.6
+  - [ ] 2.2 新增 `CollectEvent` GORM 模型（server/models/models.go）
+    - 字段：ID/TenantID/HostID/ChannelID/Type/Message/CreatedAt
+    - 引用：design.md「Data Models」
+  - [ ] 2.3 在 `server/db/db.go` AutoMigrate 列表加入两张新表
+    - 引用：design.md「Data Models」
+  - [ ]* 2.4 为模型字段验证编写单元测试
+    - 验证 Priority 默认值、Enabled 默认 true、唯一约束触发
+
+- [ ] 3. 检查点 - 启动服务确认迁移成功
+  - 确保 `go build ./...` 通过，启动 server 后两张表自动创建
+
+- [ ] 4. 凭据加密服务 CredentialService
+  - [ ] 4.1 实现 `server/services/credential.go`
+    - `Encrypt(plaintext string) (string, error)`：AES-256-GCM，密钥从 config 加载，nonce 随机生成并拼接在密文前
+    - `Decrypt(ciphertext string) (string, error)`
+    - `EnsureKey(cfg) error`：密钥缺失时返回明确错误
+    - 引用：design.md「CredentialService」；requirements.md Req 2.1、2.3
+  - [ ]* 4.2 为 CredentialService 编写单元测试
+    - 加解密往返、密钥缺失分支、空明文分支
+
+- [ ] 5. Channel 接口与注册表
+  - [ ] 5.1 定义 `server/collectors/channel.go`
+    - `Channel` 接口：`Type() string`、`Probe(ctx, binding) (ProbeResult, error)`、`Collect(ctx, binding) (CollectResult, error)`
+    - `MetricDataLike` 结构：与 agent/common 的 MetricData 字段对等
+    - `ProbeResult` 结构：OK/操作系统/主机名/失败分类
+    - 引用：design.md「Components 1」
+  - [ ] 5.2 实现 `ChannelRegistry`（server/collectors/registry.go）
+    - 注册各渠道实现，按类型路由
+    - 引用：design.md「Channel 接口」
+
+- [ ] 6. SSH 渠道实现 SSHChannel
+  - [ ] 6.1 实现 `server/collectors/ssh.go`：连接建立
+    - 基于 `golang.org/x/crypto/ssh`，支持 password / 私钥 / 平台生成密钥三种 AuthMode
+    - 连接超时 15 秒、采集命令总超时 20 秒
+    - 引用：requirements.md Req 5；design.md「SSHChannel」
+  - [ ] 6.2 实现 SSH 指标采集命令与解析
+    - CPU：两次读 `/proc/stat` 间隔 1 秒求差计算使用率
+    - 内存：解析 `/proc/meminfo` 取 MemTotal/MemAvailable
+    - 磁盘：`df -P` 累加 used/total（排除 tmpfs/devtmpfs）
+    - 网络：`/proc/net/dev` 取累计 rx/tx 字节
+    - 负载：`/proc/loadavg`；运行时长：`/proc/uptime`
+    - 引用：requirements.md Req 5.1-5.5
+  - [ ] 6.3 实现 SSH 首次采集资产同步
+    - `hostname`、`uname -srm`、`lscpu` 解析 CPU 型号与核数
+    - 成功采集后更新 host 表对应字段
+    - 引用：requirements.md Req 5.6；design.md「SSHChannel」
+  - [ ] 6.4 实现非 Linux 主机的渠道不兼容标记
+    - 命令执行失败或输出异常时返回 `unsupported` 错误分类
+    - 引用：requirements.md Req 5.7
+  - [ ]* 6.5 为 SSH 解析函数编写单元测试
+    - 用预置 /proc 文本样例断言各字段解析结果
+
+- [ ] 7. Windows Admin Center 渠道实现 WACChannel
+  - [ ] 7.1 实现 `server/collectors/wac.go`：网关连接与认证
+    - HTTP 客户端调用 WAC 网关 REST API，Bearer/Basic 认证
+    - 引用：requirements.md Req 6；design.md「WACChannel」
+  - [ ] 7.2 实现 WAC 指标采集与字段映射
+    - 性能计数器接口取 CPU 使用率、内存总量/已用
+    - 缺失字段按零值写入并加入 Missing 列表
+    - 引用：requirements.md Req 6.1、6.2；design.md「WACChannel」
+  - [ ] 7.3 实现 WAC 权限与不可用错误分类
+    - 401/403 归类 auth_failed/denied，服务不可达归类 unreachable
+    - 引用：requirements.md Req 6.3、6.4
+  - [ ]* 7.4 为 WAC 渠道编写集成测试
+    - httptest 模拟网关响应，验证采集到 MetricSample 全链路
+
+- [ ] 8. 宝塔面板渠道实现 BaoTaChannel
+  - [ ] 8.1 实现 `server/collectors/baota.go`：API 签名与请求
+    - 宝塔面板 API 调用，HMAC 签名，API Key 认证
+    - 引用：requirements.md Req 7；design.md「BaoTaChannel」
+  - [ ] 8.2 实现宝塔指标采集与解析
+    - 系统状态接口取 CPU/内存/负载，缺项按零值并标记
+    - 引用：requirements.md Req 7.1、7.3
+  - [ ] 8.3 实现宝塔接口结构变更的解析错误处理
+    - 解析失败标记 parse_error 并尝试下一渠道
+    - 引用：requirements.md Req 7.2
+  - [ ]* 8.4 为宝塔渠道编写集成测试
+    - httptest 模拟面板响应，验证解析与错误分支
+
+- [ ] 9. 采集调度器 CollectorScheduler
+  - [ ] 9.1 实现 `server/collectors/scheduler.go`：核心调度循环
+    - `time.Ticker(60s)` 驱动，worker pool 默认 8 并发
+    - 候选主机查询：存在启用 ChannelBinding 且 `last_heartbeat` > 5 分钟或 status 为 pending/offline
+    - 引用：requirements.md Req 4.1、4.2；design.md「CollectorScheduler」
+  - [ ] 9.2 实现渠道优先级降级
+    - 按绑定 Priority 升序依次尝试，首个成功结果作为本次结果
+    - 单渠道失败记录原因并尝试下一渠道
+    - 引用：requirements.md Req 4.2、4.3
+  - [ ] 9.3 实现采集结果写入与告警联动
+    - 成功采集写 MetricSample、更新 host last_heartbeat/status=online、调用 evaluateMetricAlerts
+    - 复用 server/controllers/agent_assets.go 的指标写入逻辑（抽取公共函数）
+    - 引用：requirements.md Req 4.5、8.1；design.md「CollectorScheduler」
+  - [ ] 9.4 实现全渠道失败处理
+    - 写 HostEvent(type=collect_failed)、host.status=offline
+    - 单渠道连续 5 次失败自动禁用绑定并生成 Alert
+    - 引用：requirements.md Req 4.4、9.2
+  - [ ] 9.5 实现 Agent 优先跳过
+    - 主机 5 分钟内有 Agent 样本时跳过无 Agent 采集
+    - 引用：requirements.md Req 4.6；design.md「Correctness Properties」4
+  - [ ] 9.6 在 server/main.go 启动调度器 goroutine
+    - 引用：design.md「Components 2」
+  - [ ]* 9.7 为调度器选择逻辑编写单元测试
+    - Agent 活跃跳过、优先级降级、连续失败禁用三个场景
+
+- [ ] 10. 检查点 - 后端采集链路自测
+  - 用内置脚本主机或手动绑定一台测试主机验证从采集到 MetricSample 写入
+
+- [ ] 11. HTTP API 实现
+  - [ ] 11.1 新增 `server/controllers/channels.go`
+    - `GET /api/hosts/:id/channels`：按租户隔离列出绑定（脱敏 Credential）
+    - `POST /api/hosts/:id/channels`：创建绑定（加密凭据）、防重复、创建后自动触发探测
+    - 引用：requirements.md Req 1.1、1.2、1.3、1.4、1.5、1.6、9.1、9.6；design.md「HTTP API」
+  - [ ] 11.2 实现绑定更新与删除
+    - `PUT /api/channels/:id`：更新启用/优先级/参数，校验租户归属
+    - `DELETE /api/channels/:id`：删除绑定并清理凭据
+    - 引用：requirements.md Req 1.7、2.4、9.1
+  - [ ] 11.3 实现手动探测端点
+    - `POST /api/channels/:id/probe`：15 秒超时，返回成功/失败分类
+    - 引用：requirements.md Req 3.1、3.2、3.3、3.4
+  - [ ] 11.4 实现 SSH 密钥对生成端点
+    - `POST /api/channels/ssh-keypair`：生成密钥对，私钥加密存储，返回公钥与一键安装命令
+    - 引用：requirements.md Req 9.1、9.2
+  - [ ] 11.5 在 server/main.go 注册路由
+    - 全部接 AuthMiddleware + Audit 中间件 + 租户隔离
+    - 引用：design.md「HTTP API」
+  - [ ]* 11.6 为 API 编写测试
+    - 绑定 CRUD、租户隔离越权拒绝、凭据脱敏断言
+
+- [ ] 12. 前端采集渠道管理
+  - [ ] 12.1 在 HostDetail.jsx 新增「采集渠道」tab
+    - 列表展示绑定（类型/地址/优先级/状态/最近探测时间），凭据不展示
+    - 引用：requirements.md Req 1.5、8.3；design.md「前端」
+  - [ ] 12.2 实现渠道创建向导
+    - 按渠道类型与接入方式分步表单（SSH 三种/宝塔两种/WAC 网关凭据）
+    - 创建成功后展示自动探测结果
+    - 引用：requirements.md Req 9.1-9.5
+  - [ ] 12.3 实现探测按钮与状态徽标
+    - 手动触发探测、展示成功/失败分类
+    - 引用：requirements.md Req 3.1-3.4
+  - [ ] 12.4 在主机详情展示当前生效渠道与最近采集时间
+    - 引用：requirements.md Req 8.3
+
+- [ ] 13. 检查点 - 端到端联调
+  - 完整验证：手动添加主机 → 绑定 SSH 渠道 → 探测成功 → 等待 60s 调度采集 → 前端监控曲线出现数据 → 告警规则触发
