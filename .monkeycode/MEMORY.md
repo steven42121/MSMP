@@ -102,3 +102,12 @@ Entries discovered by the Agent during task execution should follow this format:
   - glass-fluid 层使用 conic-gradient 旋转动画模拟液体光线折射
   - Dark mode 高光带蓝色氛围光 (rgba(90, 130, 255))
   - LiquidGlass 组件提供 per-card 鼠标跟踪（可选）
+
+[Project Knowledge Summary]
+- Date: 2026-09-02
+- Context: Unified liquid glass card background across all pages
+- Category: Build Methods
+- Instructions:
+  - .liquid-glass.ant-card 需覆盖 antd Card 默认白色背景，设置统一的玻璃渐变底色
+  - antd Card body/head 必须设 background: transparent !important，否则玻璃效果被遮挡
+  - Dark mode 下高光带蓝色氛围光 rgba(90,130,255)，使用 CSS 变量 --glow-x/--glow-y 跟随鼠标
