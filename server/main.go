@@ -100,6 +100,12 @@ func main() {
 	// 健康检查
 	mux.HandleFunc("/api/health", controllers.HealthHandler)
 
+	// AI 能力接口
+	mux.HandleFunc("/api/llm/settings", controllers.RequireRole([]string{"admin"}, controllers.LLMSettingsHandler))
+	mux.HandleFunc("/api/ai/chat", controllers.AIChatHandler)
+	mux.HandleFunc("/api/ai/analyze-alert/", controllers.AIAnalyzeHandler)
+	mux.HandleFunc("/api/ai/generate-report", controllers.AIGenerateReportHandler)
+
 	// 集群管理接口
 	mux.HandleFunc("/api/cluster/info", func(w http.ResponseWriter, r *http.Request) {
 		controllers.ClusterInfoHandler(w, r, clusterState)

@@ -50,6 +50,7 @@ export default function MainLayout() {
     { key: '/alerts', icon: <AlertOutlined />, label: '告警' },
     { key: '/alert-rules', icon: <AlertOutlined />, label: '告警规则' },
     { key: '/agent-tokens', icon: <DesktopOutlined />, label: 'Agent 接入' },
+    { key: '/ai-chat', icon: <BulbOutlined />, label: 'AI 助手' },
     { key: '/tenants', icon: <TeamOutlined />, label: '租户' },
     { key: '/users', icon: <UserOutlined />, label: '用户' },
     { key: '/audit-logs', icon: <SettingOutlined />, label: '审计日志' },

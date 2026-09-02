@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Table, Card, Tag, Space, Select, Button, Input, Popconfirm, InputNumber, message, Typography } from 'antd';
-import { ReloadOutlined, AlertOutlined, SearchOutlined, BellOutlined, PauseOutlined } from '@ant-design/icons';
+import { Table, Card, Tag, Space, Select, Button, Input, Popconfirm, InputNumber, message, Typography, Modal } from 'antd';
+import { ReloadOutlined, AlertOutlined, SearchOutlined, BellOutlined, PauseOutlined, RobotOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import client from '../api/client';
 
@@ -24,6 +24,23 @@ export default function Alerts() {
   const [level, setLevel] = useState('');
   const [hostID, setHostID] = useState('');
   const [ack, setAck] = useState('');
+  const [analyzing, setAnalyzing] = useState(null);
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [analysisVisible, setAnalysisVisible] = useState(false);
+
+  const handleAnalyze = async (id, hostId) => {
+    setAnalyzing(id);
+    setAnalysisVisible(true);
+    setAnalysisResult(null);
+    try {
+      const resp = await client.post()( `/ai/analyze-alert/${id}?host_id=${hostId}` );
+      setAnalysisResult(resp.analysis || '暂无分析结果');
+    } catch (e) {
+      setAnalysisResult('分析失败：' + (e.message || '请检查 LLM 配置'));
+    } finally {
+      setAnalyzing(null);
+    }
+  };
 
   const loadHosts = async () => {
     try {
@@ -137,6 +154,15 @@ export default function Alerts() {
           }}>
             <Button type="link" size="small" icon={<PauseOutlined />}>静音</Button>
           </Popconfirm>
+          <Button
+            type="link"
+            size="small"
+            icon={<RobotOutlined />}
+            loading={analyzing === r.id}
+            onClick={() => handleAnalyze(r.id, r.host_id)}
+          >
+            AI 分析
+          </Button>
         </Space>
       ),
     },
@@ -210,6 +236,26 @@ export default function Alerts() {
           locale={{ emptyText: <Text type="secondary">暂无告警数据</Text> }}
         />
       </Card>
+
+      <Modal
+        title={<Space><RobotOutlined style={{ color: '#667eea' }} /><span>AI 根因分析</span></Space>}
+        open={analysisVisible}
+        onCancel={() => setAnalysisVisible(false)}
+        footer={null}
+        width={680}
+        styles={{ body: { maxHeight: '60vh', overflowY: 'auto' } }}
+      >
+        {analysisResult ? (
+          <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8, color: '#d0d0d0', fontSize: 14 }}>
+            {analysisResult}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: 24, color: '#888' }}>
+            <RobotOutlined style={{ fontSize: 32, marginBottom: 12, color: '#667eea' }} />
+            <div>正在分析告警根因，请稍候...</div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

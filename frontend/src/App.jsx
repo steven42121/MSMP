@@ -16,6 +16,8 @@ import AgentTokens from './pages/AgentTokens';
 import AuditLogs from './pages/AuditLogs';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
+import AIChat from './pages/AIChat';
+import LLMConfig from './pages/LLMConfig';
 import { useAuthStore } from './store/auth';
 
 function RequireAuth({ children }) {
@@ -51,6 +53,8 @@ export default function App() {
           <Route path="tenants" element={<Tenants />} />
           <Route path="users" element={<Users />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="ai-chat" element={<AIChat />} />
+          <Route path="llm-config" element={<LLMConfig />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

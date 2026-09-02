@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Form, Input, InputNumber, Button, Descriptions, Typography, Space, Tag, message } from 'antd';
-import { UserOutlined, SettingOutlined, LockOutlined, BellOutlined } from '@ant-design/icons';
+import { UserOutlined, SettingOutlined, LockOutlined, BellOutlined, CloudServerOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../store/auth';
 import client from '../api/client';
 
@@ -81,6 +81,7 @@ export default function Settings() {
       </Card>
 
       {user?.role === 'admin' && (
+        <>
         <Card
         style={{ borderRadius: 16, border: 'none', boxShadow: 'none', marginBottom: 16 }}
         className="liquid-glass"
@@ -98,6 +99,21 @@ export default function Settings() {
             </Form.Item>
           </Form>
         </Card>
+
+        <Card
+          style={{ borderRadius: 16, border: 'none', boxShadow: 'none', marginBottom: 16 }}
+          className="liquid-glass"
+          title={<Space><CloudServerOutlined style={{ color: '#667eea' }} /><span>LLM 智能配置</span></Space>}
+          extra={<a href="/llm-config" style={{ fontSize: 12 }}>配置详情</a>}
+        >
+          <div style={{ color: '#aaa', fontSize: 13, lineHeight: 1.8 }}>
+            <p style={{ margin: '4px 0' }}>配置 LLM 服务后可启用以下 AI 能力：</p>
+            <p style={{ margin: '4px 0' }}>• <b>AI 智能问答</b> — 自然语言查询系统状态与告警</p>
+            <p style={{ margin: '4px 0' }}>• <b>告警根因分析</b> — 自动分析告警原因并给出修复建议</p>
+            <p style={{ margin: '4px 0' }}>• <b>运维报告生成</b> — 自动生成每日系统健康报告</p>
+          </div>
+        </Card>
+        </>
       )}
 
       <Card
