@@ -95,7 +95,7 @@ export default function Login() {
         </div>
 
         {/* 登录卡片 */}
-        <Card className="liquid-glass" style={{
+        <Card className="liquid-glass login-glass" style={{
           borderRadius: 20,
         }}>
           <Form name="login" onFinish={onFinish} size="large" layout="vertical">

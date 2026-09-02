@@ -116,7 +116,13 @@ body.msmp-dark,
 .liquid-glass .glass-fluid {
   position: absolute;
   inset: -30%;
-  background: conic-gradient(
+  background:
+    radial-gradient(
+      46% 46% at calc((var(--glow-x) - 50%) * 1.6 + 50%) calc((var(--glow-y) - 50%) * 1.6 + 50%),
+      rgba(255, 255, 255, 0.07) 0%,
+      transparent 70%
+    ),
+    conic-gradient(
     from 0deg at 50% 50%,
     transparent 0deg,
     rgba(255, 255, 255, 0.025) 45deg,
@@ -131,7 +137,29 @@ body.msmp-dark,
   animation: glassFluidRotate 25s linear infinite;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.7;
+  opacity: 0.8;
+}
+
+/* Dark mode 流动光斑带蓝紫氛围 */
+.msmp-dark .liquid-glass .glass-fluid {
+  background:
+    radial-gradient(
+      46% 46% at calc((var(--glow-x) - 50%) * 1.6 + 50%) calc((var(--glow-y) - 50%) * 1.6 + 50%),
+      rgba(110, 140, 255, 0.1) 0%,
+      transparent 70%
+    ),
+    conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    rgba(120, 90, 255, 0.03) 45deg,
+    transparent 90deg,
+    rgba(80, 140, 255, 0.045) 135deg,
+    transparent 180deg,
+    rgba(140, 80, 255, 0.025) 225deg,
+    transparent 270deg,
+    rgba(90, 130, 255, 0.035) 315deg,
+    transparent 360deg
+  );
 }
 
 @keyframes glassFluidRotate {
@@ -140,8 +168,10 @@ body.msmp-dark,
 }
 
 /* ========== Light Mode ========== */
+/* 统一磨砂底色：所有玻璃卡片透出一致的材质，屏蔽背后内容差异 */
 .liquid-glass {
-  background: linear-gradient(
+  background-color: rgba(248, 249, 253, 0.68);
+  background-image: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.52) 0%,
     rgba(255, 255, 255, 0.28) 50%,
@@ -170,7 +200,8 @@ body.msmp-dark,
 
 /* ========== Dark Mode ========== */
 .msmp-dark .liquid-glass {
-  background: linear-gradient(
+  background-color: rgba(21, 22, 27, 0.68);
+  background-image: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.055) 0%,
     rgba(255, 255, 255, 0.022) 50%,
@@ -194,13 +225,13 @@ body.msmp-dark,
     inset 0 -1px 0 rgba(0, 0, 0, 0.22);
 }
 
-/* Dark mode 高光带蓝色氛围 */
+/* Dark mode 高光带蓝色氛围，流动更明显 */
 .msmp-dark .liquid-glass::before {
   background: radial-gradient(
     circle at var(--glow-x) var(--glow-y),
-    rgba(90, 130, 255, calc(var(--glow-intensity) * 0.2)) 0%,
-    rgba(90, 130, 255, calc(var(--glow-intensity) * 0.06)) 25%,
-    transparent 60%
+    rgba(100, 140, 255, calc(var(--glow-intensity) * 0.3)) 0%,
+    rgba(90, 120, 255, calc(var(--glow-intensity) * 0.1)) 28%,
+    transparent 62%
   );
 }
 
@@ -803,9 +834,10 @@ body.msmp-dark,
   border: none !important;
 }
 
-/* Light mode: 统一玻璃底色 */
+/* Light mode: 统一玻璃底色（与全局 .liquid-glass 一致的磨砂材质） */
 .liquid-glass.ant-card {
-  background: linear-gradient(
+  background-color: rgba(248, 249, 253, 0.68) !important;
+  background-image: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.52) 0%,
     rgba(255, 255, 255, 0.28) 50%,
@@ -834,7 +866,8 @@ body.msmp-dark,
 
 /* Dark mode: 统一深色玻璃底色 */
 .msmp-dark .liquid-glass.ant-card {
-  background: linear-gradient(
+  background-color: rgba(21, 22, 27, 0.68) !important;
+  background-image: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.055) 0%,
     rgba(255, 255, 255, 0.022) 50%,
@@ -888,6 +921,32 @@ body.msmp-dark,
 /* Statistic 数字颜色适配 */
 .liquid-glass.ant-card .ant-statistic-content {
   color: inherit !important;
+}
+
+/* 登录页：深色氛围玻璃（在深紫背景上保持暗色材质） */
+.liquid-glass.login-glass,
+.liquid-glass.ant-card.login-glass {
+  background-color: rgba(30, 28, 52, 0.55) !important;
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  border-top-color: rgba(255, 255, 255, 0.2) !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+.msmp-dark .liquid-glass.login-glass,
+.msmp-dark .liquid-glass.ant-card.login-glass {
+  background-color: rgba(30, 28, 52, 0.55) !important;
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  ) !important;
 }
 
 /* ============================================================
