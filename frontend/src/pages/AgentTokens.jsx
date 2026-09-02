@@ -4,6 +4,10 @@ import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import client from '../api/client';
 
+import { useThemeStore } from '../store/theme';
+
+const { Title, Text, Paragraph } = Typography;
+
 function linuxInstall(serverUrl, token) {
   return `export MSMP_SERVER_URL=${serverUrl}
 export AGENT_TOKEN=${token}
@@ -35,6 +39,7 @@ export default function AgentTokens() {
   const [installOpen, setInstallOpen] = useState(false);
   const [form] = Form.useForm();
   const serverUrl = window.location.origin;
+  const { dark } = useThemeStore();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -116,7 +121,7 @@ export default function AgentTokens() {
         <Typography.Paragraph>
           在目标主机上设置以下环境变量后运行 Agent：
         </Typography.Paragraph>
-        <Typography.Paragraph code copyable style={{ background: '#f5f5f5', padding: 12 }}>
+        <Typography.Paragraph code copyable style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#f5f5f5', padding: 12, borderRadius: 8 }}>
 {`export MSMP_SERVER_URL=https://your-server
 export AGENT_TOKEN=your-token
 export AGENT_UUID=$(hostname)
@@ -172,7 +177,7 @@ export AGENT_UUID=$(hostname)
           <Typography.Paragraph
             code
             copyable
-            style={{ background: '#f5f5f5', padding: 12, whiteSpace: 'pre-wrap' }}
+            style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#f5f5f5', padding: 12, whiteSpace: 'pre-wrap', borderRadius: 8 }}
           >
             {installOS === 'windows'
               ? windowsInstall(serverUrl, installToken)
