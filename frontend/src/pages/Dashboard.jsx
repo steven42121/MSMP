@@ -6,6 +6,7 @@ import {
   CloseCircleOutlined,
   WarningOutlined,
   ClusterOutlined,
+  AlertOutlined,
 } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import dayjs from 'dayjs';
