@@ -122,3 +122,13 @@ Entries discovered by the Agent during task execution should follow this format:
   - 登录页宽度改为响应式（maxWidth: 420，padding 适配小屏）
   - 全局 CSS 覆盖：480px/768px/1024px 断点分别处理表格、表单、按钮、卡片字号
   - 触摸设备（pointer: coarse）最小点击目标 44px，Modal 宽度设为 calc(100% - 32px)
+
+[Project Knowledge Summary]
+- Date: 2026-09-02
+- Context: Unified glass backing and fluid glow modes
+- Category: Build Methods
+- Instructions:
+  - .liquid-glass 统一磨砂底色用 background-color（light rgba(248,249,253,0.68) / dark rgba(21,22,27,0.68)）+ background-image 渐变分离写法
+  - 登录页玻璃卡片用 .login-glass 保留暗色材质（白字输入框依赖深底）
+  - useGlobalMouseTracker 三模式：桌面鼠标 / 手机 deviceorientation 重力（iOS 需 touchend 手势触发 requestPermission）/ 空闲 3 秒后李萨如曲线自动漂移
+  - glass-fluid 层 inset -30% 时 radial 光斑坐标需乘 1.6 映射：calc((var(--glow-x) - 50%) * 1.6 + 50%)
