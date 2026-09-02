@@ -65,3 +65,16 @@ Entries discovered by the Agent during task execution should follow this format:
   - 前端「采集渠道」tab 位于 HostDetail 页面（/hosts/:uuid），含创建向导（SSH 支持密码/自建私钥/平台生成密钥对三种接入方式）
   - 后端已验证的 API：POST /api/channels/ssh-keypair（返回公钥 + 一键安装命令 + 加密私钥）、POST /api/hosts/{uuid}/channels（创建并自动探测）、POST /api/channels/{id}/probe（手动探测）
   - 端到端测试路径：手动添加主机 → 绑定 SSH 渠道 → 探测成功后等待 ≤60s 调度采集 → 前端监控曲线出现数据 → 告警规则自动触发（复用 evaluateMetricAlerts）
+
+[多节点部署与负载均衡]
+- Date: 2026-09-02
+- Context: 将 MSMP 从单节点升级为多节点集群，实现 Agent 和前端自动故障转移
+- Category: Operations & Deployment
+- Instructions:
+  - 集群状态管理在 server/clustering/cluster.go，Leader 选举基于节点地址字典序（最小者胜出），follower 跳过 CollectorScheduler
+  - 节点间心跳 POST /api/cluster/ping（每 10s），连续 3 次失败（30s）标记 unreachable
+  - 配置方式：config.yaml 中 server.nodes 数组填入所有节点地址，server.node_id 留空自动生成
+  - Agent 多节点路由：MSMP_SERVER_URLS 环境变量逗号分隔多个地址，连续失败 3 次跳过该节点
+  - 前端多节点路由：VITE_MSMP_SERVER_URLS 环境变量逗号分隔，失败 3 次后禁用 60 秒
+  - 新 API 端点：GET /api/cluster/info、POST /api/cluster/ping、GET /api/cluster/leader
+
