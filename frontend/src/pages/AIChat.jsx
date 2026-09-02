@@ -170,9 +170,9 @@ export default function AIChat() {
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
+      <div className="ai-chat-grid">
         <Card
-          style={{ borderRadius: 16, border: 'none', boxShadow: 'none', height: 'calc(100vh - 220px)', display: 'flex', flexDirection: 'column' }}
+          style={{ borderRadius: 16, border: 'none', boxShadow: 'none', height: 'calc(100vh - 220px)', minHeight: 400, display: 'flex', flexDirection: 'column' }}
           className="liquid-glass"
         >
           <div style={{ flex: 1, overflowY: 'auto', padding: '8px 4px', className: 'chat-scroll' }}>

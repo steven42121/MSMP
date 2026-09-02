@@ -72,7 +72,7 @@ export default function Login() {
     }}>
       <BGOrbs />
       <div style={{
-        width: 420, position: 'relative', zIndex: 1,
+        width: '100%', maxWidth: 420, padding: '0 16px', position: 'relative', zIndex: 1,
         animation: 'fadeInUp 0.6s ease forwards',
       }}>
         {/* Logo */}

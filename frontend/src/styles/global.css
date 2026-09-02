@@ -889,3 +889,270 @@ body.msmp-dark,
 .liquid-glass.ant-card .ant-statistic-content {
   color: inherit !important;
 }
+
+/* ============================================================
+   Mobile Responsive — 手机端适配
+   ============================================================ */
+
+/* 桌面端隐藏 Drawer */
+.ant-drawer-mask,
+.ant-drawer-open-content {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ========== 超小屏 (<480px) ========== */
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 17px !important;
+  }
+
+  .liquid-glass.ant-card .ant-statistic-content {
+    font-size: 20px !important;
+  }
+
+  .liquid-glass.ant-card .ant-statistic-title {
+    font-size: 11px !important;
+  }
+
+  .ant-table {
+    font-size: 12px !important;
+  }
+
+  .ant-table-cell {
+    padding: 8px 6px !important;
+  }
+
+  .ant-table-thead > tr > th {
+    padding: 6px 6px !important;
+    font-size: 11px !important;
+  }
+
+  .ant-btn {
+    padding: 0 10px !important;
+    font-size: 12px !important;
+    height: 32px !important;
+  }
+
+  .ant-space {
+    gap: 4px !important;
+  }
+
+  .ant-form-item-label > label {
+    font-size: 12px !important;
+  }
+
+  .ant-select-selector {
+    height: 32px !important;
+    font-size: 12px !important;
+  }
+
+  .ant-input {
+    height: 32px !important;
+    font-size: 13px !important;
+  }
+
+  .ant-list-item {
+    padding: 8px 0 !important;
+  }
+
+  .ant-tag {
+    font-size: 10px !important;
+    padding: 0 6px !important;
+    height: 20px !important;
+    line-height: 18px !important;
+  }
+
+  /* 登录页适配 */
+  .login-container-mobile {
+    width: calc(100% - 32px) !important;
+    max-width: 360px !important;
+  }
+
+  /* Dashboard stat cards 单列 */
+  .dashboard-stats-mobile .ant-col {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* ========== 小屏 (481px-768px) ========== */
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 18px !important;
+  }
+
+  .liquid-glass.ant-card .ant-statistic-content {
+    font-size: 24px !important;
+  }
+
+  .liquid-glass.ant-card .ant-statistic-title {
+    font-size: 12px !important;
+  }
+
+  /* 表格横向滚动 */
+  .ant-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ant-table {
+    min-width: 500px;
+    font-size: 12px !important;
+  }
+
+  .ant-table-cell {
+    padding: 8px 10px !important;
+    white-space: nowrap;
+  }
+
+  .ant-table-thead > tr > th {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+    white-space: nowrap;
+  }
+
+  /* 按钮紧凑 */
+  .ant-btn {
+    padding: 0 12px !important;
+    font-size: 12px !important;
+    height: 34px !important;
+  }
+
+  .ant-btn-icon-only {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  /* 选择器紧凑 */
+  .ant-select-selector {
+    height: 34px !important;
+  }
+
+  .ant-input,
+  .ant-input-password input {
+    height: 34px !important;
+  }
+
+  /* 表单标签 */
+  .ant-form-item-label > label {
+    font-size: 12px !important;
+  }
+
+  /* 列表项紧凑 */
+  .ant-list-item {
+    padding: 8px 0 !important;
+  }
+
+  /* 标签紧凑 */
+  .ant-tag {
+    font-size: 11px !important;
+    padding: 0 6px !important;
+    height: 22px !important;
+    line-height: 20px !important;
+  }
+
+  /* ECharts 容器高度适配 */
+  .echarts-for-react {
+    height: 200px !important;
+  }
+
+  .ant-card .echarts-for-react {
+    height: 200px !important;
+  }
+
+  /* Header 内元素紧凑 */
+  .ant-layout-header {
+    padding: 0 12px !important;
+    height: 56px !important;
+    line-height: 56px !important;
+  }
+
+  /* 内容区边距缩小 */
+  .ant-layout-content {
+    margin: 8px !important;
+    padding: 12px !important;
+    border-radius: 12px !important;
+  }
+
+  /* 页面标题区紧凑 */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 12px !important;
+  }
+
+  .page-header .ant-btn {
+    align-self: flex-end;
+  }
+}
+
+/* ========== 平板 (769px-1024px) ========== */
+@media (max-width: 1024px) {
+  .liquid-glass.ant-card .ant-statistic-content {
+    font-size: 26px !important;
+  }
+
+  .echarts-for-react {
+    height: 240px !important;
+  }
+
+  .ant-table {
+    min-width: 600px;
+  }
+}
+
+/* ========== 通用移动端优化 ========== */
+
+/* 链接/按钮触摸目标最小 44px */
+@media (hover: none) and (pointer: coarse) {
+  .ant-btn,
+  .ant-select-selector,
+  .ant-input,
+  .ant-checkbox-input,
+  .ant-radio-input {
+    min-height: 44px !important;
+  }
+
+  .ant-menu-item {
+    min-height: 44px !important;
+    padding: 0 16px !important;
+  }
+
+  /* 增大点击区域 */
+  .ant-table-row td {
+    padding: 12px 16px !important;
+  }
+
+  /* 触摸友好的 Modal */
+  .ant-modal {
+    width: calc(100% - 32px) !important;
+    max-width: none !important;
+  }
+
+  .ant-modal-body {
+    padding: 16px !important;
+  }
+}
+
+/* AI Chat 双栏布局响应式 */
+.ai-chat-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .ai-chat-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* 打印时隐藏装饰元素 */
+@media print {
+  .ambient-orb { display: none !important; }
+  .liquid-glass::before,
+  .liquid-glass::after,
+  .liquid-glass .glass-fluid { display: none !important; }
+}
