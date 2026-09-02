@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Card, Select, Space, Spin, Empty, Row, Col, Button } from 'antd';
+import { Card, Select, Space, Spin, Empty, Row, Col, Button, Typography } from 'antd';
+import { LineChartOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import dayjs from 'dayjs';
 import client from '../api/client';
+
+const { Text } = Typography;
 
 const durations = [
   { value: '1h', label: '最近 1 小时' },
@@ -11,23 +14,36 @@ const durations = [
   { value: '24h', label: '最近 24 小时' },
 ];
 
+const metricColors = ['#667eea', '#764ba2', '#52c41a', '#faad14', '#ff4d4f', '#1890ff'];
+
 function buildOption(title, data, field, unit) {
   const times = data.map((d) => dayjs(d.timestamp).format('HH:mm:ss'));
   const values = data.map((d) => d[field]);
   return {
-    title: { text: title, left: 'center', textStyle: { fontSize: 14 } },
+    title: { text: title, left: 'center', textStyle: { fontSize: 13 } },
     tooltip: { trigger: 'axis' },
-    grid: { left: 48, right: 24, top: 40, bottom: 40 },
+    grid: { left: 48, right: 24, top: 40, bottom: 32 },
     xAxis: { type: 'category', data: times, axisLabel: { fontSize: 10 } },
-    yAxis: { type: 'value', axisLabel: { formatter: `{value}${unit || ''}` } },
-    series: [{ name: title, type: 'line', data: values, smooth: true, showSymbol: false, areaStyle: { opacity: 0.1 } }],
+    yAxis: {
+      type: 'value',
+      axisLabel: { formatter: (v) => `${v}${unit || ''}` },
+      splitLine: { lineStyle: { type: 'dashed', color: 'rgba(0,0,0,0.06)' } },
+    },
+    series: [{
+      name: title, type: 'line', data: values, smooth: true,
+      showSymbol: false,
+      areaStyle: { opacity: 0.12 },
+      itemStyle: { color: metricColors[0] },
+      lineStyle: { width: 2.5 },
+    }],
   };
 }
 
 function formatNet(v) {
+  if (!v) return '0 B/s';
   if (v >= 1e6) return (v / 1e6).toFixed(2) + ' MB/s';
   if (v >= 1e3) return (v / 1e3).toFixed(2) + ' KB/s';
-  return v + ' B/s';
+  return v.toFixed(0) + ' B/s';
 }
 
 export default function Monitor() {
@@ -37,12 +53,17 @@ export default function Monitor() {
   const [metrics, setMetrics] = useState([]);
   const [loading, setLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [currentHost, setCurrentHost] = useState(null);
 
   useEffect(() => {
     client.get('/hosts', { params: { page_size: 100 } })
       .then((resp) => {
-        setHosts(resp.data || []);
-        if (resp.data?.length) setHostUUID(resp.data[0].uuid);
+        const data = resp.data || [];
+        setHosts(data);
+        if (data.length) {
+          setHostUUID(data[0].uuid);
+          setCurrentHost(data[0]);
+        }
       })
       .catch(() => setHosts([]));
   }, []);
@@ -58,40 +79,86 @@ export default function Monitor() {
 
   useEffect(() => { loadMetrics(); }, [loadMetrics]);
 
-  // 自动刷新（30 秒）
   useEffect(() => {
     if (!hostUUID) return;
     const timer = setInterval(loadMetrics, 30000);
     return () => clearInterval(timer);
   }, [hostUUID, loadMetrics]);
 
-  const cpuOption = useMemo(() => buildOption('CPU 使用率', metrics, 'cpu_percent', '%'), [metrics]);
-  const memOption = useMemo(() => buildOption('内存使用率', metrics, 'mem_percent', '%'), [metrics]);
-  const loadOption = useMemo(() => buildOption('系统负载', metrics, 'load1', ''), [metrics]);
+  const cpuOption = useMemo(() => buildOption('CPU 使用率 (%)', metrics, 'cpu_percent', '%'), [metrics]);
+  const memOption = useMemo(() => buildOption('内存使用率 (%)', metrics, 'mem_percent', '%'), [metrics]);
+  const loadOption = useMemo(() => buildOption('系统负载 (1min)', metrics, 'load1', ''), [metrics]);
   const netOption = useMemo(() => {
     const times = metrics.map((d) => dayjs(d.timestamp).format('HH:mm:ss'));
     return {
-      title: { text: '网络流量', left: 'center', textStyle: { fontSize: 14 } },
-      tooltip: { trigger: 'axis', formatter: (params) => {
-        let s = params[0].axisValue + '<br/>';
-        params.forEach((p) => { s += `${p.marker}${p.seriesName}: ${formatNet(p.value)}<br/>`; });
-        return s;
-      } },
-      legend: { data: ['入站', '出站'], bottom: 0 },
+      title: { text: '网络流量', left: 'center', textStyle: { fontSize: 13 } },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params) => {
+          let s = `<span style="font-weight:600">${params[0].axisValue}</span><br/>`;
+          params.forEach((p) => {
+            s += `${p.marker}${p.seriesName}: <b>${formatNet(p.value)}</b><br/>`;
+          });
+          return s;
+        },
+      },
+      legend: { data: ['入站', '出站'], bottom: 4, textStyle: { fontSize: 11 } },
       grid: { left: 60, right: 24, top: 40, bottom: 40 },
       xAxis: { type: 'category', data: times, axisLabel: { fontSize: 10 } },
-      yAxis: { type: 'value', axisLabel: { formatter: (v) => formatNet(v) } },
+      yAxis: {
+        type: 'value', axisLabel: { formatter: formatNet },
+        splitLine: { lineStyle: { type: 'dashed', color: 'rgba(0,0,0,0.06)' } },
+      },
       series: [
-        { name: '入站', type: 'line', data: metrics.map((d) => d.net_rx_bps), smooth: true, showSymbol: false },
-        { name: '出站', type: 'line', data: metrics.map((d) => d.net_tx_bps), smooth: true, showSymbol: false },
+        { name: '入站', type: 'line', data: metrics.map((d) => d.net_rx_bps), smooth: true, showSymbol: false, lineStyle: { width: 2.5 }, itemStyle: { color: '#667eea' }, areaStyle: { opacity: 0.1 } },
+        { name: '出站', type: 'line', data: metrics.map((d) => d.net_tx_bps), smooth: true, showSymbol: false, lineStyle: { width: 2.5 }, itemStyle: { color: '#764ba2' }, areaStyle: { opacity: 0.1 } },
       ],
     };
   }, [metrics]);
 
+  const currentStats = useMemo(() => {
+    if (!metrics.length) return null;
+    const last = metrics[metrics.length - 1];
+    return {
+      cpu: last.cpu_percent?.toFixed(1) + '%',
+      mem: last.mem_percent?.toFixed(1) + '%',
+      disk: last.disk_used && last.disk_total
+        ? ((last.disk_used / last.disk_total) * 100).toFixed(1) + '%'
+        : '-',
+      load: last.load1?.toFixed(2) || '-',
+      rx: formatNet(last.net_rx_bps),
+      tx: formatNet(last.net_tx_bps),
+    };
+  }, [metrics]);
+
+  const handleExport = () => {
+    if (!metrics.length) return;
+    const header = 'timestamp,cpu_percent,mem_percent,mem_used,mem_total,disk_used,disk_total,net_rx_bps,net_tx_bps,load1\n';
+    const lines = metrics.map((d) => [
+      d.timestamp, d.cpu_percent, d.mem_percent, d.mem_used, d.mem_total,
+      d.disk_used, d.disk_total, d.net_rx_bps, d.net_tx_bps, d.load1,
+    ].join(',')).join('\n');
+    const blob = new Blob([header + lines], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `metrics_${hostUUID || 'unknown'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
-      <h2>监控</h2>
-      <Card style={{ marginBottom: 16 }}>
+      {/* Page header */}
+      <div className="page-header" style={{ marginBottom: 24 }}>
+        <div>
+          <div className="page-title">监控</div>
+          <Text type="secondary" style={{ fontSize: 13 }}>主机实时性能指标与趋势分析</Text>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <Card style={{ marginBottom: 16, borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         <Space wrap>
           <Select
             showSearch
@@ -99,8 +166,15 @@ export default function Monitor() {
             placeholder="选择主机"
             optionFilterProp="label"
             value={hostUUID}
-            onChange={setHostUUID}
-            options={hosts.map((h) => ({ value: h.uuid, label: `${h.hostname} (${h.ip})` }))}
+            onChange={(v) => {
+              setHostUUID(v);
+              setMetrics([]);
+              setCurrentHost(hosts.find(h => h.uuid === v) || null);
+            }}
+            options={hosts.map((h) => ({
+              value: h.uuid,
+              label: `${h.hostname || '未知主机'} (${h.ip || '-'})`,
+            }))}
           />
           <Select
             style={{ width: 160 }}
@@ -108,44 +182,91 @@ export default function Monitor() {
             onChange={setDuration}
             options={durations}
           />
-          <Button onClick={loadMetrics} loading={loading}>刷新</Button>
+          <Button onClick={loadMetrics} loading={loading} icon={<ReloadOutlined />} style={{ borderRadius: 8 }}>
+            刷新
+          </Button>
+          <Button
+            onClick={handleExport} disabled={!metrics.length}
+            icon={<DownloadOutlined />} style={{ borderRadius: 8 }}
+          >
+            导出 CSV
+          </Button>
           {lastUpdate && (
-            <span style={{ color: '#888', fontSize: 12 }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
               最后更新：{dayjs(lastUpdate).format('HH:mm:ss')}
-            </span>
+            </Text>
           )}
         </Space>
       </Card>
 
+      {/* Current stats bar */}
+      {currentStats && metrics.length > 0 && (
+        <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+          {[
+            { label: 'CPU', value: currentStats.cpu, color: '#667eea' },
+            { label: '内存', value: currentStats.mem, color: '#764ba2' },
+            { label: '磁盘', value: currentStats.disk, color: '#52c41a' },
+            { label: '负载', value: currentStats.load, color: '#faad14' },
+            { label: '入站', value: currentStats.rx, color: '#1890ff' },
+            { label: '出站', value: currentStats.tx, color: '#13c2c2' },
+          ].map((s) => (
+            <Col key={s.label} xs={12} sm={8} md={4}>
+              <div style={{
+                textAlign: 'center', padding: '10px 8px',
+                background: s.color + '10', borderRadius: 8,
+                border: `1px solid ${s.color}30`,
+              }}>
+                <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', marginBottom: 2 }}>{s.label}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: s.color }}>{s.value}</div>
+              </div>
+            </Col>
+          ))}
+        </Row>
+      )}
+
       {!hostUUID ? (
-        <Empty description="请选择主机" />
-      ) : loading ? (
-        <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />
+        <Empty description="请选择主机" style={{ margin: '80px 0' }} />
+      ) : loading && metrics.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '100px 0' }}>
+          <Spin size="large" />
+        </div>
       ) : metrics.length === 0 ? (
-        <Empty description="暂无监控数据" />
+        <Empty description="暂无监控数据" style={{ margin: '80px 0' }} />
       ) : (
-        <Space direction="vertical" style={{ width: '100%' }} size={16}>
-          <Button onClick={() => {
-            const header = 'timestamp,cpu_percent,mem_percent,mem_used,mem_total,disk_used,disk_total,net_rx_bps,net_tx_bps,load1\n';
-            const lines = metrics.map((d) => [
-              d.timestamp, d.cpu_percent, d.mem_percent, d.mem_used, d.mem_total,
-              d.disk_used, d.disk_total, d.net_rx_bps, d.net_tx_bps, d.load1,
-            ].join(',')).join('\n');
-            const blob = new Blob([header + lines], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'metrics.csv';
-            a.click();
-            URL.revokeObjectURL(url);
-          }}>导出监控数据 CSV</Button>
-          <Row gutter={[16, 16]}>
-            <Col xs={24} md={12}><Card><ReactECharts option={cpuOption} style={{ height: 280 }} /></Card></Col>
-            <Col xs={24} md={12}><Card><ReactECharts option={memOption} style={{ height: 280 }} /></Card></Col>
-            <Col xs={24} md={12}><Card><ReactECharts option={loadOption} style={{ height: 280 }} /></Card></Col>
-            <Col xs={24} md={12}><Card><ReactECharts option={netOption} style={{ height: 280 }} /></Card></Col>
-          </Row>
-        </Space>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={12}>
+            <Card
+              style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+              title={<Space><LineChartOutlined style={{ color: '#667eea' }} /><span>CPU 使用率</span></Space>}
+            >
+              <ReactECharts option={cpuOption} style={{ height: 260 }} />
+            </Card>
+          </Col>
+          <Col xs={24} md={12}>
+            <Card
+              style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+              title={<Space><LineChartOutlined style={{ color: '#764ba2' }} /><span>内存使用率</span></Space>}
+            >
+              <ReactECharts option={memOption} style={{ height: 260 }} />
+            </Card>
+          </Col>
+          <Col xs={24} md={12}>
+            <Card
+              style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+              title={<Space><LineChartOutlined style={{ color: '#faad14' }} /><span>系统负载</span></Space>}
+            >
+              <ReactECharts option={loadOption} style={{ height: 260 }} />
+            </Card>
+          </Col>
+          <Col xs={24} md={12}>
+            <Card
+              style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+              title={<Space><LineChartOutlined style={{ color: '#52c41a' }} /><span>网络流量</span></Space>}
+            >
+              <ReactECharts option={netOption} style={{ height: 260 }} />
+            </Card>
+          </Col>
+        </Row>
       )}
     </div>
   );

@@ -79,39 +79,128 @@ export default function MainLayout() {
         breakpoint="lg"
         collapsedWidth={isMobile ? 0 : 80}
         width={220}
+        style={{
+          background: dark ? '#0d1117' : 'linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)',
+          transition: 'background 0.3s ease',
+          boxShadow: '2px 0 12px rgba(0,0,0,0.15)',
+        }}
       >
-        <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <h1 style={{ color: '#fff', margin: 0, fontSize: collapsed ? 16 : 20 }}>
-            {collapsed ? 'MS' : 'MSMP'}
-          </h1>
+        {/* Logo area */}
+        <div style={{
+          height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(102,126,234,0.4)',
+            }}>
+              <DesktopOutlined style={{ color: '#fff', fontSize: 18 }} />
+            </div>
+            {!collapsed && (
+              <span style={{
+                color: '#fff', fontSize: 18, fontWeight: 700, letterSpacing: 1.5,
+                textShadow: '0 2px 8px rgba(102,126,234,0.5)',
+              }}>
+                MSMP
+              </span>
+            )}
+          </div>
         </div>
+
+        {/* Navigation */}
         <Menu
           theme="dark"
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            paddingTop: 8,
+          }}
         />
       </Sider>
+
       <Layout>
-        <Header style={{ background: dark ? '#141414' : '#fff', padding: isMobile ? '0 12px' : '0 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Header style={{
+          background: dark ? '#141414' : '#fff',
+          padding: isMobile ? '0 12px' : '0 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: dark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #f0f0f0',
+          boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.04)',
+          transition: 'all 0.3s ease',
+        }}>
           <Space>
             <Button
               type="text"
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed(!collapsed)}
+              style={{ color: dark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.65)' }}
             />
+            <span style={{
+              fontSize: 14, fontWeight: 500,
+              color: dark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.45)',
+            }}>
+              {menuItems.find(m => m.key === location.pathname)?.label || 'MSMP'}
+            </span>
+          </Space>
+          <Space size={8}>
             <Button
               type="text"
               icon={dark ? <BulbFilled /> : <BulbOutlined />}
               onClick={toggle}
+              style={{ color: dark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.65)' }}
             />
+            <Dropdown menu={userMenu} placement="bottomRight">
+              <Space
+                style={{
+                  cursor: 'pointer', padding: '4px 10px',
+                  borderRadius: 8, border: dark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #e8e8e8',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8,
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontSize: 13, fontWeight: 600,
+                }}>
+                  {(user?.username || 'U').charAt(0).toUpperCase()}
+                </div>
+                <span style={{
+                  color: dark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)',
+                  fontSize: 13,
+                }}>
+                  {user?.username}
+                </span>
+              </Space>
+            </Dropdown>
           </Space>
-          <Dropdown menu={userMenu}>
-            <Button type="text" icon={<UserOutlined />}>{user?.username}</Button>
-          </Dropdown>
         </Header>
-        <Content style={{ margin: isMobile ? 8 : 24, padding: isMobile ? 12 : 24, background: dark ? '#141414' : '#fff', borderRadius: 8, minHeight: 280 }}>
+
+        <Content style={{
+          margin: isMobile ? 8 : 24,
+          padding: isMobile ? 12 : 24,
+          background: dark ? '#1a1d23' : '#fff',
+          borderRadius: 12,
+          minHeight: 280,
+          boxShadow: dark ? '0 2px 12px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.04)',
+          transition: 'all 0.3s ease',
+        }}>
           <Outlet />
         </Content>
       </Layout>

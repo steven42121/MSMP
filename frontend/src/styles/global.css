@@ -5,62 +5,195 @@ body,
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
-    'Hiragino Sans GB',     'Microsoft YaHei', Arial, sans-serif;
+    'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
   background: #f0f2f5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body.msmp-dark,
 .msmp-dark #root {
-  background: #141414;
+  background: #0e1117;
 }
 
-.msmp-logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 64px;
-  color: #fff;
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  background: rgba(255, 255, 255, 0.08);
+* {
+  box-sizing: border-box;
 }
 
-.msmp-logo.collapsed {
-  font-size: 14px;
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-.msmp-content {
-  margin: 16px;
-  padding: 20px;
-  background: #fff;
-  border-radius: 8px;
-  min-height: calc(100vh - 64px - 32px);
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.msmp-page-header {
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+.msmp-dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.ant-layout {
+  transition: all 0.3s ease;
+}
+
+.ant-card {
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+.ant-statistic-title {
+  font-size: 13px !important;
+  color: rgba(0, 0, 0, 0.45) !important;
+}
+
+.msmp-dark .ant-statistic-title {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.ant-statistic-content {
+  font-size: 28px !important;
+  font-weight: 600 !important;
+}
+
+.ant-table-thead > tr > th {
+  font-weight: 600 !important;
+  background: #fafafa !important;
+}
+
+.msmp-dark .ant-table-thead > tr > th {
+  background: #1a1d23 !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.ant-table-row:hover > td {
+  background: #fafafa !important;
+}
+
+.msmp-dark .ant-table-row:hover > td {
+  background: #1a1d23 !important;
+}
+
+.ant-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.ant-menu-item-selected {
+  background: rgba(22, 119, 255, 0.2) !important;
+}
+
+.ant-menu-inline.collapsed > .ant-menu-item,
+.ant-menu-inline-collapsed > .ant-menu-item {
+  text-align: center !important;
+  padding: 0 !important;
+}
+
+.ant-menu-inline-collapsed > .ant-menu-item span.ant-menu-title-content {
+  display: none;
+}
+
+.ant-menu-inline-collapsed > .ant-menu-item {
+  padding: 0 20px !important;
+}
+
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
-.msmp-tag-online {
-  color: #52c41a;
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.85);
+  margin: 0;
 }
 
-.msmp-tag-offline {
-  color: #ff4d4f;
+.msmp-dark .page-title {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  animation: pulse 2s infinite;
+}
+
+.status-dot.online { background: #52c41a; }
+.status-dot.offline { background: #ff4d4f; }
+.status-dot.pending { background: #faad14; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+.gradient-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: #fff !important;
+}
+
+.gradient-card .ant-card-head,
+.gradient-card .ant-card-body {
+  color: #fff !important;
+}
+
+.gradient-card .ant-statistic-title {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.gradient-card .ant-statistic-content-value {
+  color: #fff !important;
+}
+
+/* ECharts 主题适配 */
+.ant-card .echarts-for-react {
+  border-radius: 4px;
+}
+
+/* 页面过渡 */
+.ant-layout-content {
+  animation: fadeInUp 0.3s ease;
 }
 
 @media (max-width: 768px) {
   .ant-table-cell {
-    font-size: 13px;
+    font-size: 12px;
   }
   .ant-layout-content {
     overflow-x: hidden;
   }
-  h2 {
-    font-size: 18px;
+  h2, .page-title {
+    font-size: 16px;
+  }
+  .ant-statistic-content {
+    font-size: 22px !important;
   }
 }
