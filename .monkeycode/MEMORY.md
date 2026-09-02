@@ -90,3 +90,15 @@ Entries discovered by the Agent during task execution should follow this format:
   - AI Chat 页面支持工具提案和审批 UI：frontend/src/pages/AIChat.jsx
   - 危险操作（execute_command, check_service, view_logs）需要用户审批才能执行
   - 安全操作（list_hosts, get_host_status, get_recent_alerts, generate_report）可直接执行
+
+[Project Knowledge Summary]
+- Date: 2026-09-02
+- Context: Implemented fluid liquid glass effect with mouse tracking
+- Category: Build Methods
+- Instructions:
+  - 液态玻璃效果通过 CSS 变量 --glow-x/--glow-y 动态控制高光位置
+  - useGlobalMouseTracker hook 在 document 级别跟踪鼠标，更新 :root 变量
+  - 所有 .liquid-glass 元素自动响应鼠标移动
+  - glass-fluid 层使用 conic-gradient 旋转动画模拟液体光线折射
+  - Dark mode 高光带蓝色氛围光 (rgba(90, 130, 255))
+  - LiquidGlass 组件提供 per-card 鼠标跟踪（可选）
