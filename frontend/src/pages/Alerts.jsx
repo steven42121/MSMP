@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Table, Card, Tag, Space, Select, Button, Input, Popconfirm, InputNumber, message } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { Table, Card, Tag, Space, Select, Button, Input, Popconfirm, InputNumber, message, Typography } from 'antd';
+import { ReloadOutlined, AlertOutlined, SearchOutlined, BellOutlined, PauseOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import client from '../api/client';
+
+const { Text } = Typography;
 
 const levelColor = {
   critical: 'red',
@@ -46,7 +48,6 @@ export default function Alerts() {
   useEffect(() => { loadHosts(); }, []);
   useEffect(() => { load(); }, [load]);
 
-  // 自动刷新（30 秒）
   useEffect(() => {
     const timer = setInterval(load, 30000);
     return () => clearInterval(timer);
@@ -72,42 +73,69 @@ export default function Alerts() {
   };
 
   const columns = [
-    { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
+    { title: 'ID', dataIndex: 'id', key: 'id', width: 70, render: (v) => <Text type="secondary">{v}</Text> },
     {
       title: '主机', dataIndex: 'host_id', key: 'host',
-      render: (id) => hostMap[id]?.hostname || (id ? `#${id}` : '-'),
+      render: (id) => {
+        const h = hostMap[id];
+        return h ? (
+          <Space>
+            <span style={{ fontWeight: 500 }}>{h.hostname}</span>
+            <Text type="secondary" style={{ fontSize: 12 }}>{h.ip}</Text>
+          </Space>
+          ) : (id ? <Text type="secondary">#{id}</Text> : <Text type="secondary">-</Text>);
+      },
     },
     {
-      title: '类型', dataIndex: 'type', key: 'type',
-      render: (v) => <Tag>{typeLabel[v] || v}</Tag>,
+      title: '类型', dataIndex: 'type', key: 'type', width: 90,
+      render: (v) => <Tag style={{ borderRadius: 4, padding: '1px 8px' }}>{typeLabel[v] || v}</Tag>,
     },
     {
-      title: '级别', dataIndex: 'level', key: 'level',
-      render: (l) => <Tag color={levelColor[l] || 'default'}>{l}</Tag>,
-    },
-    { title: '消息', dataIndex: 'message', key: 'message', ellipsis: true },
-    {
-      title: '状态', dataIndex: 'acknowledged', key: 'acknowledged',
-      render: (v, r) => v ? <Tag color="green">已确认</Tag> : (r.silenced_until ? <Tag color="orange">静音中</Tag> : <Tag color="red">未处理</Tag>),
-    },
-    {
-      title: '时间', dataIndex: 'created_at', key: 'created_at',
-      render: (t) => dayjs(t).format('YYYY-MM-DD HH:mm:ss'),
+      title: '级别', dataIndex: 'level', key: 'level', width: 80,
+      render: (l) => (
+        <Tag
+          color={levelColor[l]}
+          style={{ borderRadius: 4, padding: '2px 8px', fontWeight: 600, textTransform: 'uppercase', fontSize: 11 }}
+        >
+          {l || '-'}
+        </Tag>
+      ),
     },
     {
-      title: '操作', key: 'action', width: 180,
+      title: '消息', dataIndex: 'message', key: 'message',
+      render: (v) => <Text style={{ maxWidth: 360, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v || '-'}</Text>,
+    },
+    {
+      title: '状态', dataIndex: 'acknowledged', key: 'acknowledged', width: 100,
+      render: (v, r) => {
+        if (v) return <Tag color="green" style={{ borderRadius: 4, padding: '2px 8px' }}>已确认</Tag>;
+        if (r.silenced_until) return <Tag color="orange" style={{ borderRadius: 4, padding: '2px 8px' }}>静音中</Tag>;
+        return <Tag color="red" style={{ borderRadius: 4, padding: '2px 8px' }}>未处理</Tag>;
+      },
+    },
+    {
+      title: '时间', dataIndex: 'created_at', key: 'created_at', width: 170,
+      render: (t) => (
+        <Space direction="vertical" size={0}>
+          <Text style={{ fontSize: 12 }}>{dayjs(t).format('YYYY-MM-DD')}</Text>
+          <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(t).format('HH:mm:ss')}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: '操作', key: 'action', width: 120,
       render: (_, r) => (
-        <Space>
+        <Space size={4} wrap>
           {!r.acknowledged && (
             <Popconfirm title="确认该告警？" onConfirm={() => handleAck(r.id)}>
-              <Button type="link" size="small">确认</Button>
+              <Button type="link" size="small" icon={<AlertOutlined />}>确认</Button>
             </Popconfirm>
           )}
           <Popconfirm title="静音多少分钟？" icon={null} onConfirm={(e) => {
             const m = window.prompt('静音分钟数', '60');
             if (m) handleSilence(r.id, parseInt(m, 10));
           }}>
-            <Button type="link" size="small">静音</Button>
+            <Button type="link" size="small" icon={<PauseOutlined />}>静音</Button>
           </Popconfirm>
         </Space>
       ),
@@ -116,13 +144,19 @@ export default function Alerts() {
 
   return (
     <div>
-      <h2>告警</h2>
-      <Card style={{ marginBottom: 16 }}>
-        <Space wrap>
+      <div className="page-header" style={{ marginBottom: 20 }}>
+        <div>
+          <div className="page-title">告警管理</div>
+          <Text type="secondary" style={{ fontSize: 13 }}>实时监控告警事件，支持确认与静音操作</Text>
+        </div>
+      </div>
+
+      <Card style={{ marginBottom: 16, borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        <Space wrap size={12}>
           <Select
             placeholder="级别筛选"
             allowClear
-            style={{ width: 140 }}
+            style={{ width: 130 }}
             value={level || undefined}
             onChange={(v) => { setLevel(v || ''); setPage(1); }}
             options={[
@@ -136,15 +170,15 @@ export default function Alerts() {
             allowClear
             showSearch
             optionFilterProp="label"
-            style={{ width: 260 }}
+            style={{ width: 240 }}
             value={hostID || undefined}
             onChange={(v) => { setHostID(v || ''); setPage(1); }}
             options={hosts.map((h) => ({ value: String(h.id), label: `${h.hostname} (${h.ip})` }))}
           />
           <Select
-            placeholder="状态筛选"
+            placeholder="处理状态"
             allowClear
-            style={{ width: 140 }}
+            style={{ width: 130 }}
             value={ack || undefined}
             onChange={(v) => { setAck(v || ''); setPage(1); }}
             options={[
@@ -152,23 +186,30 @@ export default function Alerts() {
               { value: 'true', label: '已确认' },
             ]}
           />
-          <Button icon={<ReloadOutlined />} onClick={load}>刷新</Button>
+          <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>刷新</Button>
         </Space>
       </Card>
-      <Table
-        columns={columns}
-        dataSource={data}
-        rowKey="id"
-        loading={loading}
-        scroll={{ x: 'max-content' }}
-        pagination={{
-          current: page,
-          pageSize,
-          total,
-          showSizeChanger: true,
-          onChange: (p, ps) => { setPage(p); setPageSize(ps); },
-        }}
-      />
+
+      <Card style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        <Table
+          columns={columns}
+          dataSource={data}
+          rowKey="id"
+          loading={loading}
+          scroll={{ x: 'max-content' }}
+          size="middle"
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            showTotal: (t) => `共 ${t} 条告警`,
+            onChange: (p, ps) => { setPage(p); setPageSize(ps); },
+          }}
+          locale={{ emptyText: <Text type="secondary">暂无告警数据</Text> }}
+        />
+      </Card>
     </div>
   );
 }

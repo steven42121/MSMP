@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Table, Button, Input, Space, Tag, Select, Popconfirm, message, Modal, Form, Typography } from 'antd';
-import { ReloadOutlined, PlusOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Space, Tag, Select, Popconfirm, message, Modal, Form, Typography, Card } from 'antd';
+import { ReloadOutlined, PlusOutlined, DesktopOutlined, SearchOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
+
+const { Text } = Typography;
 
 function exportCSV(rows, columns, filename) {
   const header = columns.map((c) => c.title).join(',');
@@ -109,9 +111,7 @@ export default function HostList() {
       await client.delete(`/hosts/${uuid}`);
       message.success('已删除');
       load();
-    } catch (e) {
-      // handled by interceptor
-    }
+    } catch (e) {}
   };
 
   const handleBatchDelete = async () => {
@@ -126,24 +126,36 @@ export default function HostList() {
   const columns = [
     {
       title: '主机名', dataIndex: 'hostname', key: 'hostname',
-      render: (t, r) => <Button type="link" onClick={() => navigate(`/hosts/${r.uuid}`)}>{t}</Button>,
+      render: (t, r) => (
+        <Button type="link" style={{ fontWeight: 600 }} onClick={() => navigate(`/hosts/${r.uuid}`)}>{t || '-'}</Button>
+      ),
     },
-    { title: '操作系统', dataIndex: 'os', key: 'os', render: (v, r) => `${v || ''} ${r.os_version || ''}` },
-    { title: 'IP', dataIndex: 'ip', key: 'ip' },
-    { title: 'CPU', dataIndex: 'cpu_model', key: 'cpu_model', render: (v, r) => v ? `${v} (${r.cpu_cores}核)` : '-' },
+    {
+      title: '操作系统', dataIndex: 'os', key: 'os',
+      render: (v, r) => <Text style={{ fontSize: 12 }}>{v || '-'} {r.os_version ? `(${r.os_version})` : ''}</Text>,
+    },
+    { title: 'IP', dataIndex: 'ip', key: 'ip', render: (v) => <Text code style={{ fontSize: 12 }}>{v || '-'}</Text> },
+    {
+      title: 'CPU', dataIndex: 'cpu_model', key: 'cpu_model',
+      render: (v, r) => v ? `${v} (${r.cpu_cores}核)` : '-',
+    },
     { title: '内存', dataIndex: 'memory_total', key: 'memory_total', render: formatBytes },
     { title: '磁盘', dataIndex: 'disk_total', key: 'disk_total', render: formatBytes },
     {
       title: '状态', dataIndex: 'status', key: 'status',
-      render: (s) => <Tag color={statusColor[s] || 'default'}>{s || 'unknown'}</Tag>,
+      render: (s) => {
+        const dotClass = s === 'online' ? 'status-dot online' : s === 'pending' ? 'status-dot pending' : 'status-dot offline';
+        const label = s === 'online' ? '在线' : s === 'pending' ? '待接入' : '离线';
+        return <span className={dotClass}>{label}</span>;
+      },
     },
     {
       title: '操作', key: 'action',
       render: (_, record) => (
-        <Space>
-          <Button type="link" onClick={() => navigate(`/hosts/${record.uuid}`)}>详情</Button>
+        <Space size={4}>
+          <Button type="link" size="small" icon={<DesktopOutlined />} onClick={() => navigate(`/hosts/${record.uuid}`)}>详情</Button>
           <Popconfirm title="确认删除该主机？" onConfirm={() => handleDelete(record.uuid)}>
-            <Button type="link" danger>删除</Button>
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>删除</Button>
           </Popconfirm>
         </Space>
       ),
@@ -152,83 +164,118 @@ export default function HostList() {
 
   return (
     <div>
-      <h2>主机资产列表</h2>
-      <Space style={{ marginBottom: 16 }} wrap>
-        <Input.Search
-          placeholder="主机名或IP"
-          allowClear
-          style={{ width: 240 }}
-          onSearch={(v) => { setKeyword(v); setPage(1); }}
-        />
-        <Space>
-          <Tag.CheckableTag checked={status === ''} onChange={() => { setStatus(''); setPage(1); }}>全部</Tag.CheckableTag>
-          <Tag.CheckableTag checked={status === 'online'} onChange={() => { setStatus('online'); setPage(1); }}>在线</Tag.CheckableTag>
-          <Tag.CheckableTag checked={status === 'offline'} onChange={() => { setStatus('offline'); setPage(1); }}>离线</Tag.CheckableTag>
+      <div className="page-header" style={{ marginBottom: 20 }}>
+        <div>
+          <div className="page-title">主机资产列表</div>
+          <Text type="secondary" style={{ fontSize: 13 }}>共 {total} 台主机</Text>
+        </div>
+      </div>
+
+      {/* Filter bar */}
+      <Card style={{ marginBottom: 16, borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        <Space wrap size={12}>
+          <Input.Search
+            placeholder="搜索主机名或IP"
+            allowClear
+            style={{ width: 220 }}
+            prefix={<SearchOutlined style={{ color: 'rgba(0,0,0,0.3)' }} />}
+            onSearch={(v) => { setKeyword(v); setPage(1); }}
+            onChange={(e) => { if (e.target.value === '') { setKeyword(''); setPage(1); } }}
+          />
+          <Space size={4}>
+            {['', 'online', 'offline'].map((s) => (
+              <Tag.CheckableTag
+                key={s}
+                checked={status === s}
+                onChange={() => { setStatus(s); setPage(1); }}
+                style={{ borderRadius: 6, border: '1px solid', borderColor: status === s ? (s === 'online' ? '#52c41a' : '#ff4d4f') : 'rgba(0,0,0,0.15)' }}
+              >
+                {s === '' ? '全部' : s === 'online' ? '在线' : '离线'}
+              </Tag.CheckableTag>
+            ))}
+          </Space>
+          <Select
+            placeholder="操作系统"
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            style={{ width: 200 }}
+            value={osFilter || undefined}
+            onChange={(v) => { setOsFilter(v || ''); setPage(1); }}
+            options={osOptions}
+            suffixIcon={<DesktopOutlined />}
+          />
+          <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>刷新</Button>
+          <Button icon={<DownloadOutlined />} onClick={() => exportCSV(data, [
+            { title: '主机名', dataIndex: 'hostname' },
+            { title: '操作系统', dataIndex: 'os' },
+            { title: 'IP', dataIndex: 'ip' },
+            { title: 'CPU', dataIndex: 'cpu_model' },
+            { title: '内存', dataIndex: 'memory_total' },
+            { title: '磁盘', dataIndex: 'disk_total' },
+            { title: '状态', dataIndex: 'status' },
+          ], 'hosts.csv')}>导出</Button>
+          {selectedIDs.length > 0 && (
+            <Popconfirm title={`确认删除选中的 ${selectedIDs.length} 台主机？`} onConfirm={handleBatchDelete}>
+              <Button danger icon={<DeleteOutlined />}>批量删除 ({selectedIDs.length})</Button>
+            </Popconfirm>
+          )}
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setCreateOpen(true); setCreatedToken(null); }} style={{ marginLeft: 'auto', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', border: 'none' }}>
+            添加主机
+          </Button>
         </Space>
-        <Select
-          placeholder="操作系统"
-          allowClear
-          showSearch
-          optionFilterProp="label"
-          style={{ width: 200 }}
-          value={osFilter || undefined}
-          onChange={(v) => { setOsFilter(v || ''); setPage(1); }}
-          options={osOptions}
+      </Card>
+
+      {/* Table */}
+      <Card style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        <Table
+          columns={columns}
+          dataSource={data}
+          rowKey="id"
+          loading={loading}
+          scroll={{ x: 'max-content' }}
+          size="middle"
+          rowSelection={{
+            onChange: (_, rows) => setSelectedIDs(rows.map((r) => r.id)),
+            preserveSelectedRowKeys: false,
+          }}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            showTotal: (t) => `共 ${t} 台`,
+            onChange: (p, ps) => { setPage(p); setPageSize(ps); },
+          }}
+          locale={{ emptyText: <Text type="secondary">暂无主机数据</Text> }}
         />
-        <Button icon={<ReloadOutlined />} onClick={load}>刷新</Button>
-        <Button onClick={() => exportCSV(data, [
-          { title: '主机名', dataIndex: 'hostname' },
-          { title: '操作系统', dataIndex: 'os' },
-          { title: 'IP', dataIndex: 'ip' },
-          { title: 'CPU', dataIndex: 'cpu_model' },
-          { title: '内存', dataIndex: 'memory_total' },
-          { title: '磁盘', dataIndex: 'disk_total' },
-          { title: '状态', dataIndex: 'status' },
-        ], 'hosts.csv')}>导出 CSV</Button>
-        {selectedIDs.length > 0 && (
-          <Popconfirm
-            title={`确认删除选中的 ${selectedIDs.length} 台主机？`}
-            onConfirm={handleBatchDelete}
-          >
-            <Button danger>批量删除 ({selectedIDs.length})</Button>
-          </Popconfirm>
-        )}
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setCreateOpen(true); setCreatedToken(null); }}>添加主机</Button>
-      </Space>
-      <Table
-        columns={columns}
-        dataSource={data}
-        rowKey="id"
-        loading={loading}
-        scroll={{ x: 'max-content' }}
-        rowSelection={{
-          onChange: (_, rows) => setSelectedIDs(rows.map((r) => r.id)),
-          preserveSelectedRowKeys: false,
-        }}
-        pagination={{
-          current: page,
-          pageSize,
-          total,
-          showSizeChanger: true,
-          onChange: (p, ps) => { setPage(p); setPageSize(ps); },
-        }}
-      />
+      </Card>
+
       <Modal
-        title="添加主机"
+        title={
+          <Space>
+            <PlusOutlined style={{ color: '#667eea' }} />
+            <span>添加主机</span>
+          </Space>
+        }
         open={createOpen}
         onCancel={() => setCreateOpen(false)}
         onOk={handleCreate}
         confirmLoading={submitting}
         okText="添加"
         okButtonProps={{ disabled: !!createdToken }}
+        styles={{ body: { paddingTop: 16 } }}
       >
         {createdToken ? (
-          <Space direction="vertical" style={{ width: '100%' }}>
-            <Typography.Paragraph type="success">主机已创建，请在目标机器上使用以下 Agent Token 注册：</Typography.Paragraph>
-            <Typography.Paragraph copyable code style={{ background: '#f5f5f5', padding: 8 }}>
-              {createdToken}
-            </Typography.Paragraph>
-          </Space>
+          <div style={{ padding: '8px 0' }}>
+            <Text type="secondary">主机已创建，请在目标机器上使用以下 Agent Token 注册：</Text>
+            <div style={{ marginTop: 12, padding: '12px 16px', background: '#f6f8fa', borderRadius: 8, border: '1px solid #e8e8e8' }}>
+              <Text copyable code style={{ fontSize: 13, wordBreak: 'break-all' }}>
+                {createdToken}
+              </Text>
+            </div>
+          </div>
         ) : (
           <Form form={form} layout="vertical">
             <Form.Item name="hostname" label="主机名" rules={[{ required: true, message: '请输入主机名' }]}>

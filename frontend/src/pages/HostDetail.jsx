@@ -366,8 +366,23 @@ export default function HostDetail() {
 
   return (
     <div>
-      <h2>{host.hostname}</h2>
-      <Tabs activeKey={activeKey} onChange={setActiveKey} items={items} />
+      <div className="page-header" style={{ marginBottom: 16 }}>
+        <Space>
+          <Button type="link" style={{ padding: 0, fontSize: 13, color: 'rgba(0,0,0,0.45)' }} onClick={() => navigate(-1)}>← 返回</Button>
+          <div className="page-title">{host.hostname}</div>
+          <Tag color={host.status === 'online' ? 'green' : 'red'} style={{ borderRadius: 20, padding: '2px 12px', fontWeight: 600 }}>
+            {host.status === 'online' ? '在线' : '离线'}
+          </Tag>
+        </Space>
+        <Text type="secondary" style={{ fontSize: 12 }}>UUID: {host.uuid} &nbsp;|&nbsp; {host.ip}</Text>
+      </div>
+      <Tabs
+        activeKey={activeKey}
+        onChange={setActiveKey}
+        items={items}
+        size="large"
+        style={{ marginTop: -8 }}
+      />
 
       <Modal
         title="添加采集渠道"
