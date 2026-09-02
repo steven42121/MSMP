@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Form, Input, InputNumber, Button, Descriptions, Typography, Space, message } from 'antd';
+import { Card, Form, Input, InputNumber, Button, Descriptions, Typography, Space, Tag, message } from 'antd';
 import { UserOutlined, SettingOutlined, LockOutlined, BellOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../store/auth';
 import client from '../api/client';
@@ -66,7 +66,8 @@ export default function Settings() {
       </div>
 
       <Card
-        style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginBottom: 16 }}
+          style={{ borderRadius: 16, border: 'none', boxShadow: 'none', marginBottom: 16 }}
+          className="glass glass-card"
         title={<Space><UserOutlined style={{ color: '#667eea' }} /><span>账户信息</span></Space>}
       >
         <Descriptions column={{ xs: 1, sm: 2 }} bordered size="middle">
@@ -81,7 +82,8 @@ export default function Settings() {
 
       {user?.role === 'admin' && (
         <Card
-          style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginBottom: 16 }}
+        style={{ borderRadius: 16, border: 'none', boxShadow: 'none', marginBottom: 16 }}
+        className="glass glass-card"
           title={<Space><BellOutlined style={{ color: '#faad14' }} /><span>通知与监控</span></Space>}
         >
           <Form form={sysForm} layout="vertical" style={{ maxWidth: 480 }} onFinish={handleSaveSystem}>
@@ -99,7 +101,8 @@ export default function Settings() {
       )}
 
       <Card
-        style={{ borderRadius: 12, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+        style={{ borderRadius: 16, border: 'none', boxShadow: 'none' }}
+        className="glass glass-card"
         title={<Space><LockOutlined style={{ color: '#52c41a' }} /><span>修改密码</span></Space>}
       >
         <Form form={pwdForm} layout="vertical" style={{ maxWidth: 480 }} onFinish={handleChangePassword}>

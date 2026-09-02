@@ -71,7 +71,10 @@ export default function MainLayout() {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', position: 'relative' }}>
+      {/* 背景光晕 */}
+      <div className="glow-orb primary" />
+      <div className="glow-orb secondary" />
       <Sider
         trigger={null}
         collapsible

@@ -42,6 +42,115 @@ body.msmp-dark,
   transition: all 0.3s ease;
 }
 
+/* ---- 液态玻璃效果 ---- */
+.glass {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.05) 40%,
+    rgba(255, 255, 255, 0.02) 100%
+  ) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+}
+
+.msmp-dark .glass {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.02) 50%,
+    rgba(0, 0, 0, 0.1) 100%
+  ) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.glass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 100%
+  );
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* 卡片玻璃悬停 */
+.glass-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+.msmp-dark .glass-card:hover {
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+/* 背景光晕装饰 */
+.glow-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  animation: orbFloat 12s ease-in-out infinite;
+}
+
+.glow-orb.primary {
+  width: 400px;
+  height: 400px;
+  background: rgba(102, 126, 234, 0.15);
+  top: -100px;
+  right: -100px;
+}
+
+.glow-orb.secondary {
+  width: 300px;
+  height: 300px;
+  background: rgba(118, 75, 162, 0.12);
+  bottom: -50px;
+  left: -50px;
+  animation-delay: -4s;
+  animation-duration: 15s;
+}
+
+.msmp-dark .glow-orb.primary {
+  background: rgba(102, 126, 234, 0.08);
+}
+
+.msmp-dark .glow-orb.secondary {
+  background: rgba(118, 75, 162, 0.06);
+}
+
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
 .ant-card {
   transition: box-shadow 0.3s ease, transform 0.2s ease;
 }
@@ -181,6 +290,8 @@ body.msmp-dark,
 /* 页面过渡 */
 .ant-layout-content {
   animation: fadeInUp 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 
 @media (max-width: 768px) {
