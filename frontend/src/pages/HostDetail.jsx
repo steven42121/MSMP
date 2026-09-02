@@ -311,7 +311,7 @@ export default function HostDetail() {
           </Space>
           {channels.length === 0 ? (
             <Typography.Text type="secondary">
-              暂无采集渠道。当主机无法安装 Agent 时，可配置 SSH / Windows Admin Center / 宝塔面板渠道远程采集指标。
+              暂无采集渠道。当主机无法安装 Agent 时，可配置 SSH / Windows Admin Center / 宝塔面板 / Prometheus / SNMP / WinRM 渠道远程采集指标。
             </Typography.Text>
           ) : (
             <Table
@@ -320,7 +320,7 @@ export default function HostDetail() {
               dataSource={channels}
               pagination={false}
               columns={[
-                { title: '类型', dataIndex: 'type', key: 'type', width: 100, render: (v) => <Tag color={v === 'ssh' ? 'blue' : v === 'wac' ? 'purple' : 'green'}>{v}</Tag> },
+                { title: '类型', dataIndex: 'type', key: 'type', width: 130, render: (v) => <Tag color={v === 'ssh' ? 'blue' : v === 'wac' ? 'purple' : v === 'baota' ? 'green' : v === 'prometheus' ? 'cyan' : v === 'snmp' ? 'orange' : 'magenta'}>{v}</Tag> },
                 { title: '地址', dataIndex: 'address', key: 'address' },
                 { title: '接入方式', dataIndex: 'auth_mode', key: 'auth_mode', width: 120 },
                 { title: '优先级', dataIndex: 'priority', key: 'priority', width: 80 },
@@ -385,11 +385,14 @@ export default function HostDetail() {
                 { value: 'ssh', label: 'SSH（Linux 远程命令）' },
                 { value: 'wac', label: 'Windows Admin Center' },
                 { value: 'baota', label: '宝塔面板' },
+                { value: 'prometheus', label: 'Prometheus / Node Exporter' },
+                { value: 'snmp', label: 'SNMP（网络设备）' },
+                { value: 'winrm', label: 'WinRM（Windows 远程管理）' },
               ]}
             />
           </Form.Item>
           <Form.Item name="address" label="地址" rules={[{ required: true, message: '地址必填' }]}>
-            <Input placeholder="SSH: 10.0.0.1:22  /  WAC/宝塔: https://host:port" />
+              <Input placeholder="SSH: 10.0.0.1:22  /  其余: https://host:port 或 host:port" />
           </Form.Item>
           <Form.Item shouldUpdate noStyle>
             {(f) => f.getFieldValue('type') === 'ssh' ? (
@@ -408,6 +411,34 @@ export default function HostDetail() {
                   options={[
                     { value: 'api_key', label: 'API Key 直连' },
                     { value: 'gateway', label: '面板引导生成' },
+                  ]}
+                />
+              </Form.Item>
+            ) : f.getFieldValue('type') === 'snmp' ? (
+              <Form.Item name="auth_mode" label="SNMP 版本" rules={[{ required: true }]}>
+                <Select
+                  options={[
+                    { value: 'community', label: 'Community V2c' },
+                    { value: 'v3', label: 'SNMPv3（用户认证）' },
+                  ]}
+                />
+              </Form.Item>
+            ) : f.getFieldValue('type') === 'prometheus' ? (
+              <Form.Item name="auth_mode" label="认证方式" rules={[{ required: true }]}>
+                <Select
+                  options={[
+                    { value: 'none', label: '无需认证' },
+                    { value: 'basic', label: 'Basic Auth（用户名:密码）' },
+                    { value: 'bearer', label: 'Bearer Token' },
+                  ]}
+                />
+              </Form.Item>
+            ) : f.getFieldValue('type') === 'winrm' ? (
+              <Form.Item name="auth_mode" label="认证方式" rules={[{ required: true }]}>
+                <Select
+                  options={[
+                    { value: 'basic', label: 'Basic 认证' },
+                    { value: 'ntlm', label: 'NTLM 认证' },
                   ]}
                 />
               </Form.Item>

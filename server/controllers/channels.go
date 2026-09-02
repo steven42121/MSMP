@@ -30,6 +30,9 @@ func initCollectors() {
 		channelReg.Register(&collectors.SSHChannel{})
 		channelReg.Register(&collectors.WACChannel{})
 		channelReg.Register(&collectors.BaoTaChannel{})
+		channelReg.Register(&collectors.PrometheusChannel{})
+		channelReg.Register(&collectors.SNMPChannel{})
+		channelReg.Register(&collectors.WinRMChannel{})
 		if config.C != nil && config.C.Security.CredentialKey != "" {
 			credService, credInitErr = services.NewCredentialService(config.C)
 		}
@@ -79,7 +82,7 @@ func ChannelsCreateHandler(w http.ResponseWriter, r *http.Request, host models.H
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "type, address, auth_mode are required"})
 		return
 	}
-	if req.Type != "ssh" && req.Type != "wac" && req.Type != "baota" {
+	if req.Type != "ssh" && req.Type != "wac" && req.Type != "baota" && req.Type != "prometheus" && req.Type != "snmp" && req.Type != "winrm" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unsupported channel type"})
 		return
 	}
