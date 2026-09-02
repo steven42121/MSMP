@@ -151,7 +151,7 @@ export default function Alerts() {
         </div>
       </div>
 
-      <Card className="glass glass-card" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
+      <Card className="liquid-glass" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
         <Space wrap size={12}>
           <Select
             placeholder="级别筛选"
@@ -190,7 +190,7 @@ export default function Alerts() {
         </Space>
       </Card>
 
-      <Card className="glass glass-card" style={{ borderRadius: 16, border: 'none' }}>
+      <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}>
         <Table
           columns={columns}
           dataSource={data}

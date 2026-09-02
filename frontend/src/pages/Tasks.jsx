@@ -148,7 +148,7 @@ export default function Tasks() {
         </div>
       </div>
 
-      <Card className="glass glass-card" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
+      <Card className="liquid-glass" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
         <Space wrap size={12}>
           <Select
             placeholder="状态筛选"
@@ -171,7 +171,7 @@ export default function Tasks() {
         </Space>
       </Card>
 
-      <Card className="glass glass-card" style={{ borderRadius: 16, border: 'none' }}>
+      <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}>
         <Table
           columns={columns}
           dataSource={data}

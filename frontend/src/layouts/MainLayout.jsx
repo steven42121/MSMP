@@ -71,10 +71,11 @@ export default function MainLayout() {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh', position: 'relative' }}>
-      {/* 背景光晕 */}
-      <div className="glow-orb primary" />
-      <div className="glow-orb secondary" />
+    <Layout style={{ minHeight: '100vh', position: 'relative', background: dark ? '#000' : '#f2f2f7' }}>
+      {/* iOS 环境光晕 */}
+      <div className="ambient-orb orb-a" />
+      <div className="ambient-orb orb-b" />
+      <div className="ambient-orb orb-c" />
       <Sider
         trigger={null}
         collapsible
@@ -83,31 +84,39 @@ export default function MainLayout() {
         collapsedWidth={isMobile ? 0 : 80}
         width={220}
         style={{
-          background: dark ? '#0d1117' : 'linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)',
-          transition: 'background 0.3s ease',
-          boxShadow: '2px 0 12px rgba(0,0,0,0.15)',
+          background: dark
+            ? 'linear-gradient(180deg, rgba(28,28,30,0.97) 0%, rgba(18,18,20,0.97) 100%)'
+            : 'linear-gradient(180deg, rgba(245,245,247,0.97) 0%, rgba(238,238,242,0.97) 100%)',
+          backdropFilter: 'saturate(180%) blur(20px)',
+          'webkit-backdrop-filter': 'saturate(180%) blur(20px)',
+          transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+          borderRight: dark ? '0.5px solid rgba(255,255,255,0.08)' : '0.5px solid rgba(0,0,0,0.06)',
         }}
       >
         {/* Logo area */}
         <div style={{
           height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          borderBottom: dark ? '0.5px solid rgba(255,255,255,0.06)' : '0.5px solid rgba(0,0,0,0.05)',
         }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
           }}>
             <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              width: 34, height: 34, borderRadius: 9,
+              background: dark
+                ? 'linear-gradient(135deg, rgba(100,140,255,0.9) 0%, rgba(160,80,255,0.9) 100%)'
+                : 'linear-gradient(135deg, #5e7cff 0%, #8b5cf6 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(102,126,234,0.4)',
+              boxShadow: dark
+                ? '0 2px 12px rgba(100,140,255,0.3), inset 0 0.5px 0 rgba(255,255,255,0.2)'
+                : '0 2px 12px rgba(94,124,255,0.35), inset 0 0.5px 0 rgba(255,255,255,0.5)',
             }}>
-              <DesktopOutlined style={{ color: '#fff', fontSize: 18 }} />
+              <DesktopOutlined style={{ color: '#fff', fontSize: 16 }} />
             </div>
             {!collapsed && (
               <span style={{
-                color: '#fff', fontSize: 18, fontWeight: 700, letterSpacing: 1.5,
-                textShadow: '0 2px 8px rgba(102,126,234,0.5)',
+                color: dark ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.88)',
+                fontSize: 17, fontWeight: 700, letterSpacing: 1.2,
               }}>
                 MSMP
               </span>
@@ -117,7 +126,7 @@ export default function MainLayout() {
 
         {/* Navigation */}
         <Menu
-          theme="dark"
+          theme={dark ? 'dark' : 'light'}
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
@@ -125,68 +134,89 @@ export default function MainLayout() {
           style={{
             background: 'transparent',
             border: 'none',
-            paddingTop: 8,
+            paddingTop: 4,
           }}
         />
       </Sider>
 
       <Layout>
         <Header style={{
-          background: dark ? '#141414' : '#fff',
+          background: dark
+            ? 'linear-gradient(180deg, rgba(20,20,22,0.95) 0%, rgba(16,16,18,0.95) 100%)'
+            : 'linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(248,248,250,0.85) 100%)',
+          backdropFilter: 'saturate(180%) blur(20px)',
+          'webkit-backdrop-filter': 'saturate(180%) blur(20px)',
           padding: isMobile ? '0 12px' : '0 24px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderBottom: dark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #f0f0f0',
-          boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.04)',
-          transition: 'all 0.3s ease',
+          borderBottom: dark ? '0.5px solid rgba(255,255,255,0.07)' : '0.5px solid rgba(0,0,0,0.06)',
+          transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
         }}>
           <Space>
             <Button
               type="text"
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed(!collapsed)}
-              style={{ color: dark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.65)' }}
+              style={{
+                color: dark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)',
+                borderRadius: 8,
+                minWidth: 32,
+                height: 32,
+              }}
             />
             <span style={{
-              fontSize: 14, fontWeight: 500,
-              color: dark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.45)',
+              fontSize: 13, fontWeight: 500,
+              color: dark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.4)',
+              letterSpacing: 0.2,
             }}>
               {menuItems.find(m => m.key === location.pathname)?.label || 'MSMP'}
             </span>
           </Space>
-          <Space size={8}>
+          <Space size={6}>
             <Button
               type="text"
               icon={dark ? <BulbFilled /> : <BulbOutlined />}
               onClick={toggle}
-              style={{ color: dark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.65)' }}
+              style={{
+                color: dark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.55)',
+                borderRadius: 8,
+                minWidth: 32,
+                height: 32,
+              }}
             />
             <Dropdown menu={userMenu} placement="bottomRight">
               <Space
                 style={{
-                  cursor: 'pointer', padding: '4px 10px',
-                  borderRadius: 8, border: dark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #e8e8e8',
-                  transition: 'all 0.2s ease',
+                  cursor: 'pointer', padding: '3px 8px 3px 4px',
+                  borderRadius: 10,
+                  border: dark ? '0.5px solid rgba(255,255,255,0.1)' : '0.5px solid rgba(0,0,0,0.08)',
+                  background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
+                  transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+                  e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
+                  e.currentTarget.style.borderColor = dark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.14)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)';
+                  e.currentTarget.style.borderColor = dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
                 }}
               >
                 <div style={{
-                  width: 28, height: 28, borderRadius: 8,
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  width: 26, height: 26, borderRadius: 7,
+                  background: dark
+                    ? 'linear-gradient(135deg, #648cff 0%, #a050ff 100%)'
+                    : 'linear-gradient(135deg, #5e7cff 0%, #8b5cf6 100%)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: 13, fontWeight: 600,
+                  color: '#fff', fontSize: 12, fontWeight: 700,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
                 }}>
                   {(user?.username || 'U').charAt(0).toUpperCase()}
                 </div>
                 <span style={{
-                  color: dark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.85)',
-                  fontSize: 13,
+                  color: dark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)',
+                  fontSize: 13, fontWeight: 500,
                 }}>
                   {user?.username}
                 </span>
@@ -196,13 +226,23 @@ export default function MainLayout() {
         </Header>
 
         <Content style={{
-          margin: isMobile ? 8 : 24,
+          margin: isMobile ? 8 : 20,
           padding: isMobile ? 12 : 24,
-          background: dark ? '#1a1d23' : '#fff',
-          borderRadius: 12,
+          background: dark
+            ? 'linear-gradient(160deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)'
+            : 'linear-gradient(160deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.4) 100%)',
+          backdropFilter: 'saturate(180%) blur(20px)',
+          'webkit-backdrop-filter': 'saturate(180%) blur(20px)',
+          borderRadius: 20,
           minHeight: 280,
-          boxShadow: dark ? '0 2px 12px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.04)',
-          transition: 'all 0.3s ease',
+          border: dark
+            ? '0.5px solid rgba(255,255,255,0.08)'
+            : '0.5px solid rgba(255,255,255,0.7)',
+          borderTop: dark ? '0.5px solid rgba(255,255,255,0.14)' : '0.5px solid rgba(255,255,255,0.8)',
+          boxShadow: dark
+            ? '0 2px 16px rgba(0,0,0,0.4), 0 8px 40px rgba(0,0,0,0.3), inset 0 0.5px 0 rgba(255,255,255,0.06)'
+            : '0 2px 16px rgba(0,0,0,0.06), 0 8px 40px rgba(0,0,0,0.06), inset 0 0.5px 0 rgba(255,255,255,0.8)',
+          transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
         }}>
           <Outlet />
         </Content>

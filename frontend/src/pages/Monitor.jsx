@@ -158,7 +158,7 @@ export default function Monitor() {
       </div>
 
       {/* Controls */}
-      <Card className="glass glass-card" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
+      <Card className="liquid-glass" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
         <Space wrap>
           <Select
             showSearch
@@ -235,28 +235,28 @@ export default function Monitor() {
       ) : (
         <Row gutter={[16, 16]}>
           <Col xs={24} md={12}>
-            <Card className="glass glass-card" style={{ borderRadius: 16, border: 'none' }}
+            <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
               title={<Space><LineChartOutlined style={{ color: '#667eea' }} /><span>CPU 使用率</span></Space>}
             >
               <ReactECharts option={cpuOption} style={{ height: 260 }} />
             </Card>
           </Col>
           <Col xs={24} md={12}>
-            <Card className="glass glass-card" style={{ borderRadius: 16, border: 'none' }}
+            <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
               title={<Space><LineChartOutlined style={{ color: '#764ba2' }} /><span>内存使用率</span></Space>}
             >
               <ReactECharts option={memOption} style={{ height: 260 }} />
             </Card>
           </Col>
           <Col xs={24} md={12}>
-            <Card className="glass glass-card" style={{ borderRadius: 16, border: 'none' }}
+            <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
               title={<Space><LineChartOutlined style={{ color: '#faad14' }} /><span>系统负载</span></Space>}
             >
               <ReactECharts option={loadOption} style={{ height: 260 }} />
             </Card>
           </Col>
           <Col xs={24} md={12}>
-            <Card className="glass glass-card" style={{ borderRadius: 16, border: 'none' }}
+            <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
               title={<Space><LineChartOutlined style={{ color: '#52c41a' }} /><span>网络流量</span></Space>}
             >
               <ReactECharts option={netOption} style={{ height: 260 }} />

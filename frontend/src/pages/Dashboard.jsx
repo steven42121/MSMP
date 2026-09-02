@@ -167,17 +167,15 @@ export default function Dashboard() {
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {statCards.map((card) => (
           <Col key={card.value} xs={12} sm={12} md={6}>
-          <Card
-            className="glass glass-card"
-            style={{ borderRadius: 16, border: 'none', transition: 'transform 0.2s ease, box-shadow 0.2s ease', cursor: 'default' }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+            <Card
+              className="liquid-glass"
+              style={{ borderRadius: 20, border: 'none', cursor: 'default' }}
             >
               <Statistic
                 title={
                   <Space>
                     <span style={{ color: card.color }}>{card.icon}</span>
-                    <span>{card.title}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{card.title}</span>
                   </Space>
                 }
                 value={stats[card.value]}
@@ -191,12 +189,12 @@ export default function Dashboard() {
       {/* Charts row */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} md={12}>
-          <Card className="glass glass-card" style={{ borderRadius: 16, border: 'none' }}>
+          <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}>
             <ReactECharts option={statusOption} style={{ height: 260 }} />
           </Card>
         </Col>
         <Col xs={24} md={12}>
-          <Card className="glass glass-card" style={{ borderRadius: 16, border: 'none' }}
+          <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
             title={
               <Space>
                 <AlertOutlined style={{ color: '#faad14' }} />
@@ -231,14 +229,14 @@ export default function Dashboard() {
       {/* OS distribution */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} md={12}>
-          <Card className="glass glass-card" style={{ borderRadius: 16, border: 'none' }}>
+          <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}>
             <ReactECharts option={osOption} style={{ height: 260 }} />
           </Card>
         </Col>
       </Row>
 
       {/* Host table */}
-      <Card className="glass glass-card" style={{ borderRadius: 16, border: 'none' }}
+      <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
         title={
           <Space>
             <DesktopOutlined style={{ color: '#667eea' }} />

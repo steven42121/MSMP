@@ -4,16 +4,16 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
-  background: #f0f2f5;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI',
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  background: #f2f2f7;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 body.msmp-dark,
 .msmp-dark #root {
-  background: #0e1117;
+  background: #000000;
 }
 
 * {
@@ -30,7 +30,7 @@ body.msmp-dark,
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.12);
   border-radius: 3px;
 }
 
@@ -39,133 +39,201 @@ body.msmp-dark,
 }
 
 .ant-layout {
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ---- 液态玻璃效果 ---- */
-.glass {
+/* ============================================================
+   iOS Liquid Glass — Light Mode
+   ============================================================ */
+.liquid-glass {
+  position: relative;
   background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.05) 40%,
-    rgba(255, 255, 255, 0.02) 100%
-  ) !important;
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    160deg,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 255, 255, 0.38) 40%,
+    rgba(255, 255, 255, 0.18) 100%
+  );
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 0.5px solid rgba(255, 255, 255, 0.65);
+  border-top: 0.5px solid rgba(255, 255, 255, 0.9);
+  border-left: 0.5px solid rgba(255, 255, 255, 0.5);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -0.5px 0 rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.msmp-dark .glass {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.06) 0%,
-    rgba(255, 255, 255, 0.02) 50%,
-    rgba(0, 0, 0, 0.1) 100%
-  ) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
-}
-
-.glass::before {
+/* 顶部高光条纹 — iOS 玻璃反光 */
+.liquid-glass::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 50%;
+  height: 45%;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.12) 60%,
     transparent 100%
   );
   border-radius: inherit;
   pointer-events: none;
 }
 
-/* 卡片玻璃悬停 */
-.glass-card {
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+/* 右侧柔光 */
+.liquid-glass::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  border-radius: inherit;
+  pointer-events: none;
 }
 
-.glass-card:hover {
-  transform: translateY(-2px);
+.liquid-glass:hover {
+  transform: translateY(-2px) scale(1.002);
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    0 4px 16px rgba(0, 0, 0, 0.06),
+    0 12px 48px rgba(0, 0, 0, 0.08),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -0.5px 0 rgba(255, 255, 255, 0.25);
 }
 
-.msmp-dark .glass-card:hover {
+/* ============================================================
+   iOS Liquid Glass — Dark Mode
+   ============================================================ */
+.msmp-dark .liquid-glass {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.04) 40%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.1);
+  border-top-color: rgba(255, 255, 255, 0.18);
+  border-left-color: rgba(255, 255, 255, 0.06);
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.3);
 }
 
-/* 背景光晕装饰 */
-.glow-orb {
+.msmp-dark .liquid-glass::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    transparent 60%
+  );
+}
+
+.msmp-dark .liquid-glass::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.03) 50%,
+    rgba(255, 255, 255, 0.06) 100%
+  );
+}
+
+.msmp-dark .liquid-glass:hover {
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    0 12px 48px rgba(0, 0, 0, 0.5),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================================
+   背景光晕
+   ============================================================ */
+.ambient-orb {
   position: fixed;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(100px);
   pointer-events: none;
   z-index: 0;
-  animation: orbFloat 12s ease-in-out infinite;
 }
 
-.glow-orb.primary {
+.ambient-orb.orb-a {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(100, 140, 255, 0.18) 0%, transparent 70%);
+  top: -120px;
+  right: -80px;
+  animation: orbDriftA 18s ease-in-out infinite;
+}
+
+.ambient-orb.orb-b {
   width: 400px;
   height: 400px;
-  background: rgba(102, 126, 234, 0.15);
-  top: -100px;
-  right: -100px;
+  background: radial-gradient(circle, rgba(160, 80, 255, 0.15) 0%, transparent 70%);
+  bottom: -80px;
+  left: -60px;
+  animation: orbDriftB 22s ease-in-out infinite;
 }
 
-.glow-orb.secondary {
-  width: 300px;
-  height: 300px;
-  background: rgba(118, 75, 162, 0.12);
-  bottom: -50px;
-  left: -50px;
-  animation-delay: -4s;
-  animation-duration: 15s;
+.ambient-orb.orb-c {
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(60, 220, 180, 0.12) 0%, transparent 70%);
+  top: 50%;
+  left: 45%;
+  animation: orbDriftC 15s ease-in-out infinite 3s;
 }
 
-.msmp-dark .glow-orb.primary {
-  background: rgba(102, 126, 234, 0.08);
+.msmp-dark .ambient-orb.orb-a {
+  background: radial-gradient(circle, rgba(80, 120, 255, 0.10) 0%, transparent 70%);
 }
 
-.msmp-dark .glow-orb.secondary {
-  background: rgba(118, 75, 162, 0.06);
+.msmp-dark .ambient-orb.orb-b {
+  background: radial-gradient(circle, rgba(130, 60, 255, 0.08) 0%, transparent 70%);
 }
 
-@keyframes orbFloat {
+.msmp-dark .ambient-orb.orb-c {
+  background: radial-gradient(circle, rgba(40, 200, 160, 0.06) 0%, transparent 70%);
+}
+
+@keyframes orbDriftA {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -20px) scale(1.05); }
-  66% { transform: translate(-20px, 20px) scale(0.95); }
+  50% { transform: translate(-40px, 30px) scale(1.1); }
 }
 
-.ant-card {
-  transition: box-shadow 0.3s ease, transform 0.2s ease;
+@keyframes orbDriftB {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -40px) scale(1.08); }
 }
 
-.ant-card:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+@keyframes orbDriftC {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, -25px) scale(1.05); }
+  66% { transform: translate(-15px, 15px) scale(0.95); }
 }
 
+/* ============================================================
+   基础排版 & 组件
+   ============================================================ */
 .ant-statistic-title {
   font-size: 13px !important;
   color: rgba(0, 0, 0, 0.45) !important;
 }
 
 .msmp-dark .ant-statistic-title {
-  color: rgba(255, 255, 255, 0.45) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
 }
 
 .ant-statistic-content {
@@ -175,28 +243,30 @@ body.msmp-dark,
 
 .ant-table-thead > tr > th {
   font-weight: 600 !important;
-  background: #fafafa !important;
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
 
 .msmp-dark .ant-table-thead > tr > th {
-  background: #1a1d23 !important;
-  color: rgba(255, 255, 255, 0.85) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
 
 .ant-table-row:hover > td {
-  background: #fafafa !important;
+  background: rgba(0, 0, 0, 0.02) !important;
 }
 
 .msmp-dark .ant-table-row:hover > td {
-  background: #1a1d23 !important;
+  background: rgba(255, 255, 255, 0.04) !important;
 }
 
 .ant-menu-item:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
 }
 
 .ant-menu-item-selected {
-  background: rgba(22, 119, 255, 0.2) !important;
+  background: rgba(100, 140, 255, 0.2) !important;
 }
 
 .ant-menu-inline.collapsed > .ant-menu-item,
@@ -216,95 +286,232 @@ body.msmp-dark,
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: baseline;
   margin-bottom: 20px;
 }
 
 .page-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.85);
+  font-size: 22px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.88);
   margin: 0;
+  letter-spacing: -0.3px;
 }
 
 .msmp-dark .page-title {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .status-dot {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  margin-right: 6px;
-  animation: pulse 2s infinite;
+  margin-right: 5px;
+  animation: pulse 2s ease-in-out infinite;
 }
 
-.status-dot.online { background: #52c41a; }
-.status-dot.offline { background: #ff4d4f; }
-.status-dot.pending { background: #faad14; }
+.status-dot.online  { background: #34c759; box-shadow: 0 0 6px rgba(52,199,89,0.5); }
+.status-dot.offline { background: #ff3b30; box-shadow: 0 0 6px rgba(255,59,48,0.4); }
+.status-dot.pending { background: #ff9f0a; box-shadow: 0 0 6px rgba(255,159,10,0.4); }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(0.88); }
 }
 
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .fade-in-up {
-  animation: fadeInUp 0.4s ease forwards;
+  animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-.gradient-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  color: #fff !important;
-}
-
-.gradient-card .ant-card-head,
-.gradient-card .ant-card-body {
-  color: #fff !important;
-}
-
-.gradient-card .ant-statistic-title {
-  color: rgba(255, 255, 255, 0.8) !important;
-}
-
-.gradient-card .ant-statistic-content-value {
-  color: #fff !important;
-}
-
-/* ECharts 主题适配 */
+/* ECharts */
 .ant-card .echarts-for-react {
-  border-radius: 4px;
+  border-radius: 8px;
 }
 
-/* 页面过渡 */
+/* 页面内容淡入 */
 .ant-layout-content {
-  animation: fadeInUp 0.3s ease;
+  animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   z-index: 1;
 }
 
 @media (max-width: 768px) {
-  .ant-table-cell {
-    font-size: 12px;
-  }
-  .ant-layout-content {
-    overflow-x: hidden;
-  }
-  h2, .page-title {
-    font-size: 16px;
-  }
-  .ant-statistic-content {
-    font-size: 22px !important;
-  }
+  .ant-table-cell { font-size: 12px; }
+  .ant-layout-content { overflow-x: hidden; }
+  h2, .page-title { font-size: 17px; }
+  .ant-statistic-content { font-size: 22px !important; }
+}
+
+/* ============================================================
+   Ant Design 深色模式组件适配
+   ============================================================ */
+.msmp-dark .ant-input,
+.msmp-dark .ant-input-password input {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.msmp-dark .ant-input::placeholder { color: rgba(255, 255, 255, 0.3) !important; }
+.msmp-dark .ant-input:focus,
+.msmp-dark .ant-input-password input:focus {
+  border-color: rgba(100, 140, 255, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(100, 140, 255, 0.15) !important;
+}
+
+.msmp-dark .ant-input-affix-wrapper {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.msmp-dark .ant-input-affix-wrapper input { background: transparent !important; }
+
+.msmp-dark .ant-select-selector {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.msmp-dark .ant-select-focused .ant-select-selector {
+  border-color: rgba(100, 140, 255, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(100, 140, 255, 0.15) !important;
+}
+
+.msmp-dark .ant-select-arrow { color: rgba(255, 255, 255, 0.4) !important; }
+
+.msmp-dark .ant-select-dropdown {
+  background: rgba(28, 28, 30, 0.96) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(20px);
+}
+
+.msmp-dark .ant-select-item { color: rgba(255, 255, 255, 0.8) !important; }
+.msmp-dark .ant-select-item-option-selected {
+  background: rgba(100, 140, 255, 0.15) !important;
+  color: rgba(100, 140, 255, 0.9) !important;
+}
+
+.msmp-dark .ant-btn {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.msmp-dark .ant-btn-default {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.msmp-dark .ant-btn-default:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.msmp-dark .ant-btn-text { color: rgba(255, 255, 255, 0.6) !important; }
+.msmp-dark .ant-btn-text:hover { background: rgba(255, 255, 255, 0.06) !important; }
+
+.msmp-dark .ant-tag {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.msmp-dark .ant-modal {
+  background: rgba(20, 20, 22, 0.96) !important;
+  backdrop-filter: blur(20px);
+}
+
+.msmp-dark .ant-modal-content {
+  background: rgba(20, 20, 22, 0.96) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.msmp-dark .ant-modal-header {
+  background: transparent !important;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.msmp-dark .ant-modal-title { color: rgba(255, 255, 255, 0.9) !important; }
+.msmp-dark .ant-modal-close { color: rgba(255, 255, 255, 0.5) !important; }
+.msmp-dark .ant-modal-close:hover { color: rgba(255, 255, 255, 0.8) !important; }
+
+.msmp-dark .ant-descriptions-title { color: rgba(255, 255, 255, 0.85) !important; }
+.msmp-dark .ant-descriptions-item-label { color: rgba(255, 255, 255, 0.5) !important; }
+.msmp-dark .ant-descriptions-item-content { color: rgba(255, 255, 255, 0.85) !important; }
+.msmp-dark .ant-descriptions-bordered .ant-descriptions-item {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+.msmp-dark .ant-descriptions-bordered .ant-descriptions-item-label {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.msmp-dark .ant-form-item-label > label { color: rgba(255, 255, 255, 0.7) !important; }
+.msmp-dark .ant-form-item-explain { color: rgba(255, 80, 80, 0.8) !important; }
+
+.msmp-dark .ant-divider { border-color: rgba(255, 255, 255, 0.06) !important; }
+
+.msmp-dark .ant-list-split .ant-list-item { border-bottom-color: rgba(255, 255, 255, 0.06) !important; }
+
+.msmp-dark .ant-pagination-item {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.msmp-dark .ant-pagination-item:hover {
+  border-color: rgba(100, 140, 255, 0.5) !important;
+  color: rgba(100, 140, 255, 0.9) !important;
+}
+
+.msmp-dark .ant-pagination-item-active {
+  background: rgba(100, 140, 255, 0.2) !important;
+  border-color: rgba(100, 140, 255, 0.5) !important;
+  color: rgba(100, 140, 255, 0.9) !important;
+}
+
+.msmp-dark .ant-pagination-disabled { color: rgba(255, 255, 255, 0.2) !important; }
+
+.msmp-dark .ant-popover-content {
+  background: rgba(20, 20, 22, 0.96) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.msmp-dark .ant-popover-inner { background: rgba(20, 20, 22, 0.96) !important; }
+.msmp-dark .ant-popover-title { color: rgba(255, 255, 255, 0.85) !important; }
+
+.msmp-dark .ant-switch:not(.ant-switch-checked) {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.msmp-dark .ant-spin-dot-item { background: rgba(100, 140, 255, 0.8) !important; }
+
+.msmp-dark .ant-empty-description { color: rgba(255, 255, 255, 0.35) !important; }
+.msmp-dark .ant-empty img { filter: brightness(0.8) invert(0.6); }
+
+/* Ant Design 默认主题色覆盖（苹果蓝） */
+.ant-btn-primary,
+.ant-btn-primary:not(:disabled):not(.ant-btn-disabled):hover {
+  background: linear-gradient(135deg, #5e7cff 0%, #8b5cf6 100%) !important;
+  border-color: transparent !important;
+  box-shadow: 0 2px 8px rgba(94, 124, 255, 0.3) !important;
+}
+
+.msmp-dark .ant-btn-primary {
+  background: linear-gradient(135deg, #648cff 0%, #a050ff 100%) !important;
+  box-shadow: 0 2px 12px rgba(100, 140, 255, 0.35) !important;
+}
+
+.ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #5e7cff !important;
+  border-color: #5e7cff !important;
+}
+
+.msmp-dark .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #648cff !important;
+  border-color: #648cff !important;
 }

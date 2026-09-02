@@ -67,7 +67,7 @@ export default function Settings() {
 
       <Card
           style={{ borderRadius: 16, border: 'none', boxShadow: 'none', marginBottom: 16 }}
-          className="glass glass-card"
+          className="liquid-glass"
         title={<Space><UserOutlined style={{ color: '#667eea' }} /><span>账户信息</span></Space>}
       >
         <Descriptions column={{ xs: 1, sm: 2 }} bordered size="middle">
@@ -83,7 +83,7 @@ export default function Settings() {
       {user?.role === 'admin' && (
         <Card
         style={{ borderRadius: 16, border: 'none', boxShadow: 'none', marginBottom: 16 }}
-        className="glass glass-card"
+        className="liquid-glass"
           title={<Space><BellOutlined style={{ color: '#faad14' }} /><span>通知与监控</span></Space>}
         >
           <Form form={sysForm} layout="vertical" style={{ maxWidth: 480 }} onFinish={handleSaveSystem}>
@@ -102,7 +102,7 @@ export default function Settings() {
 
       <Card
         style={{ borderRadius: 16, border: 'none', boxShadow: 'none' }}
-        className="glass glass-card"
+        className="liquid-glass"
         title={<Space><LockOutlined style={{ color: '#52c41a' }} /><span>修改密码</span></Space>}
       >
         <Form form={pwdForm} layout="vertical" style={{ maxWidth: 480 }} onFinish={handleChangePassword}>

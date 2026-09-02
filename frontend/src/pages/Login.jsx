@@ -95,12 +95,8 @@ export default function Login() {
         </div>
 
         {/* 登录卡片 */}
-        <Card style={{
-          borderRadius: 16,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(12px)',
-          background: 'rgba(255,255,255,0.06)',
+        <Card className="liquid-glass" style={{
+          borderRadius: 20,
         }}>
           <Form name="login" onFinish={onFinish} size="large" layout="vertical">
             <Form.Item
