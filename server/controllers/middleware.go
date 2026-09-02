@@ -55,6 +55,9 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			"/api/agents/heartbeat",
 			"/api/agents/assets",
 			"/api/agents/metrics",
+			"/api/cluster/info",
+			"/api/cluster/ping",
+			"/api/cluster/leader",
 		}
 		for _, pp := range publicPaths {
 			if path == pp {
