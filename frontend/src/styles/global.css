@@ -43,65 +43,73 @@ body.msmp-dark,
 }
 
 /* ============================================================
-   iOS Liquid Glass — Light Mode
+   iOS Liquid Glass v2 — Enhanced
    ============================================================ */
 .liquid-glass {
   position: relative;
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.72) 0%,
-    rgba(255, 255, 255, 0.38) 40%,
-    rgba(255, 255, 255, 0.18) 100%
-  );
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border: 0.5px solid rgba(255, 255, 255, 0.65);
-  border-top: 0.5px solid rgba(255, 255, 255, 0.9);
-  border-left: 0.5px solid rgba(255, 255, 255, 0.5);
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    0 8px 32px rgba(0, 0, 0, 0.06),
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -0.5px 0 rgba(255, 255, 255, 0.2);
   overflow: hidden;
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 顶部高光条纹 — iOS 玻璃反光 */
 .liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 0.5px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.1) 40%,
+    rgba(255, 255, 255, 0.02) 60%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.liquid-glass::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 45%;
+  height: 50%;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.55) 0%,
-    rgba(255, 255, 255, 0.12) 60%,
+    rgba(255, 255, 255, 0.25) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
     transparent 100%
   );
   border-radius: inherit;
   pointer-events: none;
+  z-index: 0;
 }
 
-/* 右侧柔光 */
-.liquid-glass::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 40%;
+/* Light Mode */
+.liquid-glass {
   background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.15) 50%,
-    rgba(255, 255, 255, 0.3) 100%
+    160deg,
+    rgba(255, 255, 255, 0.65) 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0.15) 100%
   );
-  border-radius: inherit;
-  pointer-events: none;
+  backdrop-filter: saturate(200%) blur(24px);
+  -webkit-backdrop-filter: saturate(200%) blur(24px);
+  border: 0.5px solid rgba(255, 255, 255, 0.6);
+  border-top: 0.5px solid rgba(255, 255, 255, 0.85);
+  border-left: 0.5px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    0 24px 60px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.15);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .liquid-glass:hover {
@@ -109,123 +117,129 @@ body.msmp-dark,
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.06),
     0 12px 48px rgba(0, 0, 0, 0.08),
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -0.5px 0 rgba(255, 255, 255, 0.25);
+    0 32px 64px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.2);
 }
 
-/* ============================================================
-   iOS Liquid Glass — Dark Mode
-   ============================================================ */
+/* Dark Mode */
 .msmp-dark .liquid-glass {
   background: linear-gradient(
     160deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.04) 40%,
-    rgba(255, 255, 255, 0.02) 100%
+    rgba(255, 255, 255, 0.07) 0%,
+    rgba(255, 255, 255, 0.035) 50%,
+    rgba(255, 255, 255, 0.015) 100%
   );
-  border-color: rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(255, 255, 255, 0.18);
-  border-left-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.09);
+  border-top-color: rgba(255, 255, 255, 0.16);
+  border-left-color: rgba(255, 255, 255, 0.05);
   box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -0.5px 0 rgba(0, 0, 0, 0.3);
-}
-
-.msmp-dark .liquid-glass::before {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.06) 0%,
-    transparent 60%
-  );
-}
-
-.msmp-dark .liquid-glass::after {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.03) 50%,
-    rgba(255, 255, 255, 0.06) 100%
-  );
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 24px 60px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
 }
 
 .msmp-dark .liquid-glass:hover {
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.4),
-    0 12px 48px rgba(0, 0, 0, 0.5),
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.14),
-    inset 0 -0.5px 0 rgba(0, 0, 0, 0.3);
+    0 4px 16px rgba(0, 0, 0, 0.45),
+    0 12px 48px rgba(0, 0, 0, 0.55),
+    0 32px 64px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
 }
 
 /* ============================================================
-   背景光晕
+   Animated Gradient Background
+   ============================================================ */
+.msmp-dark .ant-layout-content {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 20%, rgba(60, 40, 120, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(30, 60, 120, 0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 60% 40%, rgba(80, 40, 100, 0.06) 0%, transparent 60%),
+    linear-gradient(160deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%);
+}
+
+/* Light mode content area */
+.ant-layout-content {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 20%, rgba(100, 140, 255, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(160, 80, 255, 0.05) 0%, transparent 60%),
+    linear-gradient(160deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.3) 100%);
+}
+
+/* ============================================================
+   Ambient Orbs — More Vibrant
    ============================================================ */
 .ambient-orb {
   position: fixed;
   border-radius: 50%;
-  filter: blur(100px);
+  filter: blur(80px);
   pointer-events: none;
   z-index: 0;
 }
 
 .ambient-orb.orb-a {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(100, 140, 255, 0.18) 0%, transparent 70%);
-  top: -120px;
-  right: -80px;
-  animation: orbDriftA 18s ease-in-out infinite;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(100, 140, 255, 0.22) 0%, rgba(100, 140, 255, 0.05) 40%, transparent 70%);
+  top: -150px;
+  right: -100px;
+  animation: orbDriftA 20s ease-in-out infinite;
 }
 
 .ambient-orb.orb-b {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(160, 80, 255, 0.15) 0%, transparent 70%);
-  bottom: -80px;
-  left: -60px;
-  animation: orbDriftB 22s ease-in-out infinite;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(160, 80, 255, 0.18) 0%, rgba(160, 80, 255, 0.04) 40%, transparent 70%);
+  bottom: -100px;
+  left: -80px;
+  animation: orbDriftB 24s ease-in-out infinite;
 }
 
 .ambient-orb.orb-c {
-  width: 260px;
-  height: 260px;
-  background: radial-gradient(circle, rgba(60, 220, 180, 0.12) 0%, transparent 70%);
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(60, 220, 180, 0.14) 0%, rgba(60, 220, 180, 0.03) 40%, transparent 70%);
   top: 50%;
   left: 45%;
-  animation: orbDriftC 15s ease-in-out infinite 3s;
+  animation: orbDriftC 16s ease-in-out infinite 3s;
 }
 
 .msmp-dark .ambient-orb.orb-a {
-  background: radial-gradient(circle, rgba(80, 120, 255, 0.10) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(80, 120, 255, 0.14) 0%, rgba(80, 120, 255, 0.03) 40%, transparent 70%);
 }
 
 .msmp-dark .ambient-orb.orb-b {
-  background: radial-gradient(circle, rgba(130, 60, 255, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(130, 60, 255, 0.12) 0%, rgba(130, 60, 255, 0.03) 40%, transparent 70%);
 }
 
 .msmp-dark .ambient-orb.orb-c {
-  background: radial-gradient(circle, rgba(40, 200, 160, 0.06) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(40, 200, 160, 0.08) 0%, rgba(40, 200, 160, 0.02) 40%, transparent 70%);
 }
 
 @keyframes orbDriftA {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-40px, 30px) scale(1.1); }
+  25%      { transform: translate(-50px, 40px) scale(1.08); }
+  50%      { transform: translate(-30px, 60px) scale(1.12); }
+  75%      { transform: translate(20px, 30px) scale(1.05); }
 }
 
 @keyframes orbDriftB {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(30px, -40px) scale(1.08); }
+  33%      { transform: translate(40px, -50px) scale(1.1); }
+  66%      { transform: translate(20px, -30px) scale(0.95); }
 }
 
 @keyframes orbDriftC {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(20px, -25px) scale(1.05); }
-  66% { transform: translate(-15px, 15px) scale(0.95); }
+  33%      { transform: translate(25px, -30px) scale(1.08); }
+  66%      { transform: translate(-20px, 20px) scale(0.92); }
 }
 
 /* ============================================================
-   基础排版 & 组件
+   Base Typography & Layout
    ============================================================ */
 .ant-statistic-title {
   font-size: 13px !important;
@@ -334,7 +348,7 @@ body.msmp-dark,
   border-radius: 8px;
 }
 
-/* 页面内容淡入 */
+/* Page content fade-in */
 .ant-layout-content {
   animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -349,7 +363,7 @@ body.msmp-dark,
 }
 
 /* ============================================================
-   Ant Design 深色模式组件适配
+   Ant Design Dark Mode Overrides
    ============================================================ */
 .msmp-dark .ant-input,
 .msmp-dark .ant-input-password input {
@@ -493,7 +507,7 @@ body.msmp-dark,
 .msmp-dark .ant-empty-description { color: rgba(255, 255, 255, 0.35) !important; }
 .msmp-dark .ant-empty img { filter: brightness(0.8) invert(0.6); }
 
-/* Ant Design 默认主题色覆盖（苹果蓝） */
+/* Ant Design Primary Button — Apple Blue */
 .ant-btn-primary,
 .ant-btn-primary:not(:disabled):not(.ant-btn-disabled):hover {
   background: linear-gradient(135deg, #5e7cff 0%, #8b5cf6 100%) !important;
@@ -514,4 +528,203 @@ body.msmp-dark,
 .msmp-dark .ant-checkbox-checked .ant-checkbox-inner {
   background-color: #648cff !important;
   border-color: #648cff !important;
+}
+
+/* ============================================================
+   Liquid Glass Button Enhancement
+   ============================================================ */
+.glass-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    transparent 60%
+  );
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.msmp-dark .glass-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.msmp-dark .glass-btn:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* ============================================================
+   Liquid Glass Input Enhancement
+   ============================================================ */
+.glass-input {
+  background: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.glass-input:focus {
+  background: rgba(255, 255, 255, 0.65) !important;
+  border-color: rgba(100, 140, 255, 0.5) !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04), 0 0 0 2px rgba(100, 140, 255, 0.12) !important;
+}
+
+.msmp-dark .glass-input {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.msmp-dark .glass-input:focus {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(100, 140, 255, 0.5) !important;
+}
+
+.msmp-dark .glass-input::placeholder { color: rgba(255, 255, 255, 0.3) !important; }
+
+/* ============================================================
+   Stat Card Enhancement
+   ============================================================ */
+.stat-card-glass {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.25) 100%
+  ) !important;
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 0.5px solid rgba(255, 255, 255, 0.6) !important;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+}
+
+.msmp-dark .stat-card-glass {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  border-top-color: rgba(255, 255, 255, 0.14) !important;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+/* ============================================================
+   Message Bubble — AI Chat
+   ============================================================ */
+.msg-bubble-user {
+  background: linear-gradient(135deg, #5e7cff 0%, #8b5cf6 100%) !important;
+  box-shadow: 0 2px 12px rgba(94, 124, 255, 0.25);
+}
+
+.msg-bubble-assistant {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  ) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.msmp-dark .msg-bubble-assistant {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ============================================================
+   Tool Proposal Card
+   ============================================================ */
+.tool-proposal-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  ) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 0.5px solid rgba(255, 255, 255, 0.12) !important;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.tool-proposal-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    transparent 100%
+  );
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* ============================================================
+   Typing Indicator
+   ============================================================ */
+.typing-dots span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(100, 140, 255, 0.6);
+  margin: 0 2px;
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* ============================================================
+   Scrollbar for chat
+   ============================================================ */
+.chat-scroll::-webkit-scrollbar { width: 4px; }
+.chat-scroll::-webkit-scrollbar-track { background: transparent; }
+.chat-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+.chat-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }

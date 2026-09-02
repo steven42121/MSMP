@@ -106,6 +106,12 @@ func main() {
 	mux.HandleFunc("/api/ai/analyze-alert/", controllers.AIAnalyzeHandler)
 	mux.HandleFunc("/api/ai/generate-report", controllers.AIGenerateReportHandler)
 
+	// MCP 工具接口
+	mux.HandleFunc("/api/mcp/tools", controllers.RequireRole([]string{"admin"}, controllers.MCPToolsHandler))
+	mux.HandleFunc("/api/mcp/propose", controllers.MCPProposeHandler)
+	mux.HandleFunc("/api/mcp/approvals", controllers.MCPApprovalsHandler)
+	mux.HandleFunc("/api/mcp/approvals/", controllers.MCPApprovalActionHandler)
+
 	// 集群管理接口
 	mux.HandleFunc("/api/cluster/info", func(w http.ResponseWriter, r *http.Request) {
 		controllers.ClusterInfoHandler(w, r, clusterState)

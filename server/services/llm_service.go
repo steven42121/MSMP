@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -17,14 +18,42 @@ const (
 2. 回答关于系统运行状态的问题
 3. 根据指标数据生成运维报告
 4. 提供性能优化建议
+5. 在用户授权后执行运维操作（查看日志、检查进程、重启服务等）
 
 回答要求：
 - 使用中文回答
 - 内容简洁专业，避免冗余
 - 给出可操作的修复步骤
 - 必要时提供命令或配置建议
-- 涉及数据时引用具体数值`
+- 涉及数据时引用具体数值
+
+当你需要执行操作时（如查看日志、检查进程状态、重启服务等），使用 tool_calls 字段返回工具调用请求，等待用户审批后再执行。`
+
+	hostContextTemplate = `
+当前系统概况：
+- 在线主机：%d 台，离线：%d 台，待接入：%d 台
+- 近 24 小时告警：%d 条
+
+在线主机列表：%s`
+
+	alertContextTemplate = `
+告警上下文：
+- 主机名：%s (%s) OS: %s
+- 最近指标趋势：%s`
 )
+
+// ToolRequest 表示 AI 请求执行的一个工具调用
+type ToolRequest struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	ArgsJSON string `json:"arguments"`
+}
+
+// AIMessage 是 AI 响应的完整结构
+type AIMessage struct {
+	Reply     string        `json:"reply"`
+	ToolCalls []ToolRequest `json:"tool_calls,omitempty"`
+}
 
 // AnalyzeAlert 对指定告警进行 AI 根因分析
 func AnalyzeAlert(eventID uint, hostID uint) (string, error) {
@@ -85,8 +114,8 @@ func AnalyzeAlert(eventID uint, hostID uint) (string, error) {
 	return result, nil
 }
 
-// ChatQuery 处理用户的自然语言查询
-func ChatQuery(query string, tenantID uint) (string, error) {
+// ChatQuery 处理用户的自然语言查询，返回 AIMessage（含可能的工具调用）
+func ChatQuery(query string, tenantID uint) (*AIMessage, error) {
 	var online, offline, pending int64
 	db.DB.Model(&models.Host{}).Where("tenant_id = ? AND status = ?", tenantID, "online").Count(&online)
 	db.DB.Model(&models.Host{}).Where("tenant_id = ? AND status = ?", tenantID, "offline").Count(&offline)
@@ -109,14 +138,11 @@ func ChatQuery(query string, tenantID uint) (string, error) {
 		hostsInfo = strings.Join(parts, "\n")
 	}
 
-	context := fmt.Sprintf(`当前系统概况：
-- 在线主机：%d 台，离线：%d 台，待接入：%d 台
-- 近 24 小时告警：%d 条
-- 在线主机列表：%s`, online, offline, pending, alertCount, hostsInfo)
+	context := fmt.Sprintf(hostContextTemplate, online, offline, pending, alertCount, hostsInfo)
 
 	client := buildLLMClient()
 	if client == nil {
-		return "", fmt.Errorf("LLM 未配置，请在系统设置中配置 LLM 服务")
+		return &AIMessage{Reply: "LLM 未配置，请在系统设置中配置 LLM 服务"}, nil
 	}
 
 	result, err := client.Chat([]LLMMessage{
@@ -124,9 +150,14 @@ func ChatQuery(query string, tenantID uint) (string, error) {
 		{Role: "user", Content: query},
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return result, nil
+
+	msg := &AIMessage{Reply: result}
+	if parsed := parseToolCalls(result); len(parsed) > 0 {
+		msg.ToolCalls = parsed
+	}
+	return msg, nil
 }
 
 // GenerateReport 生成系统健康报告
@@ -184,6 +215,31 @@ func GenerateReport(tenantID uint) (string, error) {
 		return "", err
 	}
 	return result, nil
+}
+
+// parseToolCalls 从 LLM 返回文本中提取 tool_calls JSON 块
+func parseToolCalls(text string) []ToolRequest {
+	var calls []ToolRequest
+	start := strings.Index(text, `"tool_calls"`)
+	if start == -1 {
+		return calls
+	}
+	bracketStart := strings.Index(text[start:], "{")
+	if bracketStart == -1 {
+		return calls
+	}
+	bracketStart += start
+	end := strings.LastIndex(text, "}")
+	if end <= bracketStart {
+		return calls
+	}
+	var parsed struct {
+		ToolCalls []ToolRequest `json:"tool_calls"`
+	}
+	if err := json.Unmarshal([]byte(text[bracketStart:end+1]), &parsed); err != nil {
+		return calls
+	}
+	return parsed.ToolCalls
 }
 
 func buildLLMClient() *LLMClient {

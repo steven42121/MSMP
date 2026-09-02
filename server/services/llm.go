@@ -10,23 +10,36 @@ import (
 )
 
 type LLMClient struct {
-	BaseURL  string
-	APIKey   string
-	Model    string
-	Timeout  time.Duration
+	BaseURL    string
+	APIKey     string
+	Model      string
+	Timeout    time.Duration
 	httpClient *http.Client
 }
 
 type LLMMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role       string      `json:"role"`
+	Content    string      `json:"content"`
+	ToolCalls  []ToolCall  `json:"tool_calls,omitempty"`
+}
+
+type ToolCall struct {
+	ID       string          `json:"id"`
+	Type     string          `json:"type"`
+	Function ToolFunction    `json:"function"`
+}
+
+type ToolFunction struct {
+	Name      string          `json:"name"`
+	Arguments json.RawMessage `json:"arguments"`
 }
 
 type LLMResponse struct {
 	Choices []struct {
 		Message struct {
-			Role    string `json:"role"`
-			Content string `json:"content"`
+			Role      string     `json:"role"`
+			Content   string     `json:"content"`
+			ToolCalls []ToolCall `json:"tool_calls"`
 		} `json:"message"`
 	} `json:"choices"`
 	Error *struct {
@@ -50,8 +63,8 @@ func (c *LLMClient) Chat(messages []LLMMessage) (string, error) {
 	}
 
 	payload := map[string]interface{}{
-		"model": c.Model,
-		"messages": messages,
+		"model":       c.Model,
+		"messages":    messages,
 		"temperature": 0.7,
 	}
 
@@ -96,7 +109,16 @@ func (c *LLMClient) Chat(messages []LLMMessage) (string, error) {
 		return "", fmt.Errorf("LLM 返回空响应")
 	}
 
-	return llmResp.Choices[0].Message.Content, nil
+	msg := llmResp.Choices[0].Message
+	if len(msg.ToolCalls) > 0 {
+		// 将 tool_calls 序列化为文本嵌入回复中，由 parseToolCalls 提取
+		toolCallsJSON, _ := json.Marshal(map[string]interface{}{
+			"tool_calls": msg.ToolCalls,
+		})
+		return msg.Content + "\n\n```json\n" + string(toolCallsJSON) + "\n```", nil
+	}
+
+	return msg.Content, nil
 }
 
 func GetLLMConfig() (baseURL, apiKey, model string) {
