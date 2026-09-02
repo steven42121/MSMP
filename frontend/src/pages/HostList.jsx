@@ -3,6 +3,7 @@ import { Table, Button, Input, Space, Tag, Select, Popconfirm, message, Modal, F
 import { ReloadOutlined, PlusOutlined, DesktopOutlined, SearchOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
+import { useThemeStore } from '../store/theme';
 
 const { Text } = Typography;
 
@@ -59,6 +60,7 @@ function formatBytes(bytes) {
 
 export default function HostList() {
   const navigate = useNavigate();
+  const { dark } = useThemeStore();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -270,7 +272,7 @@ export default function HostList() {
         {createdToken ? (
           <div style={{ padding: '8px 0' }}>
             <Text type="secondary">主机已创建，请在目标机器上使用以下 Agent Token 注册：</Text>
-            <div style={{ marginTop: 12, padding: '12px 16px', background: '#f6f8fa', borderRadius: 8, border: '1px solid #e8e8e8' }}>
+            <div style={{ marginTop: 12, padding: '12px 16px', background: dark ? 'rgba(255,255,255,0.06)' : '#f6f8fa', borderRadius: 8, border: dark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e8e8e8' }}>
               <Text copyable code style={{ fontSize: 13, wordBreak: 'break-all' }}>
                 {createdToken}
               </Text>
