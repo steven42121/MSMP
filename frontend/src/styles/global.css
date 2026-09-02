@@ -43,14 +43,38 @@ body.msmp-dark,
 }
 
 /* ============================================================
-   iOS Liquid Glass v2 — Enhanced
+   iOS Liquid Glass — True Fluid Glass Effect
    ============================================================ */
+
+/* 基础玻璃容器 — 支持全局和局部鼠标跟踪 */
 .liquid-glass {
   position: relative;
   overflow: hidden;
+  /* CSS 变量：全局默认值 */
+  --glow-x: var(--mouse-x, 50%);
+  --glow-y: var(--mouse-y, 50%);
+  --glow-intensity: 0.6;
 }
 
+/* 动态高光层 — 跟随鼠标位置流动 */
 .liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at var(--glow-x) var(--glow-y),
+    rgba(255, 255, 255, calc(var(--glow-intensity) * 0.45)) 0%,
+    rgba(255, 255, 255, calc(var(--glow-intensity) * 0.12)) 20%,
+    transparent 55%
+  );
+  pointer-events: none;
+  z-index: 2;
+  transition: background 0.2s ease-out;
+}
+
+/* 边缘高光轮廓 */
+.liquid-glass::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -58,96 +82,132 @@ body.msmp-dark,
   padding: 0.5px;
   background: linear-gradient(
     160deg,
-    rgba(255, 255, 255, 0.8) 0%,
-    rgba(255, 255, 255, 0.1) 40%,
-    rgba(255, 255, 255, 0.02) 60%,
-    rgba(255, 255, 255, 0.3) 100%
+    rgba(255, 255, 255, 0.65) 0%,
+    rgba(255, 255, 255, 0.08) 40%,
+    transparent 60%,
+    rgba(255, 255, 255, 0.18) 100%
   );
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
+  z-index: 3;
+}
+
+/* 底部柔光反射 */
+.liquid-glass .glass-reflection {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.06) 0%,
+    transparent 100%
+  );
+  border-radius: 0 0 inherit inherit;
+  pointer-events: none;
   z-index: 1;
 }
 
-.liquid-glass::after {
-  content: '';
+/* 液体流动动画 — 模拟玻璃内部光线折射 */
+.liquid-glass .glass-fluid {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 50%;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.25) 0%,
-    rgba(255, 255, 255, 0.05) 50%,
-    transparent 100%
+  inset: -30%;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    rgba(255, 255, 255, 0.025) 45deg,
+    transparent 90deg,
+    rgba(255, 255, 255, 0.04) 135deg,
+    transparent 180deg,
+    rgba(255, 255, 255, 0.02) 225deg,
+    transparent 270deg,
+    rgba(255, 255, 255, 0.03) 315deg,
+    transparent 360deg
   );
-  border-radius: inherit;
+  animation: glassFluidRotate 25s linear infinite;
   pointer-events: none;
   z-index: 0;
+  opacity: 0.7;
 }
 
-/* Light Mode */
+@keyframes glassFluidRotate {
+  from { transform: rotate(0deg) scale(1.2); }
+  to { transform: rotate(360deg) scale(1.2); }
+}
+
+/* ========== Light Mode ========== */
 .liquid-glass {
   background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.65) 0%,
-    rgba(255, 255, 255, 0.35) 50%,
-    rgba(255, 255, 255, 0.15) 100%
+    135deg,
+    rgba(255, 255, 255, 0.52) 0%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(255, 255, 255, 0.12) 100%
   );
-  backdrop-filter: saturate(200%) blur(24px);
-  -webkit-backdrop-filter: saturate(200%) blur(24px);
-  border: 0.5px solid rgba(255, 255, 255, 0.6);
-  border-top: 0.5px solid rgba(255, 255, 255, 0.85);
-  border-left: 0.5px solid rgba(255, 255, 255, 0.45);
+  backdrop-filter: saturate(180%) blur(22px);
+  -webkit-backdrop-filter: saturate(180%) blur(22px);
+  border: 0.5px solid rgba(255, 255, 255, 0.45);
+  border-top: 0.5px solid rgba(255, 255, 255, 0.7);
+  border-left: 0.5px solid rgba(255, 255, 255, 0.35);
+  border-right: 0.5px solid rgba(255, 255, 255, 0.15);
   box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    0 8px 32px rgba(0, 0, 0, 0.06),
-    0 24px 60px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.15);
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    0 4px 20px rgba(0, 0, 0, 0.05),
+    0 12px 48px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .liquid-glass:hover {
-  transform: translateY(-2px) scale(1.002);
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.06),
-    0 12px 48px rgba(0, 0, 0, 0.08),
-    0 32px 64px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+    0 6px 28px rgba(0, 0, 0, 0.07),
+    0 16px 56px rgba(0, 0, 0, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
 }
 
-/* Dark Mode */
+/* ========== Dark Mode ========== */
 .msmp-dark .liquid-glass {
   background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.07) 0%,
-    rgba(255, 255, 255, 0.035) 50%,
-    rgba(255, 255, 255, 0.015) 100%
+    135deg,
+    rgba(255, 255, 255, 0.055) 0%,
+    rgba(255, 255, 255, 0.022) 50%,
+    rgba(255, 255, 255, 0.008) 100%
   );
-  border-color: rgba(255, 255, 255, 0.09);
-  border-top-color: rgba(255, 255, 255, 0.16);
-  border-left-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.07);
+  border-top-color: rgba(255, 255, 255, 0.14);
+  border-left-color: rgba(255, 255, 255, 0.03);
   box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.4),
-    0 8px 32px rgba(0, 0, 0, 0.5),
-    0 24px 60px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    0 4px 20px rgba(0, 0, 0, 0.32),
+    0 12px 48px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
 }
 
 .msmp-dark .liquid-glass:hover {
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.45),
-    0 12px 48px rgba(0, 0, 0, 0.55),
-    0 32px 64px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    0 6px 28px rgba(0, 0, 0, 0.38),
+    0 16px 56px rgba(0, 0, 0, 0.44),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22);
+}
+
+/* Dark mode 高光带蓝色氛围 */
+.msmp-dark .liquid-glass::before {
+  background: radial-gradient(
+    circle at var(--glow-x) var(--glow-y),
+    rgba(90, 130, 255, calc(var(--glow-intensity) * 0.2)) 0%,
+    rgba(90, 130, 255, calc(var(--glow-intensity) * 0.06)) 25%,
+    transparent 60%
+  );
+}
+
+/* 全局鼠标位置变量初始化 */
+:root {
+  --mouse-x: 50%;
+  --mouse-y: 50%;
 }
 
 /* ============================================================
