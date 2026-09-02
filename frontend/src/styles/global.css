@@ -788,3 +788,104 @@ body.msmp-dark,
 .chat-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
 }
+
+/* ============================================================
+   Liquid Glass Card — Unified Background
+   ============================================================ */
+
+/* 移除 antd Card 默认白色背景，让玻璃效果完整呈现 */
+.liquid-glass.ant-card,
+.liquid-glass.ant-card > .ant-card-body,
+.liquid-glass.ant-card > .ant-card-head,
+.liquid-glass.ant-card .ant-card-body,
+.liquid-glass.ant-card .ant-card-head {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Light mode: 统一玻璃底色 */
+.liquid-glass.ant-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.52) 0%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(255, 255, 255, 0.12) 100%
+  ) !important;
+  backdrop-filter: saturate(180%) blur(22px);
+  -webkit-backdrop-filter: saturate(180%) blur(22px);
+  border: 0.5px solid rgba(255, 255, 255, 0.45) !important;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.7) !important;
+  border-left: 0.5px solid rgba(255, 255, 255, 0.35) !important;
+  border-right: 0.5px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.05),
+    0 12px 48px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+.liquid-glass.ant-card:hover {
+  box-shadow:
+    0 6px 28px rgba(0, 0, 0, 0.07),
+    0 16px 56px rgba(0, 0, 0, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+/* Dark mode: 统一深色玻璃底色 */
+.msmp-dark .liquid-glass.ant-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.055) 0%,
+    rgba(255, 255, 255, 0.022) 50%,
+    rgba(255, 255, 255, 0.008) 100%
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+  border-top-color: rgba(255, 255, 255, 0.14) !important;
+  border-left-color: rgba(255, 255, 255, 0.03) !important;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.32),
+    0 12px 48px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18) !important;
+}
+
+.msmp-dark .liquid-glass.ant-card:hover {
+  box-shadow:
+    0 6px 28px rgba(0, 0, 0, 0.38),
+    0 16px 56px rgba(0, 0, 0, 0.44),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22) !important;
+}
+
+/* Card body 统一透明背景 */
+.liquid-glass.ant-card .ant-card-body {
+  background: transparent !important;
+  padding: 20px !important;
+}
+
+/* Card head 统一透明 */
+.liquid-glass.ant-card .ant-card-head {
+  background: transparent !important;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08) !important;
+  min-height: 48px !important;
+  padding: 0 20px !important;
+}
+
+.msmp-dark .liquid-glass.ant-card .ant-card-head {
+  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Card tab 导航栏玻璃化 */
+.liquid-glass.ant-card .ant-card-tabs .ant-tabs-tab {
+  background: transparent !important;
+}
+
+.liquid-glass.ant-card .ant-card-tabs .ant-tabs-tab-active {
+  background: rgba(100, 140, 255, 0.1) !important;
+}
+
+/* Statistic 数字颜色适配 */
+.liquid-glass.ant-card .ant-statistic-content {
+  color: inherit !important;
+}
