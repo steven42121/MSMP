@@ -78,3 +78,15 @@ Entries discovered by the Agent during task execution should follow this format:
   - 前端多节点路由：VITE_MSMP_SERVER_URLS 环境变量逗号分隔，失败 3 次后禁用 60 秒
   - 新 API 端点：GET /api/cluster/info、POST /api/cluster/ping、GET /api/cluster/leader
 
+
+[Project Knowledge Summary]
+- Date: 2026-09-02
+- Context: Added LLM auto-management with MCP operation capabilities
+- Category: Build Methods
+- Instructions:
+  - 后端新增 MCP 工具系统：server/services/mcp_tools.go, server/services/mcp_service.go, server/controllers/mcp.go
+  - 可用工具：list_hosts, get_host_status, get_recent_alerts, execute_command, check_service, view_logs, generate_report
+  - API 端点：GET /api/mcp/tools, POST /api/mcp/propose, GET /api/mcp/approvals, POST /api/mcp/approvals/:id/approve, POST /api/mcp/approvals/:id/reject
+  - AI Chat 页面支持工具提案和审批 UI：frontend/src/pages/AIChat.jsx
+  - 危险操作（execute_command, check_service, view_logs）需要用户审批才能执行
+  - 安全操作（list_hosts, get_host_status, get_recent_alerts, generate_report）可直接执行
