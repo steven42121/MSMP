@@ -149,7 +149,7 @@ export default function Tasks() {
       </div>
 
       <Card className="liquid-glass" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
-        <Space wrap size={12}>
+        <Space wrap size={12} className="filter-bar">
           <Select
             placeholder="状态筛选"
             allowClear

@@ -1013,24 +1013,64 @@ body.msmp-dark,
 
   /* 按钮紧凑 */
   .ant-btn {
-    padding: 0 12px !important;
-    font-size: 12px !important;
-    height: 34px !important;
+    padding: 0 14px !important;
+    font-size: 13px !important;
+    height: 36px !important;
+    border-radius: 8px !important;
   }
 
   .ant-btn-icon-only {
-    width: 32px !important;
+    width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+  }
+
+  .ant-btn-sm {
+    height: 30px !important;
+    padding: 0 10px !important;
+    font-size: 12px !important;
+  }
+
+  /* Table 操作列链接按钮加大触摸区 */
+  .ant-table-cell .ant-btn-link {
+    padding: 0 8px !important;
     height: 32px !important;
+  }
+
+  /* 表格操作列内按钮间距 */
+  .ant-table-cell .ant-space {
+    gap: 2px !important;
   }
 
   /* 选择器紧凑 */
   .ant-select-selector {
-    height: 34px !important;
+    height: 36px !important;
+  }
+
+  .ant-select-single .ant-select-selector {
+    height: 36px !important;
+  }
+
+  .ant-select-single .ant-select-selection-item,
+  .ant-select-single .ant-select-selection-placeholder {
+    line-height: 34px !important;
+  }
+
+  .ant-select-arrow {
+    top: 45% !important;
   }
 
   .ant-input,
   .ant-input-password input {
-    height: 34px !important;
+    height: 36px !important;
+  }
+
+  .ant-input-affix-wrapper {
+    height: 36px !important;
+  }
+
+  .ant-input-number {
+    height: 36px !important;
   }
 
   /* 表单标签 */
@@ -1084,6 +1124,125 @@ body.msmp-dark,
 
   .page-header .ant-btn {
     align-self: flex-end;
+  }
+
+  /* 筛选栏控件宽度覆盖（inline style 固定宽度） */
+  .ant-space-item {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .ant-space-item > .ant-select,
+  .ant-space-item > .ant-input,
+  .ant-space-item > .ant-input-search,
+  .ant-space-item > .ant-input-affix-wrapper,
+  .ant-space-item > .ant-input-number,
+  .ant-space-item > .ant-picker {
+    width: auto !important;
+    max-width: 100% !important;
+    flex: 1 1 130px;
+    min-width: 110px;
+  }
+
+  .ant-space-item > .ant-btn {
+    flex: 0 0 auto;
+    margin-left: 0 !important;
+  }
+
+  /* 强制所有 Space 换行（Header 除外） */
+  .ant-space {
+    flex-wrap: wrap;
+    row-gap: 8px !important;
+  }
+
+  .ant-layout-header .ant-space,
+  .ant-layout-header .ant-space-item {
+    flex-wrap: nowrap;
+  }
+
+  /* 筛选栏：控件弹性拉伸填满 */
+  .filter-bar {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 8px !important;
+    margin-bottom: 0 !important;
+  }
+
+  .filter-bar > .ant-space-item {
+    flex: 1 1 140px;
+    display: flex;
+    min-width: 120px;
+  }
+
+  .filter-bar > .ant-space-item > * {
+    flex: 1 1 auto;
+    width: auto !important;
+  }
+
+  .filter-bar > .ant-space-item > .ant-btn {
+    flex: 0 0 auto;
+  }
+
+  .filter-bar > .ant-space-item > .ant-space {
+    flex: 0 0 auto;
+  }
+
+  /* 分页器压缩 */
+  .ant-pagination {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .ant-pagination .ant-pagination-item {
+    min-width: 30px;
+    height: 30px;
+    line-height: 28px;
+    font-size: 12px;
+  }
+
+  .ant-pagination .ant-pagination-prev,
+  .ant-pagination .ant-pagination-next {
+    min-width: 30px;
+    height: 30px;
+    line-height: 28px;
+  }
+
+  .ant-pagination-options {
+    display: none;
+  }
+
+  /* Modal 全宽 */
+  .ant-modal {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 12px auto !important;
+    top: 12px !important;
+  }
+
+  .ant-modal-body {
+    padding: 16px !important;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .ant-modal-header {
+    padding: 16px 16px 0 !important;
+  }
+
+  .ant-modal-footer {
+    padding: 12px 16px 16px !important;
+  }
+
+  /* Form 内固定宽度控件自适应 */
+  .ant-form-item .ant-input-number,
+  .ant-form-item .ant-select {
+    width: 100% !important;
+  }
+
+  /* DateRange / TimePicker */
+  .ant-picker {
+    width: 100% !important;
   }
 }
 

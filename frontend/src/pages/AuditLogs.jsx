@@ -48,7 +48,7 @@ export default function AuditLogs() {
   return (
     <div>
       <h2>审计日志</h2>
-      <Space style={{ marginBottom: 16 }}>
+      <Space style={{ marginBottom: 16 }} className="filter-bar" wrap>
         <Select
           placeholder="动作筛选"
           allowClear

@@ -175,7 +175,7 @@ export default function HostList() {
 
       {/* Filter bar */}
       <Card className="liquid-glass" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
-        <Space wrap size={12}>
+        <Space wrap size={12} className="filter-bar">
           <Input.Search
             placeholder="搜索主机名或IP"
             allowClear

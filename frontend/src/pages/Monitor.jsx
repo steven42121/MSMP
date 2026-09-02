@@ -159,7 +159,7 @@ export default function Monitor() {
 
       {/* Controls */}
       <Card className="liquid-glass" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
-        <Space wrap>
+        <Space wrap className="filter-bar">
           <Select
             showSearch
             style={{ width: 320 }}

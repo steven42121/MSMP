@@ -106,7 +106,7 @@ export default function Users() {
   return (
     <div>
       <h2>用户管理</h2>
-      <Space style={{ marginBottom: 16 }} wrap>
+      <Space style={{ marginBottom: 16 }} wrap className="filter-bar">
         <Input.Search
           placeholder="用户名"
           allowClear
