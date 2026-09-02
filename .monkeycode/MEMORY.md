@@ -111,3 +111,14 @@ Entries discovered by the Agent during task execution should follow this format:
   - .liquid-glass.ant-card 需覆盖 antd Card 默认白色背景，设置统一的玻璃渐变底色
   - antd Card body/head 必须设 background: transparent !important，否则玻璃效果被遮挡
   - Dark mode 下高光带蓝色氛围光 rgba(90,130,255)，使用 CSS 变量 --glow-x/--glow-y 跟随鼠标
+
+[Project Knowledge Summary]
+- Date: 2026-09-02
+- Context: Mobile responsive improvements for MSMP frontend
+- Category: Build Methods
+- Instructions:
+  - 手机端侧边栏改为 Drawer 抽屉导航，通过 Header 汉堡按钮触发
+  - AIChat 页面双栏布局在小屏自动变为单栏（CSS class .ai-chat-grid）
+  - 登录页宽度改为响应式（maxWidth: 420，padding 适配小屏）
+  - 全局 CSS 覆盖：480px/768px/1024px 断点分别处理表格、表单、按钮、卡片字号
+  - 触摸设备（pointer: coarse）最小点击目标 44px，Modal 宽度设为 calc(100% - 32px)
