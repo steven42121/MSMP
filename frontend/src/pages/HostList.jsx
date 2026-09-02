@@ -76,7 +76,7 @@ export default function HostList() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await client.get('/hosts', {
+      const resp = await client.get()('/hosts', {
         params: { page, page_size: pageSize, keyword, status, os: osFilter },
       });
       setData(resp.data || []);
@@ -94,7 +94,7 @@ export default function HostList() {
     try {
       const values = await form.validateFields();
       setSubmitting(true);
-      const resp = await client.post('/hosts', values);
+      const resp = await client.post()('/hosts', values);
       message.success('主机已添加');
       setCreatedToken(resp.agent_token);
       form.resetFields();
@@ -108,7 +108,7 @@ export default function HostList() {
 
   const handleDelete = async (uuid) => {
     try {
-      await client.delete(`/hosts/${uuid}`);
+      await client.delete()(`/hosts/${uuid}`);
       message.success('已删除');
       load();
     } catch (e) {}
@@ -116,7 +116,7 @@ export default function HostList() {
 
   const handleBatchDelete = async () => {
     try {
-      await client.delete('/hosts', { data: { ids: selectedIDs } });
+      await client.delete()('/hosts', { data: { ids: selectedIDs } });
       message.success(`已删除 ${selectedIDs.length} 台主机`);
       setSelectedIDs([]);
       load();

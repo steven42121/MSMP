@@ -19,7 +19,7 @@ export default function Users() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await client.get('/users', { params: { keyword } });
+      const resp = await client.get()('/users', { params: { keyword } });
       setData(Array.isArray(resp) ? resp : resp.data || []);
     } catch (e) {
       setData([]);
@@ -34,7 +34,7 @@ export default function Users() {
     try {
       const values = await createForm.validateFields();
       setSubmitting(true);
-      await client.post('/users', values);
+      await client.post()('/users', values);
       message.success('用户已创建');
       setCreateOpen(false);
       createForm.resetFields();
@@ -58,7 +58,7 @@ export default function Users() {
     try {
       const values = await editForm.validateFields();
       setSubmitting(true);
-      await client.put(`/users/${editUser.id}`, values);
+      await client.put()(`/users/${editUser.id}`, values);
       message.success('已更新');
       setEditOpen(false);
       setEditUser(null);
@@ -72,7 +72,7 @@ export default function Users() {
 
   const handleDelete = async (id) => {
     try {
-      await client.delete(`/users/${id}`);
+      await client.delete()(`/users/${id}`);
       message.success('已删除');
       load();
     } catch (e) {}

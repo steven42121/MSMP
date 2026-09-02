@@ -22,7 +22,7 @@ export default function TaskDetail() {
   const load = async () => {
     setLoading(true);
     try {
-      const resp = await client.get(`/tasks/${id}`);
+      const resp = await client.get()(`/tasks/${id}`);
       setTask(resp);
     } catch (e) {
       setTask(null);
@@ -42,7 +42,7 @@ export default function TaskDetail() {
 
   const handleCancel = async () => {
     try {
-      await client.put(`/tasks/${id}`, { status: 'canceled' });
+      await client.put()(`/tasks/${id}`, { status: 'canceled' });
       message.success('已取消');
       load();
     } catch (e) {}
@@ -50,7 +50,7 @@ export default function TaskDetail() {
 
   const handleDelete = async () => {
     try {
-      await client.delete(`/tasks/${id}`);
+      await client.delete()(`/tasks/${id}`);
       message.success('已删除');
       navigate('/tasks');
     } catch (e) {}

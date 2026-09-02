@@ -42,7 +42,7 @@ export default function HostDetail() {
 
   const loadHost = async () => {
     try {
-      const resp = await client.get(`/hosts/${uuid}`);
+      const resp = await client.get()(`/hosts/${uuid}`);
       setHost(resp);
     } catch (e) {
       setHost(null);
@@ -53,35 +53,35 @@ export default function HostDetail() {
 
   const loadMetrics = async () => {
     try {
-      const resp = await client.get(`/hosts/${uuid}/metrics`, { params: { limit: 120 } });
+      const resp = await client.get()(`/hosts/${uuid}/metrics`, { params: { limit: 120 } });
       setMetrics(Array.isArray(resp) ? resp : resp.data || []);
     } catch (e) {}
   };
 
   const loadTags = async () => {
     try {
-      const resp = await client.get(`/hosts/${uuid}/tags`);
+      const resp = await client.get()(`/hosts/${uuid}/tags`);
       setTags(Array.isArray(resp) ? resp : resp.data || []);
     } catch (e) {}
   };
 
   const loadEvents = async () => {
     try {
-      const resp = await client.get(`/hosts/${uuid}/events`);
+      const resp = await client.get()(`/hosts/${uuid}/events`);
       setEvents(Array.isArray(resp) ? resp : resp.data || []);
     } catch (e) {}
   };
 
   const loadAssets = async () => {
     try {
-      const resp = await client.get(`/hosts/${uuid}/assets`);
+      const resp = await client.get()(`/hosts/${uuid}/assets`);
       setAssets(Array.isArray(resp) ? resp : resp.data || []);
     } catch (e) {}
   };
 
   const loadChannels = async () => {
     try {
-      const resp = await client.get(`/hosts/${uuid}/channels`);
+      const resp = await client.get()(`/hosts/${uuid}/channels`);
       setChannels(Array.isArray(resp) ? resp : resp.data || []);
     } catch (e) {}
   };
@@ -102,7 +102,7 @@ export default function HostDetail() {
   const handleAddTag = async () => {
     try {
       const values = await tagForm.validateFields();
-      await client.post(`/hosts/${uuid}/tags`, values);
+      await client.post()(`/hosts/${uuid}/tags`, values);
       message.success('标签已添加');
       tagForm.resetFields();
       loadTags();
@@ -113,7 +113,7 @@ export default function HostDetail() {
 
   const handleDeleteTag = async (id) => {
     try {
-      await client.delete(`/hosts/${uuid}/tags/${id}`);
+      await client.delete()(`/hosts/${uuid}/tags/${id}`);
       message.success('已删除');
       loadTags();
     } catch (e) {}
@@ -122,7 +122,7 @@ export default function HostDetail() {
   const handleCreateChannel = async () => {
     try {
       const values = await channelForm.validateFields();
-      await client.post(`/hosts/${uuid}/channels`, values);
+      await client.post()(`/hosts/${uuid}/channels`, values);
       message.success('渠道已创建，正在自动探测');
       channelForm.resetFields();
       setChannelModal(false);
@@ -134,7 +134,7 @@ export default function HostDetail() {
 
   const handleProbeChannel = async (id) => {
     try {
-      const resp = await client.post(`/channels/${id}/probe`);
+      const resp = await client.post()(`/channels/${id}/probe`);
       if (resp.ok) {
         message.success(`探测成功：${resp.os || ''} ${resp.host || ''}`);
       } else {
@@ -148,7 +148,7 @@ export default function HostDetail() {
 
   const handleToggleChannel = async (id, enabled) => {
     try {
-      await client.put(`/channels/${id}`, { enabled: !enabled });
+      await client.put()(`/channels/${id}`, { enabled: !enabled });
       message.success(enabled ? '已禁用' : '已启用');
       loadChannels();
     } catch (e) {}
@@ -156,7 +156,7 @@ export default function HostDetail() {
 
   const handleDeleteChannel = async (id) => {
     try {
-      await client.delete(`/channels/${id}`);
+      await client.delete()(`/channels/${id}`);
       message.success('已删除');
       loadChannels();
     } catch (e) {}

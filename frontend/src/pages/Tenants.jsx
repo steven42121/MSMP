@@ -14,7 +14,7 @@ export default function Tenants() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await client.get('/tenants');
+      const resp = await client.get()('/tenants');
       setTenants(Array.isArray(resp) ? resp : resp.data || []);
     } catch (e) {
       setTenants([]);
@@ -29,7 +29,7 @@ export default function Tenants() {
     try {
       const values = await form.validateFields();
       setSubmitting(true);
-      await client.post('/tenants', values);
+      await client.post()('/tenants', values);
       message.success('租户已创建');
       setCreateOpen(false);
       form.resetFields();

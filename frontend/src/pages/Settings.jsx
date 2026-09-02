@@ -14,7 +14,7 @@ export default function Settings() {
   const [savingSys, setSavingSys] = useState(false);
 
   useEffect(() => {
-    client.get('/settings').then((data) => {
+    client.get()('/settings').then((data) => {
       sysForm.setFieldsValue({
         webhook_url: data['notification.webhookurl'] || '',
         offline_after_sec: parseInt(data['agent.offlineaftersec'] || '120', 10),
@@ -30,7 +30,7 @@ export default function Settings() {
         return;
       }
       setSubmitting(true);
-      await client.put(`/users/${user.id}`, { password: values.new_password });
+      await client.put()(`/users/${user.id}`, { password: values.new_password });
       message.success('密码已修改，请重新登录');
       pwdForm.resetFields();
     } catch (e) {
@@ -44,7 +44,7 @@ export default function Settings() {
     try {
       const values = await sysForm.validateFields();
       setSavingSys(true);
-      await client.put('/settings', {
+      await client.put()('/settings', {
         'notification.webhookurl': values.webhook_url || '',
         'agent.offlineaftersec': String(values.offline_after_sec || 120),
       });

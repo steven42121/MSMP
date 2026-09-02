@@ -14,7 +14,7 @@ export default function AlertRules() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await client.get('/alert-rules');
+      const resp = await client.get()('/alert-rules');
       setData(Array.isArray(resp) ? resp : resp.data || []);
     } catch (e) {
       setData([]);
@@ -29,7 +29,7 @@ export default function AlertRules() {
     try {
       const values = await form.validateFields();
       setSubmitting(true);
-      await client.post('/alert-rules', values);
+      await client.post()('/alert-rules', values);
       message.success('规则已创建');
       setCreateOpen(false);
       form.resetFields();
@@ -43,14 +43,14 @@ export default function AlertRules() {
 
   const handleToggle = async (id, enabled) => {
     try {
-      await client.put(`/alert-rules/${id}`, { enabled });
+      await client.put()(`/alert-rules/${id}`, { enabled });
       load();
     } catch (e) {}
   };
 
   const handleDelete = async (id) => {
     try {
-      await client.delete(`/alert-rules/${id}`);
+      await client.delete()(`/alert-rules/${id}`);
       message.success('已删除');
       load();
     } catch (e) {}

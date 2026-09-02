@@ -38,7 +38,7 @@ export default function Tasks() {
 
   const loadHosts = async () => {
     try {
-      const resp = await client.get('/hosts', { params: { page_size: 100 } });
+      const resp = await client.get()('/hosts', { params: { page_size: 100 } });
       setHosts(resp.data || []);
     } catch (e) {}
   };
@@ -46,7 +46,7 @@ export default function Tasks() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await client.get('/tasks', { params: { page, page_size: pageSize, status } });
+      const resp = await client.get()('/tasks', { params: { page, page_size: pageSize, status } });
       setData(resp.data || []);
       setTotal(resp.total || 0);
     } catch (e) {
@@ -73,7 +73,7 @@ export default function Tasks() {
     try {
       const values = await form.validateFields();
       setSubmitting(true);
-      await client.post('/tasks', values);
+      await client.post()('/tasks', values);
       message.success('任务已创建');
       setModalOpen(false);
       form.resetFields();
@@ -88,7 +88,7 @@ export default function Tasks() {
 
   const handleCancel = async (id) => {
     try {
-      await client.put(`/tasks/${id}`, { status: 'canceled' });
+      await client.put()(`/tasks/${id}`, { status: 'canceled' });
       message.success('已取消');
       load();
     } catch (e) {}

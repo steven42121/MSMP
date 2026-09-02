@@ -55,11 +55,11 @@ export default function Dashboard() {
   const loadStats = async () => {
     try {
       const [all, online, pending] = await Promise.all([
-        client.get('/hosts?page_size=1'),
-        client.get('/hosts?status=online&page_size=1'),
-        client.get('/hosts?status=pending&page_size=1'),
+        client.get()('/hosts?page_size=1'),
+        client.get()('/hosts?status=online&page_size=1'),
+        client.get()('/hosts?status=pending&page_size=1'),
       ]);
-      const alerts = await client.get('/alerts?page_size=1').catch(() => ({ total: 0 }));
+      const alerts = await client.get()('/alerts?page_size=1').catch(() => ({ total: 0 }));
       const total = all.total || 0;
       const onlineCount = online.total || 0;
       const pendingCount = pending.total || 0;
@@ -77,21 +77,21 @@ export default function Dashboard() {
 
   const loadRecentHosts = async () => {
     try {
-      const resp = await client.get('/hosts?page_size=10');
+      const resp = await client.get()('/hosts?page_size=10');
       setRecentHosts(resp.data || []);
     } catch (e) { console.error('Failed to load hosts:', e); }
   };
 
   const loadAllHosts = async () => {
     try {
-      const resp = await client.get('/hosts', { params: { page_size: 100 } });
+      const resp = await client.get()('/hosts', { params: { page_size: 100 } });
       setAllHosts(resp.data || []);
     } catch (e) {}
   };
 
   const loadRecentAlerts = async () => {
     try {
-      const resp = await client.get('/alerts', { params: { page_size: 5 } });
+      const resp = await client.get()('/alerts', { params: { page_size: 5 } });
       setRecentAlerts(resp.data || []);
     } catch (e) {}
   };

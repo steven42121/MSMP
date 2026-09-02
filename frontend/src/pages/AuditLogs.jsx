@@ -16,7 +16,7 @@ export default function AuditLogs() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await client.get('/audit-logs', { params: { page, page_size: pageSize, action } });
+      const resp = await client.get()('/audit-logs', { params: { page, page_size: pageSize, action } });
       setData(resp.data || []);
       setTotal(resp.total || 0);
     } catch (e) {

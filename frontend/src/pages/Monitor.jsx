@@ -56,7 +56,7 @@ export default function Monitor() {
   const [currentHost, setCurrentHost] = useState(null);
 
   useEffect(() => {
-    client.get('/hosts', { params: { page_size: 100 } })
+    client.get()('/hosts', { params: { page_size: 100 } })
       .then((resp) => {
         const data = resp.data || [];
         setHosts(data);
@@ -71,7 +71,7 @@ export default function Monitor() {
   const loadMetrics = useCallback(() => {
     if (!hostUUID) return;
     setLoading(true);
-    client.get('/metrics', { params: { host_uuid: hostUUID, duration } })
+    client.get()('/metrics', { params: { host_uuid: hostUUID, duration } })
       .then((resp) => { setMetrics(resp.data || []); setLastUpdate(new Date()); })
       .catch(() => setMetrics([]))
       .finally(() => setLoading(false));

@@ -27,7 +27,7 @@ export default function Alerts() {
 
   const loadHosts = async () => {
     try {
-      const resp = await client.get('/hosts', { params: { page_size: 100 } });
+      const resp = await client.get()('/hosts', { params: { page_size: 100 } });
       setHosts(resp.data || []);
     } catch (e) {}
   };
@@ -35,7 +35,7 @@ export default function Alerts() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await client.get('/alerts', { params: { page, page_size: pageSize, level, host_id: hostID, ack } });
+      const resp = await client.get()('/alerts', { params: { page, page_size: pageSize, level, host_id: hostID, ack } });
       setData(resp.data || []);
       setTotal(resp.total || 0);
     } catch (e) {
@@ -58,7 +58,7 @@ export default function Alerts() {
 
   const handleAck = async (id) => {
     try {
-      await client.post(`/alerts/${id}/ack`);
+      await client.post()(`/alerts/${id}/ack`);
       message.success('已确认');
       load();
     } catch (e) {}
@@ -66,7 +66,7 @@ export default function Alerts() {
 
   const handleSilence = async (id, minutes) => {
     try {
-      await client.post(`/alerts/${id}/silence`, { minutes });
+      await client.post()(`/alerts/${id}/silence`, { minutes });
       message.success(`已静音 ${minutes} 分钟`);
       load();
     } catch (e) {}

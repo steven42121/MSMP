@@ -39,7 +39,7 @@ export default function AgentTokens() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await client.get('/agent-tokens');
+      const resp = await client.get()('/agent-tokens');
       setData(Array.isArray(resp) ? resp : resp.data || []);
     } catch (e) {
       setData([]);
@@ -54,7 +54,7 @@ export default function AgentTokens() {
     try {
       const values = await form.validateFields();
       setSubmitting(true);
-      await client.post('/agent-tokens', values);
+      await client.post()('/agent-tokens', values);
       message.success('Token 已创建');
       setCreateOpen(false);
       form.resetFields();
@@ -68,7 +68,7 @@ export default function AgentTokens() {
 
   const handleRevoke = async (id) => {
     try {
-      await client.delete(`/agent-tokens/${id}`);
+      await client.delete()(`/agent-tokens/${id}`);
       message.success('已吊销');
       load();
     } catch (e) {}

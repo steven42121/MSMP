@@ -43,7 +43,7 @@ export default function Login() {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      const resp = await client.post('/auth/login', {
+      const resp = await client.post()('/auth/login', {
         username: values.username,
         password: values.password,
       });
