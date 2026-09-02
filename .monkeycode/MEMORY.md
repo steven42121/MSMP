@@ -1,0 +1,67 @@
+# User Instruction Memory
+
+This file records user instructions, preferences, and teachings for reference in future interactions.
+
+## Format
+
+### User Instruction Entry
+User instruction entries should follow this format:
+
+[User Instruction Summary]
+- Date: [YYYY-MM-DD]
+- Context: [Mentioned scenario or time]
+- Instructions:
+  - [Content of user teaching or instruction, described line by line]
+
+### Project Knowledge Entry
+Entries discovered by the Agent during task execution should follow this format:
+
+[Project Knowledge Summary]
+- Date: [YYYY-MM-DD]
+- Context: Discovered by Agent while performing [specific task description]
+- Category: [Operations & Deployment|Build Methods|Testing Methods|Troubleshooting & Debugging|Workflow & Collaboration|Environment Configuration]
+- Instructions:
+  - [Specific knowledge points, described line by line]
+
+## Deduplication Strategy
+- Before adding a new entry, check for similar or identical instructions.
+- If a duplicate is found, skip the new entry or merge it with the existing one.
+- When merging, update the context or date information.
+- This helps avoid redundant entries and keeps the memory file tidy.
+
+## Entries
+
+[MSMP 构建与运行命令]
+- Date: 2026-08-23
+- Context: Discovered by Agent while building and verifying the MSMP project
+- Category: Build Methods
+- Instructions:
+  - 前端构建：`cd /workspace/frontend && npm install && npm run build`
+  - 后端构建：`cd /workspace/server && go build ./...`
+  - Agent 默认仅支持 Windows（`agent/win/collect.go` 使用 `syscall.NewLazyDLL`），在 Linux 上构建需交叉编译：`cd /workspace/agent && GOOS=windows go build ./...`
+  - 本地实际 Go 工具链为 1.25.6，而 `go.work`/`go.mod` 要求 1.26.1，需保留 `GOTOOLCHAIN=auto` 让其自动下载工具链；设置 `GOTOOLCHAIN=local` 会导致构建失败
+  - 前端开发服务器端口 5173，已配置 `/api` 反向代理到后端 `http://localhost:8080`，并已将 `.monkeycode-ai.online` 加入 `allowedHosts`
+
+[Agentless Metrics Channels 部署要点]
+- Date: 2026-09-01
+- Context: 实现无 Agent 多渠道采集特性（SSH/WAC/宝塔面板）后的部署与验证
+- Category: Environment Configuration
+- Instructions:
+  - 必须配置 security.credentialkey（base64 32字节 AES 密钥），否则创建渠道绑定返回 503；生成方式：python3 -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"
+  - 可通过环境变量 MSMP_SECURITY_CREDENTIALKEY 注入（与 viper 的 security.credentialkey 对应）
+  - JWT secret 默认为 change-me-in-production，测试签发的 admin token 可用于直接验证 admin API
+  - 新渠道 API 路径：GET/POST /api/hosts/{uuid}/channels，PUT/DELETE /api/channels/{id}，POST /api/channels/ssh-keypair（需 admin 角色）
+  - 前端「采集渠道」tab 位于 HostDetail 页面，需配合后端运行才能看到
+
+[无 Agent 多渠道采集特性实施]
+- Date: 2026-09-01
+- Context: 为 MSMP 主机性能监控增加 SSH / Windows Admin Center / 宝塔面板三种无 Agent 采集渠道
+- Category: Build Methods & Operations
+- Instructions:
+  - 新建代码位置：server/collectors/（Channel 接口 + 三个渠道实现）、server/services/credential.go（AES-256-GCM 凭据加解密 + SSH 密钥对生成）、server/controllers/channels.go（渠道 API + CollectorScheduler）
+  - 调度器行为：60 秒周期、Agent 优先跳过（5 分钟内 Agent 有上报则不触发渠道）、按 Priority 优先级降级、单渠道连续失败 5 次自动禁用
+  - SSH 渠道在 Linux 上通过 /proc 文件解析指标，语义与 Agent 端 MetricData 完全一致；首次成功采集会同步更新 host 资产字段
+  - 所有凭据（密码/私钥/API Key）均经 AES-256-GCM 加密落库，任何 API 响应绝不返回明文
+  - 前端「采集渠道」tab 位于 HostDetail 页面（/hosts/:uuid），含创建向导（SSH 支持密码/自建私钥/平台生成密钥对三种接入方式）
+  - 后端已验证的 API：POST /api/channels/ssh-keypair（返回公钥 + 一键安装命令 + 加密私钥）、POST /api/hosts/{uuid}/channels（创建并自动探测）、POST /api/channels/{id}/probe（手动探测）
+  - 端到端测试路径：手动添加主机 → 绑定 SSH 渠道 → 探测成功后等待 ≤60s 调度采集 → 前端监控曲线出现数据 → 告警规则自动触发（复用 evaluateMetricAlerts）

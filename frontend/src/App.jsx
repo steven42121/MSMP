@@ -11,6 +11,9 @@ import TaskDetail from './pages/TaskDetail';
 import Tenants from './pages/Tenants';
 import Users from './pages/Users';
 import Alerts from './pages/Alerts';
+import AlertRules from './pages/AlertRules';
+import AgentTokens from './pages/AgentTokens';
+import AuditLogs from './pages/AuditLogs';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 import { useAuthStore } from './store/auth';
@@ -42,6 +45,9 @@ export default function App() {
           <Route path="tasks" element={<Tasks />} />
           <Route path="tasks/:id" element={<TaskDetail />} />
           <Route path="alerts" element={<Alerts />} />
+          <Route path="alert-rules" element={<AlertRules />} />
+          <Route path="agent-tokens" element={<AgentTokens />} />
+          <Route path="audit-logs" element={<AuditLogs />} />
           <Route path="tenants" element={<Tenants />} />
           <Route path="users" element={<Users />} />
           <Route path="settings" element={<Settings />} />

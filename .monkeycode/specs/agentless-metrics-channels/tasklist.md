@@ -156,3 +156,11 @@
 
 - [x] 13. 检查点 - 端到端联调
   - 完整验证：手动添加主机 → 绑定 SSH 渠道 → 探测成功 → 等待 60s 调度采集 → 前端监控曲线出现数据 → 告警规则触发
+
+- [x] 14. 新增采集渠道（Prometheus / SNMP / WinRM）
+  - [x] 14.1 新增 `server/collectors/prometheus.go`：HTTP GET `/metrics`，正则解析 Node Exporter 指标
+  - [x] 14.2 新增 `server/collectors/snmp.go`：gosnmp v2c/v3 查询 UCD-SNMP-MIB / IF-MIB
+  - [x] 14.3 新增 `server/collectors/winrm.go`：masterzen/winrm PowerShell 远程执行
+  - [x] 14.4 注册新渠道并更新控制器类型校验
+  - [x] 14.5 更新前端「添加采集渠道」向导支持 6 种渠道类型
+  - 引用：design.md 扩展；requirements.md Req 10

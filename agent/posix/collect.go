@@ -1,12 +1,10 @@
-//go:build windows
+//go:build !windows
 
-package win
+package posix
 
 import (
-	"fmt"
 	"os"
 	"runtime"
-	"syscall"
 	"time"
 
 	"MSMP/agent/common"
@@ -19,16 +17,6 @@ import (
 	"github.com/shirou/gopsutil/v3/net"
 	"github.com/shirou/gopsutil/v3/process"
 )
-
-var (
-	kernel32       = syscall.NewLazyDLL("kernel32.dll")
-	getTickCount64 = kernel32.NewProc("GetTickCount64")
-)
-
-func getUptime() uint64 {
-	ret, _, _ := getTickCount64.Call()
-	return uint64(ret) / 1000
-}
 
 func CollectAssetInfoFull() common.AgentInfo {
 	hostname, _ := os.Hostname()
@@ -50,17 +38,20 @@ func CollectAssetInfoFull() common.AgentInfo {
 		cpuCores = len(ci)
 	}
 
-	ip := common.GetLocalIP()
-	publicIP := common.GetPublicIP()
+	osName := runtime.GOOS
+	if hinfo != nil && hinfo.Platform != "" {
+		// gopsutil 会返回 ubuntu/debian/darwin 等发行版名
+		osName = hinfo.Platform
+	}
 
 	return common.AgentInfo{
 		UUID:              common.GetEnv("AGENT_UUID", hostname),
 		Hostname:          hostname,
-		OS:                "windows",
-		OSVersion:         fmt.Sprintf("%s %s", hinfo.Platform, hinfo.PlatformVersion),
+		OS:                osName,
+		OSVersion:         platformVersion(hinfo, runtime.GOOS),
 		Arch:              runtime.GOARCH,
-		IP:                ip,
-		PublicIP:          publicIP,
+		IP:                common.GetLocalIP(),
+		PublicIP:          common.GetPublicIP(),
 		CPUModel:          cpuModel,
 		CPUCores:          cpuCores,
 		MemoryTotal:       vmem.Total,
@@ -70,6 +61,72 @@ func CollectAssetInfoFull() common.AgentInfo {
 		NetworkInterfaces: collectNetInterfaces(),
 		Processes:         collectProcesses(),
 	}
+}
+
+func CollectMetrics() common.MetricData {
+	vmem, _ := mem.VirtualMemory()
+	diskParts, _ := disk.Partitions(false)
+
+	var diskUsed, diskTotal uint64
+	for _, d := range diskParts {
+		if usage, err := disk.Usage(d.Mountpoint); err == nil {
+			diskUsed += usage.Used
+			diskTotal += usage.Total
+		}
+	}
+
+	var cpuPercent float64
+	if cp, err := cpu.Percent(time.Second, false); err == nil && len(cp) > 0 {
+		cpuPercent = cp[0]
+	}
+
+	var loadAvg1, loadAvg5, loadAvg15 float64
+	if lavg, err := load.Avg(); err == nil {
+		loadAvg1 = lavg.Load1
+		loadAvg5 = lavg.Load5
+		loadAvg15 = lavg.Load15
+	}
+
+	var netRx, netTx uint64
+	if netIO, err := net.IOCounters(false); err == nil && len(netIO) > 0 {
+		netRx = netIO[0].BytesRecv
+		netTx = netIO[0].BytesSent
+	}
+
+	return common.MetricData{
+		CPUPercent: cpuPercent,
+		MemPercent: vmem.UsedPercent,
+		MemUsed:    vmem.Used,
+		MemTotal:   vmem.Total,
+		DiskUsed:   diskUsed,
+		DiskTotal:  diskTotal,
+		NetRxBps:   netRx,
+		NetTxBps:   netTx,
+		Load1:      loadAvg1,
+		Load5:      loadAvg5,
+		Load15:     loadAvg15,
+		UptimeSec:  uptime(),
+	}
+}
+
+func platformVersion(hinfo *host.InfoStat, osName string) string {
+	if hinfo == nil {
+		return osName
+	}
+	if hinfo.PlatformVersion != "" {
+		return hinfo.PlatformVersion
+	}
+	if hinfo.KernelVersion != "" {
+		return hinfo.KernelVersion
+	}
+	return osName
+}
+
+func uptime() uint64 {
+	if hinfo, err := host.Info(); err == nil {
+		return hinfo.Uptime
+	}
+	return 0
 }
 
 func collectDiskPartitions() []common.DiskPartition {
@@ -134,54 +191,9 @@ func collectProcesses() []common.ProcessInfo {
 			MemPercent: float64(memPct),
 		})
 	}
+	// 仅保留前 50 条，按内存排序简化
 	if len(result) > 50 {
 		result = result[:50]
 	}
 	return result
-}
-
-func CollectMetrics() common.MetricData {
-	vmem, _ := mem.VirtualMemory()
-	diskParts, _ := disk.Partitions(false)
-
-	var diskUsed, diskTotal uint64
-	for _, d := range diskParts {
-		if usage, err := disk.Usage(d.Mountpoint); err == nil {
-			diskUsed += usage.Used
-			diskTotal += usage.Total
-		}
-	}
-
-	var cpuPercent float64
-	if cp, err := cpu.Percent(time.Second, false); err == nil && len(cp) > 0 {
-		cpuPercent = cp[0]
-	}
-
-	var loadAvg1, loadAvg5, loadAvg15 float64
-	if lavg, err := load.Avg(); err == nil {
-		loadAvg1 = lavg.Load1
-		loadAvg5 = lavg.Load5
-		loadAvg15 = lavg.Load15
-	}
-
-	var netRx, netTx uint64
-	if netIO, err := net.IOCounters(false); err == nil && len(netIO) > 0 {
-		netRx = netIO[0].BytesRecv
-		netTx = netIO[0].BytesSent
-	}
-
-	return common.MetricData{
-		CPUPercent: cpuPercent,
-		MemPercent: vmem.UsedPercent,
-		MemUsed:    vmem.Used,
-		MemTotal:   vmem.Total,
-		DiskUsed:   diskUsed,
-		DiskTotal:  diskTotal,
-		NetRxBps:   netRx,
-		NetTxBps:   netTx,
-		Load1:      loadAvg1,
-		Load5:      loadAvg5,
-		Load15:     loadAvg15,
-		UptimeSec:  getUptime(),
-	}
 }

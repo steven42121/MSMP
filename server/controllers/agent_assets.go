@@ -27,18 +27,21 @@ type AgentRegisterResponse struct {
 }
 
 type AssetInfo struct {
-	UUID         string `json:"uuid"`
-	Hostname     string `json:"hostname"`
-	OS           string `json:"os"`
-	OSVersion    string `json:"os_version"`
-	Arch         string `json:"arch"`
-	IP           string `json:"ip"`
-	PublicIP     string `json:"public_ip"`
-	CPUModel     string `json:"cpu_model"`
-	CPUCores     int    `json:"cpu_cores"`
-	MemoryTotal  uint64 `json:"memory_total"`
-	DiskTotal    uint64 `json:"disk_total"`
-	AgentVersion string `json:"agent_version"`
+	UUID              string             `json:"uuid"`
+	Hostname          string             `json:"hostname"`
+	OS                string             `json:"os"`
+	OSVersion         string             `json:"os_version"`
+	Arch              string             `json:"arch"`
+	IP                string             `json:"ip"`
+	PublicIP          string             `json:"public_ip"`
+	CPUModel          string             `json:"cpu_model"`
+	CPUCores          int                `json:"cpu_cores"`
+	MemoryTotal       uint64             `json:"memory_total"`
+	DiskTotal         uint64             `json:"disk_total"`
+	AgentVersion      string             `json:"agent_version"`
+	DiskPartitions    []json.RawMessage  `json:"disk_partitions"`
+	NetworkInterfaces []json.RawMessage  `json:"network_interfaces"`
+	Processes         []json.RawMessage  `json:"processes"`
 }
 
 type MetricInfo struct {
@@ -303,6 +306,8 @@ func AgentMetricReportHandler(w http.ResponseWriter, r *http.Request) {
 		"status":         "online",
 		"last_heartbeat": now,
 	})
+
+	evaluateMetricAlerts(host, sample)
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

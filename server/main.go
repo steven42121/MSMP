@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"MSMP/server/clustering"
 	"MSMP/server/config"
 	"MSMP/server/controllers"
 	"MSMP/server/db"
@@ -28,11 +29,23 @@ func main() {
 	}
 	log.Println("Database initialized successfully")
 
+	// 初始化集群状态
+	clusterState := clustering.NewClusterState(cfg)
+
 	// 启动离线检测
 	go controllers.StartOfflineChecker(cfg.Agent.OfflineAfterSec)
 
-	// 启动无 Agent 采集调度器
-	controllers.StartCollectorScheduler()
+	// 启动无 Agent 采集调度器（仅 leader 执行）
+	if cfg.Server.Nodes != nil && len(cfg.Server.Nodes) > 0 && !clusterState.IsLeader() {
+		log.Println("[cluster] this node is follower, skipping CollectorScheduler")
+	} else {
+		controllers.StartCollectorScheduler()
+	}
+
+	// follower 节点启动心跳循环
+	if clusterState.Mode() == "cluster" && !clusterState.IsLeader() {
+		go clusterState.StartHeartbeatLoop()
+	}
 
 	// 注册路由
 	mux := http.NewServeMux()
@@ -86,6 +99,17 @@ func main() {
 
 	// 健康检查
 	mux.HandleFunc("/api/health", controllers.HealthHandler)
+
+	// 集群管理接口
+	mux.HandleFunc("/api/cluster/info", func(w http.ResponseWriter, r *http.Request) {
+		controllers.ClusterInfoHandler(w, r, clusterState)
+	})
+	mux.HandleFunc("/api/cluster/ping", func(w http.ResponseWriter, r *http.Request) {
+		controllers.ClusterPingHandler(w, r, clusterState)
+	})
+	mux.HandleFunc("/api/cluster/leader", func(w http.ResponseWriter, r *http.Request) {
+		controllers.ClusterLeaderHandler(w, r, clusterState)
+	})
 
 	// 应用中间件（JWT 认证 + 多租户）
 	handler := controllers.CORSMiddleware(

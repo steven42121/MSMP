@@ -1,6 +1,10 @@
 server:
   addr: ":8080"
   mode: "debug"
+  # nodes:
+  #   - "http://10.0.0.1:8080"
+  #   - "http://10.0.0.2:8080"
+  # node_id: "node-a"   # 留空则自动生成 UUID 前 8 位
 
 db:
   driver: "sqlite"      # sqlite 或 postgres

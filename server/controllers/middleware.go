@@ -21,6 +21,7 @@ const (
 	ContextUserID   contextKey = "userID"
 	ContextTenantID contextKey = "tenantID"
 	ContextUserRole contextKey = "userRole"
+	ContextUsername contextKey = "username"
 )
 
 // CORSMiddleware 处理跨域请求
@@ -102,10 +103,15 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		userID := uint((*claims)["user_id"].(float64))
 		tenantID := uint((*claims)["tenant_id"].(float64))
 		role := (*claims)["role"].(string)
+		username := ""
+		if u, ok := (*claims)["username"].(string); ok {
+			username = u
+		}
 
 		ctx := context.WithValue(r.Context(), ContextUserID, userID)
 		ctx = context.WithValue(ctx, ContextTenantID, tenantID)
 		ctx = context.WithValue(ctx, ContextUserRole, role)
+		ctx = context.WithValue(ctx, ContextUsername, username)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -117,6 +123,87 @@ func getTenantID(r *http.Request) uint {
 		return v
 	}
 	return 0
+}
+
+// getUserID 从 context 中获取用户 ID
+func getUserID(r *http.Request) uint {
+	if v, ok := r.Context().Value(ContextUserID).(uint); ok {
+		return v
+	}
+	return 0
+}
+
+// getUsername 从 context 中获取用户名
+func getUsername(r *http.Request) string {
+	if v, ok := r.Context().Value(ContextUsername).(string); ok {
+		return v
+	}
+	return ""
+}
+
+// getRole 从 context 中获取角色
+func getRole(r *http.Request) string {
+	if v, ok := r.Context().Value(ContextUserRole).(string); ok {
+		return v
+	}
+	return ""
+}
+
+// RequireRole 仅允许指定角色访问，否则返回 403
+func RequireRole(roles []string, next http.HandlerFunc) http.HandlerFunc {
+	allowed := map[string]bool{}
+	for _, r := range roles {
+		allowed[r] = true
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !allowed[getRole(r)] {
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": "forbidden: insufficient role"})
+			return
+		}
+		next(w, r)
+	}
+}
+
+// statusRecorder 记录响应状态码
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+// Audit 包装 handler，记录写操作审计日志
+func Audit(action, resource string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// 仅记录写操作
+		switch r.Method {
+		case http.MethodPost, http.MethodPut, http.MethodDelete:
+		default:
+			next(w, r)
+			return
+		}
+
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next(rec, r)
+
+		if action != "" {
+			tenantID := getTenantID(r)
+			log := models.AuditLog{
+				TenantID: tenantID,
+				UserID:   getUserID(r),
+				Username: getUsername(r),
+				Action:   action,
+				Resource: resource + " " + r.URL.Path,
+				Method:   r.Method,
+				Status:   rec.status,
+				IP:       r.RemoteAddr,
+			}
+			db.DB.Create(&log)
+		}
+	}
 }
 
 // writeJSON 统一 JSON 响应

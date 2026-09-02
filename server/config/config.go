@@ -24,8 +24,10 @@ type NotificationConfig struct {
 }
 
 type ServerConfig struct {
-	Addr string
-	Mode string
+	Addr     string   `mapstructure:"addr"`
+	Mode     string   `mapstructure:"mode"`
+	Nodes    []string `mapstructure:"nodes"`
+	NodeID   string   `mapstructure:"node_id"`
 }
 
 type DBConfig struct {
@@ -59,6 +61,8 @@ func Load() (*Config, error) {
 
 	v.SetDefault("server.addr", ":8080")
 	v.SetDefault("server.mode", "debug")
+	v.SetDefault("server.nodes", []string{})
+	v.SetDefault("server.node_id", "")
 	v.SetDefault("db.driver", "sqlite")
 	v.SetDefault("db.sqlitepath", "msmp.db")
 	v.SetDefault("db.dsn", "host=localhost user=msmp password=msmp dbname=msmp port=5432 sslmode=disable TimeZone=Asia/Shanghai")

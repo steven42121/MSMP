@@ -8,6 +8,8 @@ import (
 
 	"MSMP/server/db"
 	"MSMP/server/models"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func TenantsHandler(w http.ResponseWriter, r *http.Request) {
@@ -38,28 +40,60 @@ func TenantsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type UserCreateRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
+}
+
+type UserUpdateRequest struct {
+	Email    string `json:"email"`
+	Role     string `json:"role"`
+	Password string `json:"password"`
+}
+
 func UsersHandler(w http.ResponseWriter, r *http.Request) {
 	tenantID := getTenantID(r)
 
 	switch r.Method {
 	case http.MethodGet:
 		var users []models.User
-		db.DB.Where("tenant_id = ?", tenantID).Find(&users)
+		query := db.DB.Where("tenant_id = ?", tenantID)
+		if keyword := r.URL.Query().Get("keyword"); keyword != "" {
+			query = query.Where("username LIKE ?", "%"+keyword+"%")
+		}
+		query.Order("created_at DESC").Find(&users)
 		writeJSON(w, http.StatusOK, users)
 
 	case http.MethodPost:
-		var user models.User
-		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		var req UserCreateRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request"})
 			return
 		}
-		user.TenantID = tenantID
-		if user.Role == "" {
-			user.Role = "member"
+		if req.Username == "" || req.Password == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "username and password required"})
+			return
 		}
-		// 密码在创建时应该哈希，这里做简单处理
-		if user.PasswordHash != "" {
-			// 实际应使用 bcrypt
+
+		hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to hash password"})
+			return
+		}
+
+		role := req.Role
+		if role == "" {
+			role = "member"
+		}
+
+		user := models.User{
+			TenantID:     tenantID,
+			Username:     req.Username,
+			PasswordHash: string(hash),
+			Email:        req.Email,
+			Role:         role,
 		}
 		if err := db.DB.Create(&user).Error; err != nil {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "user already exists"})
@@ -72,9 +106,59 @@ func UsersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// 处理 /api/users/{id} 路由
-func init() {
-	// 注册带参数的 users 路由在主路由中处理
-	_ = strings.Split
-	_ = strconv.Atoi
+func UserDetailHandler(w http.ResponseWriter, r *http.Request) {
+	tenantID := getTenantID(r)
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/users/"), "/")
+	if len(parts) == 0 || parts[0] == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "user id required"})
+		return
+	}
+
+	userID, err := strconv.ParseUint(parts[0], 10, 64)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid user id"})
+		return
+	}
+
+	var user models.User
+	if err := db.DB.Where("id = ? AND tenant_id = ?", userID, tenantID).First(&user).Error; err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "user not found"})
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, http.StatusOK, user)
+	case http.MethodPut:
+		var req UserUpdateRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request"})
+			return
+		}
+		updates := map[string]interface{}{}
+		if req.Email != "" {
+			updates["email"] = req.Email
+		}
+		if req.Role != "" {
+			updates["role"] = req.Role
+		}
+		if req.Password != "" {
+			hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+			if err != nil {
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to hash password"})
+				return
+			}
+			updates["password_hash"] = string(hash)
+		}
+		if len(updates) > 0 {
+			db.DB.Model(&user).Updates(updates)
+		}
+		db.DB.Where("id = ? AND tenant_id = ?", userID, tenantID).First(&user)
+		writeJSON(w, http.StatusOK, user)
+	case http.MethodDelete:
+		db.DB.Delete(&user)
+		writeJSON(w, http.StatusOK, map[string]string{"message": "deleted"})
+	default:
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+	}
 }
