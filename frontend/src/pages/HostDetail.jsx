@@ -376,13 +376,15 @@ export default function HostDetail() {
         </Space>
         <Text type="secondary" style={{ fontSize: 12 }}>UUID: {host.uuid} &nbsp;|&nbsp; {host.ip}</Text>
       </div>
-      <Tabs
-        activeKey={activeKey}
-        onChange={setActiveKey}
-        items={items}
-        size="large"
-        style={{ marginTop: -8 }}
-      />
+      <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }} styles={{ body: { padding: 16 } }}>
+        <Tabs
+          activeKey={activeKey}
+          onChange={setActiveKey}
+          items={items}
+          size="large"
+          style={{ marginTop: -8 }}
+        />
+      </Card>
 
       <Modal
         title="添加采集渠道"

@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Table, Button, Modal, Form, Input, InputNumber, Select, Tag, Space, Popconfirm, Switch, message } from 'antd';
+import { Table, Button, Modal, Form, Input, InputNumber, Select, Tag, Space, Popconfirm, Switch, message, Card, Typography } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import client from '../api/client';
+
+const { Text } = Typography;
 
 export default function AlertRules() {
   const [data, setData] = useState([]);
@@ -86,12 +88,21 @@ export default function AlertRules() {
 
   return (
     <div>
-      <h2>告警规则</h2>
-      <Space style={{ marginBottom: 16 }}>
-        <Button icon={<ReloadOutlined />} onClick={load}>刷新</Button>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>新建规则</Button>
-      </Space>
-      <Table columns={columns} dataSource={data} rowKey="id" loading={loading} scroll={{ x: 'max-content' }} />
+      <div className="page-header" style={{ marginBottom: 20 }}>
+        <div>
+          <div className="page-title">告警规则</div>
+          <Text type="secondary" style={{ fontSize: 13 }}>配置性能指标的告警阈值规则</Text>
+        </div>
+      </div>
+      <Card className="liquid-glass" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
+        <Space wrap className="filter-bar">
+          <Button icon={<ReloadOutlined />} onClick={load}>刷新</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', border: 'none' }}>新建规则</Button>
+        </Space>
+      </Card>
+      <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}>
+        <Table columns={columns} dataSource={data} rowKey="id" loading={loading} scroll={{ x: 'max-content' }} />
+      </Card>
       <Modal
         title="新建告警规则"
         open={createOpen}

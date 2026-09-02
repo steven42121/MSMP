@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Tag, Space, Popconfirm, message } from 'antd';
+import { Table, Button, Modal, Form, Input, Select, Tag, Space, Popconfirm, message, Card, Typography } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import client from '../api/client';
 
+const { Text } = Typography;
 const roleColor = { admin: 'red', member: 'blue' };
 
 export default function Users() {
@@ -105,18 +106,27 @@ export default function Users() {
 
   return (
     <div>
-      <h2>用户管理</h2>
-      <Space style={{ marginBottom: 16 }} wrap className="filter-bar">
-        <Input.Search
-          placeholder="用户名"
-          allowClear
-          style={{ width: 240 }}
-          onSearch={(v) => setKeyword(v)}
-        />
-        <Button icon={<ReloadOutlined />} onClick={load}>刷新</Button>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>新建用户</Button>
-      </Space>
-      <Table columns={columns} dataSource={data} rowKey="id" loading={loading} scroll={{ x: 'max-content' }} />
+      <div className="page-header" style={{ marginBottom: 20 }}>
+        <div>
+          <div className="page-title">用户管理</div>
+          <Text type="secondary" style={{ fontSize: 13 }}>管理平台用户账号与角色权限</Text>
+        </div>
+      </div>
+      <Card className="liquid-glass" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
+        <Space wrap className="filter-bar">
+          <Input.Search
+            placeholder="用户名"
+            allowClear
+            style={{ width: 240 }}
+            onSearch={(v) => setKeyword(v)}
+          />
+          <Button icon={<ReloadOutlined />} onClick={load}>刷新</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', border: 'none' }}>新建用户</Button>
+        </Space>
+      </Card>
+      <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}>
+        <Table columns={columns} dataSource={data} rowKey="id" loading={loading} scroll={{ x: 'max-content' }} />
+      </Card>
       <Modal
         title="新建用户"
         open={createOpen}

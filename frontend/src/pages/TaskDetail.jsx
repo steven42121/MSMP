@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Descriptions, Card, Spin, Tag, Button, Space, message } from 'antd';
+import { Descriptions, Card, Spin, Tag, Button, Space, message, Typography } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import client from '../api/client';
+
+const { Text } = Typography;
 
 const statusColor = {
   pending: 'default',
@@ -61,6 +63,12 @@ export default function TaskDetail() {
 
   return (
     <div>
+      <div className="page-header" style={{ marginBottom: 16 }}>
+        <div>
+          <div className="page-title">任务详情 #{task.id}</div>
+          <Text type="secondary" style={{ fontSize: 13 }}>远程任务执行状态与结果</Text>
+        </div>
+      </div>
       <Space style={{ marginBottom: 16 }}>
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/tasks')}>返回</Button>
         {task.status === 'pending' && (
@@ -68,8 +76,7 @@ export default function TaskDetail() {
         )}
         <Button danger type="primary" onClick={handleDelete}>删除</Button>
       </Space>
-      <h2>任务详情 #{task.id}</h2>
-      <Card>
+      <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}>
         <Descriptions bordered column={{ xs: 1, sm: 2 }}>
           <Descriptions.Item label="ID">{task.id}</Descriptions.Item>
           <Descriptions.Item label="主机ID">{task.host_id}</Descriptions.Item>

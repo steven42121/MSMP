@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Table, Card, Tag, Space, Select, Button } from 'antd';
+import { Table, Card, Tag, Space, Select, Button, Typography } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import client from '../api/client';
+
+const { Text } = Typography;
 
 export default function AuditLogs() {
   const [data, setData] = useState([]);
@@ -47,34 +49,43 @@ export default function AuditLogs() {
 
   return (
     <div>
-      <h2>审计日志</h2>
-      <Space style={{ marginBottom: 16 }} className="filter-bar" wrap>
-        <Select
-          placeholder="动作筛选"
-          allowClear
-          style={{ width: 160 }}
-          value={action || undefined}
-          onChange={(v) => { setAction(v || ''); setPage(1); }}
-          options={[
-            { value: 'manage', label: '管理操作' },
-          ]}
+      <div className="page-header" style={{ marginBottom: 20 }}>
+        <div>
+          <div className="page-title">审计日志</div>
+          <Text type="secondary" style={{ fontSize: 13 }}>平台操作审计与安全追踪</Text>
+        </div>
+      </div>
+      <Card className="liquid-glass" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
+        <Space className="filter-bar" wrap>
+          <Select
+            placeholder="动作筛选"
+            allowClear
+            style={{ width: 160 }}
+            value={action || undefined}
+            onChange={(v) => { setAction(v || ''); setPage(1); }}
+            options={[
+              { value: 'manage', label: '管理操作' },
+            ]}
+          />
+          <Button icon={<ReloadOutlined />} onClick={load}>刷新</Button>
+        </Space>
+      </Card>
+      <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}>
+        <Table
+          columns={columns}
+          dataSource={data}
+          rowKey="id"
+          loading={loading}
+          scroll={{ x: 'max-content' }}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            onChange: (p, ps) => { setPage(p); setPageSize(ps); },
+          }}
         />
-        <Button icon={<ReloadOutlined />} onClick={load}>刷新</Button>
-      </Space>
-      <Table
-        columns={columns}
-        dataSource={data}
-        rowKey="id"
-        loading={loading}
-        scroll={{ x: 'max-content' }}
-        pagination={{
-          current: page,
-          pageSize,
-          total,
-          showSizeChanger: true,
-          onChange: (p, ps) => { setPage(p); setPageSize(ps); },
-        }}
-      />
+      </Card>
     </div>
   );
 }

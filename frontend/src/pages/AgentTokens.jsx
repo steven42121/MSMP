@@ -116,23 +116,30 @@ export default function AgentTokens() {
 
   return (
     <div>
-      <h2>Agent 接入</h2>
-      <Card style={{ marginBottom: 16 }}>
-        <Typography.Paragraph>
+      <div className="page-header" style={{ marginBottom: 20 }}>
+        <div>
+          <div className="page-title">Agent 接入</div>
+          <Text type="secondary" style={{ fontSize: 13 }}>管理 Agent 接入 Token 与安装命令</Text>
+        </div>
+      </div>
+      <Card className="liquid-glass" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
+        <Typography.Paragraph style={{ marginBottom: 8 }}>
           在目标主机上设置以下环境变量后运行 Agent：
         </Typography.Paragraph>
-        <Typography.Paragraph code copyable style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#f5f5f5', padding: 12, borderRadius: 8 }}>
+        <Typography.Paragraph code copyable style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#f5f5f5', padding: 12, borderRadius: 8, marginBottom: 0 }}>
 {`export MSMP_SERVER_URL=https://your-server
 export AGENT_TOKEN=your-token
 export AGENT_UUID=$(hostname)
 ./msmp-agent`}
         </Typography.Paragraph>
       </Card>
-      <Space style={{ marginBottom: 16 }}>
+      <Space style={{ marginBottom: 16 }} wrap className="filter-bar">
         <Button icon={<ReloadOutlined />} onClick={load}>刷新</Button>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>新建 Token</Button>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', border: 'none' }}>新建 Token</Button>
       </Space>
-      <Table columns={columns} dataSource={data} rowKey="id" loading={loading} scroll={{ x: 'max-content' }} />
+      <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}>
+        <Table columns={columns} dataSource={data} rowKey="id" loading={loading} scroll={{ x: 'max-content' }} />
+      </Card>
       <Modal
         title="新建 Agent Token"
         open={createOpen}
