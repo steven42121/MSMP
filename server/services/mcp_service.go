@@ -8,33 +8,55 @@ import (
 	"sync"
 	"time"
 
-	"MSMP/server/collectors"
 	"MSMP/server/db"
 	"MSMP/server/models"
 )
 
 // MCPApproval 工具调用审批记录
 type MCPApproval struct {
-	ID          uint      `json:"id"`
-	TenantID    uint      `json:"tenant_id"`
-	UserID      uint      `json:"user_id"`
-	ToolName    string    `json:"tool_name"`
-	Arguments   string    `json:"arguments"` // JSON string
-	Message     string    `json:"message"`   // 给用户的操作描述
-	Status      string    `json:"status"`    // pending/approved/rejected
-	Result      string    `json:"result"`    // 执行结果
-	CreatedAt   time.Time `json:"created_at"`
-	ExecutedAt  *time.Time `json:"executed_at,omitempty"`
+	ID         uint       `json:"id"`
+	TenantID   uint       `json:"tenant_id"`
+	UserID     uint       `json:"user_id"`
+	ToolName   string     `json:"tool_name"`
+	Arguments  string     `json:"arguments"` // JSON string
+	Message    string     `json:"message"`   // 给用户的操作描述
+	Status     string     `json:"status"`    // pending/approved/rejected/failed
+	Result     string     `json:"result"`    // 执行结果
+	CreatedAt  time.Time  `json:"created_at"`
+	ExecutedAt *time.Time `json:"executed_at,omitempty"`
 }
 
 var (
 	approvals      map[uint]*MCPApproval
 	approvalsMu    sync.RWMutex
-	nextApprovalID uint = 1000
+	nextApprovalID uint
 )
 
 func init() {
 	approvals = make(map[uint]*MCPApproval)
+	// 定期清理已完成审批（每30分钟），防止内存持续增长
+	go periodicApprovalCleanup(30 * time.Minute)
+}
+
+// periodicApprovalCleanup 定期清理已完成审批，防止内存持续增长
+func periodicApprovalCleanup(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for range ticker.C {
+		RemoveCompletedApprovals(10 * time.Minute)
+	}
+}
+
+// RemoveCompletedApprovals 移除 N 分钟前完成的审批（approved/rejected/failed）
+func RemoveCompletedApprovals(age time.Duration) {
+	threshold := time.Now().Add(-age)
+	approvalsMu.Lock()
+	defer approvalsMu.Unlock()
+	for id, a := range approvals {
+		if a.Status != "pending" && a.ExecutedAt != nil && a.ExecutedAt.Before(threshold) {
+			delete(approvals, id)
+		}
+	}
 }
 
 // CreateApproval 创建一个新的工具调用审批请求
@@ -44,8 +66,11 @@ func CreateApproval(tenantID, userID uint, toolName string, args map[string]inte
 		return nil, fmt.Errorf("序列化参数失败: %w", err)
 	}
 
+	approvalsMu.Lock()
+	id := nextApprovalID
+	nextApprovalID++
 	approval := &MCPApproval{
-		ID:        nextApprovalID,
+		ID:        id,
 		TenantID:  tenantID,
 		UserID:    userID,
 		ToolName:  toolName,
@@ -54,10 +79,7 @@ func CreateApproval(tenantID, userID uint, toolName string, args map[string]inte
 		Status:    "pending",
 		CreatedAt: time.Now(),
 	}
-	nextApprovalID++
-
-	approvalsMu.Lock()
-	approvals[approval.ID] = approval
+	approvals[id] = approval
 	approvalsMu.Unlock()
 
 	return approval, nil
@@ -68,17 +90,25 @@ func GetApproval(id uint) (*MCPApproval, bool) {
 	approvalsMu.RLock()
 	defer approvalsMu.RUnlock()
 	a, ok := approvals[id]
-	return a, ok
+	if !ok {
+		return nil, false
+	}
+	// 返回副本，防止调用方修改内部状态
+	copy := *a
+	return &copy, true
 }
 
-// Approve 批准工具调用并执行
-func Approve(id uint, tenantID, userID uint) (*MCPApproval, error) {
+// Approve 批准工具调用并执行（内部，由 Controller 调用）
+func Approve(id uint, tenantID, userID uint, isAdmin bool) (*MCPApproval, error) {
 	approvalsMu.Lock()
 	defer approvalsMu.Unlock()
 
 	a, ok := approvals[id]
 	if !ok || a.Status != "pending" || a.TenantID != tenantID {
 		return nil, fmt.Errorf("审批不存在或已处理")
+	}
+	if !isAdmin {
+		return nil, fmt.Errorf("无权限：仅管理员可批准工具调用")
 	}
 
 	a.Status = "approved"
@@ -89,8 +119,8 @@ func Approve(id uint, tenantID, userID uint) (*MCPApproval, error) {
 	return a, nil
 }
 
-// Reject 拒绝工具调用
-func Reject(id uint, tenantID uint) (*MCPApproval, error) {
+// Reject 拒绝工具调用（内部，由 Controller 调用）
+func Reject(id uint, tenantID uint, isAdmin bool) (*MCPApproval, error) {
 	approvalsMu.Lock()
 	defer approvalsMu.Unlock()
 
@@ -98,20 +128,23 @@ func Reject(id uint, tenantID uint) (*MCPApproval, error) {
 	if !ok || a.Status != "pending" || a.TenantID != tenantID {
 		return nil, fmt.Errorf("审批不存在或已处理")
 	}
+	if !isAdmin {
+		return nil, fmt.Errorf("无权限：仅管理员可拒绝工具调用")
+	}
 
 	a.Status = "rejected"
 	return a, nil
 }
 
-// GetPendingApprovals 获取当前租户的待审批列表
-func GetPendingApprovals(tenantID uint) []*MCPApproval {
+// GetPendingApprovals 获取当前租户的待审批 ID 列表（线程安全，返回副本）
+func GetPendingApprovals(tenantID uint) []MCPApproval {
 	approvalsMu.RLock()
 	defer approvalsMu.RUnlock()
 
-	var result []*MCPApproval
+	var result []MCPApproval
 	for _, a := range approvals {
 		if a.TenantID == tenantID && a.Status == "pending" {
-			result = append(result, a)
+			result = append(result, *a) // 值拷贝，安全返回
 		}
 	}
 	return result
@@ -121,11 +154,17 @@ func executeApproval(a *MCPApproval) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[MCP] 执行 panic: %v", r)
-			a.Status = "failed"
-			a.Result = fmt.Sprintf("执行异常: %v", r)
 		}
 		now := time.Now()
 		a.ExecutedAt = &now
+		// 写回内存
+		approvalsMu.Lock()
+		if existing, ok := approvals[a.ID]; ok {
+			existing.Status = a.Status
+			existing.Result = a.Result
+			existing.ExecutedAt = a.ExecutedAt
+		}
+		approvalsMu.Unlock()
 	}()
 
 	var args map[string]interface{}
@@ -160,6 +199,11 @@ func execCommand(a *MCPApproval, args map[string]interface{}) string {
 
 	if hostname == "" || command == "" {
 		return "参数不完整：需要 hostname 和 command"
+	}
+
+	// 安全检查：危险命令检测
+	if err := checkDangerousCommand(a.ToolName, args); err != nil {
+		return err.Error()
 	}
 
 	host, err := FindHostByIDOrName(a.TenantID, hostname)
@@ -197,6 +241,7 @@ func checkService(a *MCPApproval, args map[string]interface{}) string {
 		return fmt.Sprintf("找不到主机 %s: %v", hostname, err)
 	}
 
+	// service 已在 ValidateToolCall 中通过 validServiceName 净化，此处直接使用
 	cmd := fmt.Sprintf("systemctl status %s 2>/dev/null || service %s status 2>/dev/null || echo 'service not found'", service, service)
 	task := models.Task{
 		TenantID: a.TenantID,
@@ -218,7 +263,13 @@ func viewLogs(a *MCPApproval, args map[string]interface{}) string {
 	logPath, _ := args["log_path"].(string)
 	lines := 50
 	if l, ok := args["lines"].(float64); ok {
-		lines = int(l)
+		n := int(l)
+		if n < 1 {
+			n = 1
+		} else if n > 500 {
+			n = 500
+		}
+		lines = n
 	}
 
 	if hostname == "" || logPath == "" {
@@ -230,6 +281,7 @@ func viewLogs(a *MCPApproval, args map[string]interface{}) string {
 		return fmt.Sprintf("找不到主机 %s: %v", hostname, err)
 	}
 
+	// logPath 已在 ValidateToolCall 中通过 validLogPath 净化，此处直接使用
 	cmd := fmt.Sprintf("tail -n %d %s 2>/dev/null || echo '无法读取日志'", lines, logPath)
 	task := models.Task{
 		TenantID: a.TenantID,
@@ -259,31 +311,14 @@ func GetToolResult(taskID uint) (string, error) {
 	return task.Result, nil
 }
 
-// RunRawCommand 直接通过 SSH/WinRM 运行命令（需要 cred service）
-func RunRawCommand(ctx context.Context, hostID uint, command string, credSvc CredentialService) (string, error) {
+// RunRawCommand 直接通过 SSH/WinRM 运行命令（占位实现）
+func RunRawCommand(ctx context.Context, hostID uint, command string, _ interface{}) (string, error) {
+	_ = ctx
+	_ = command
 	var host models.Host
 	if err := db.DB.First(&host, hostID).Error; err != nil {
 		return "", fmt.Errorf("主机不存在")
 	}
-
-	var binding models.ChannelBinding
-	if err := db.DB.Where("host_id = ?", hostID).First(&binding).Error; err != nil {
-		return "", fmt.Errorf("主机未配置采集渠道")
-	}
-
-	ch, ok := collectors.NewRegistry().Get(binding.Type)
-	if !ok {
-		return "", fmt.Errorf("不支持的渠道类型: %s", binding.Type)
-	}
-
-	cred := func() (string, error) {
-		return credSvc.Decrypt(binding.Credential)
-	}
-
-	// 使用 channel 的 run 方法（通过 Collect 接口间接执行）
-	// 注意：这里需要根据具体 collector 实现来扩展
-	_ = ctx
-	_ = ch
-	_ = cred
-	return "", fmt.Errorf("直接命令执行需要通过任务系统由 Agent 执行")
+	_ = host
+	return "", fmt.Errorf("直接命令执行需通过任务系统，请使用 execute_command 工具并提交审批")
 }
