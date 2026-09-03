@@ -129,7 +129,7 @@ export default function Dashboard() {
     series: [{
       type: 'pie', radius: ['38%', '68%'], center: ['50%', '46%'],
       itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
-      label: { show: true, formatter: '{b}: {c}', fontSize: 12 },
+      label: { show: true, position: 'inside', formatter: '{c}', fontSize: 11 },
       data: [
         { name: '在线', value: stats.online, itemStyle: { color: '#52c41a' } },
         { name: '待接入', value: stats.pending, itemStyle: { color: '#faad14' } },
@@ -145,7 +145,7 @@ export default function Dashboard() {
     series: [{
       type: 'pie', radius: ['38%', '68%'], center: ['50%', '46%'],
       itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
-      label: { show: true, formatter: '{b}: {c}', fontSize: 12 },
+      label: { show: true, position: 'inside', formatter: '{c}', fontSize: 11 },
       data: Object.entries(osDist).map(([name, value], i) => ({
         name, value,
         itemStyle: { color: ['#667eea', '#764ba2', '#52c41a', '#faad14', '#ff4d4f', '#1890ff', '#13c2c2'][i % 7] },

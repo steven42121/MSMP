@@ -967,6 +967,11 @@ body.msmp-dark,
 
   .ant-table-cell {
     padding: 8px 10px !important;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .ant-descriptions-item-label {
     white-space: nowrap;
   }
 
@@ -1151,7 +1156,7 @@ body.msmp-dark,
     flex-wrap: nowrap;
   }
 
-  /* 筛选栏：控件弹性拉伸填满 */
+  /* 筛选栏：分块堆叠——输入类与标签组独占整行，按钮自然换行排列 */
   .filter-bar {
     display: flex !important;
     flex-wrap: wrap;
@@ -1160,29 +1165,49 @@ body.msmp-dark,
   }
 
   .filter-bar > .ant-space-item {
-    flex: 1 1 140px;
-    display: flex;
-    min-width: 120px;
-  }
-
-  .filter-bar > .ant-space-item > * {
-    flex: 1 1 auto;
-    width: auto !important;
-  }
-
-  /* 按钮/内嵌控件组不参与拉伸，保持自身宽度，避免留白错位 */
-  .filter-bar > .ant-space-item:has(> .ant-btn),
-  .filter-bar > .ant-space-item:has(> .ant-space) {
     flex: 0 0 auto;
+    display: flex;
     min-width: 0;
+  }
+
+  /* 输入/选择器类占满整行 */
+  .filter-bar > .ant-space-item:has(> .ant-input-search),
+  .filter-bar > .ant-space-item:has(> .ant-select),
+  .filter-bar > .ant-space-item:has(> .ant-picker),
+  .filter-bar > .ant-space-item:has(> .ant-input),
+  .filter-bar > .ant-space-item:has(> .ant-input-number) {
+    flex: 1 1 100%;
+  }
+
+  .filter-bar > .ant-space-item > .ant-input-search,
+  .filter-bar > .ant-space-item > .ant-select,
+  .filter-bar > .ant-space-item > .ant-picker,
+  .filter-bar > .ant-space-item > .ant-input,
+  .filter-bar > .ant-space-item > .ant-input-number {
+    flex: 1 1 auto;
+    width: 100% !important;
+  }
+
+  /* 标签组占满整行 */
+  .filter-bar > .ant-space-item:has(> .ant-space) {
+    flex: 1 1 100%;
+  }
+
+  .filter-bar > .ant-space-item > .ant-space {
+    flex: 1 1 auto;
+  }
+
+  /* 按钮保持自身宽度，末位按钮推到行尾 */
+  .filter-bar > .ant-space-item:has(> .ant-btn) {
+    flex: 0 0 auto;
   }
 
   .filter-bar > .ant-space-item > .ant-btn {
     flex: 0 0 auto;
   }
 
-  .filter-bar > .ant-space-item > .ant-space {
-    flex: 0 0 auto;
+  .filter-bar > .ant-space-item:last-child {
+    margin-left: auto;
   }
 
   /* 筛选栏内所有按钮统一 36px（含 sm 按钮），消除大小不一 */

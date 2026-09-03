@@ -6,6 +6,8 @@ import ReactECharts from 'echarts-for-react';
 import dayjs from 'dayjs';
 import client from '../api/client';
 
+const { Text } = Typography;
+
 function formatBytes(bytes) {
   if (!bytes || bytes === 0) return '-';
   const k = 1024;
