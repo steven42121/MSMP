@@ -895,6 +895,12 @@ body.msmp-dark,
   background: transparent !important;
 }
 
+/* Tabs 溢出处理：确保超出容器的 tab 被裁剪，让 antd "更多"下拉正常工作 */
+.ant-tabs-nav,
+.ant-tabs-nav-wrap {
+  overflow: hidden !important;
+}
+
 .liquid-glass.ant-card .ant-card-tabs .ant-tabs-tab-active {
   background: rgba(100, 140, 255, 0.1) !important;
 }
@@ -1165,7 +1171,7 @@ body.msmp-dark,
     flex-wrap: nowrap;
   }
 
-  /* 筛选栏：分块堆叠——输入类与标签组独占整行，按钮自然换行排列 */
+  /* 筛选栏：搜索框独占整行，select/标签组共享行，按钮自然排列 */
   .filter-bar {
     display: flex !important;
     flex-wrap: wrap;
@@ -1179,31 +1185,37 @@ body.msmp-dark,
     min-width: 0;
   }
 
-  /* 输入/选择器类占满整行 */
+  /* 搜索框独占整行 */
   .filter-bar > .ant-space-item:has(> .ant-input-search),
-  .filter-bar > .ant-space-item:has(> .ant-select),
-  .filter-bar > .ant-space-item:has(> .ant-picker),
-  .filter-bar > .ant-space-item:has(> .ant-input),
-  .filter-bar > .ant-space-item:has(> .ant-input-number) {
+  .filter-bar > .ant-space-item:has(> .ant-input-affix-wrapper) {
     flex: 1 1 100%;
   }
 
   .filter-bar > .ant-space-item > .ant-input-search,
-  .filter-bar > .ant-space-item > .ant-select,
-  .filter-bar > .ant-space-item > .ant-picker,
-  .filter-bar > .ant-space-item > .ant-input,
-  .filter-bar > .ant-space-item > .ant-input-number {
-    flex: 1 1 auto;
+  .filter-bar > .ant-space-item > .ant-input-affix-wrapper {
     width: 100% !important;
   }
 
-  /* 标签组占满整行 */
+  /* select/picker 弹性填空，可与标签组或按钮共享行 */
+  .filter-bar > .ant-space-item:has(> .ant-select),
+  .filter-bar > .ant-space-item:has(> .ant-picker),
+  .filter-bar > .ant-space-item:has(> .ant-input-number) {
+    flex: 1 1 130px;
+  }
+
+  .filter-bar > .ant-space-item > .ant-select,
+  .filter-bar > .ant-space-item > .ant-picker,
+  .filter-bar > .ant-space-item > .ant-input-number {
+    width: 100% !important;
+  }
+
+  /* 标签组不增长，保持自然宽度，与 select 共享行 */
   .filter-bar > .ant-space-item:has(> .ant-space) {
-    flex: 1 1 100%;
+    flex: 0 0 auto;
   }
 
   .filter-bar > .ant-space-item > .ant-space {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
   }
 
   /* 按钮保持自身宽度，末位按钮推到行尾 */
