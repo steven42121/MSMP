@@ -1016,6 +1016,12 @@ body.msmp-dark,
     height: 36px !important;
   }
 
+  /* 多选选择器保持自动高度（标签换行），仅保证最小高度一致 */
+  .ant-select-multiple .ant-select-selector {
+    height: auto !important;
+    min-height: 36px !important;
+  }
+
   .ant-select-single .ant-select-selection-item,
   .ant-select-single .ant-select-selection-placeholder {
     line-height: 34px !important;
@@ -1025,13 +1031,21 @@ body.msmp-dark,
     top: 45% !important;
   }
 
-  .ant-input,
+  .ant-input:not(textarea),
   .ant-input-password input {
     height: 36px !important;
   }
 
   .ant-input-affix-wrapper {
     height: 36px !important;
+  }
+
+  /* 关键修复：带前缀/后缀（搜索、allowClear、密码）输入框的内层 input
+     由 wrapper 自身高度撑起，强制 36px 会溢出导致文字垂直偏移 */
+  .ant-input-affix-wrapper .ant-input,
+  .ant-input-affix-wrapper textarea.ant-input {
+    height: auto !important;
+    line-height: 24px !important;
   }
 
   .ant-input-number {
@@ -1171,6 +1185,24 @@ body.msmp-dark,
     flex: 0 0 auto;
   }
 
+  /* 筛选栏内所有按钮统一 36px（含 sm 按钮），消除大小不一 */
+  .filter-bar .ant-btn {
+    height: 36px !important;
+    padding: 0 14px !important;
+    font-size: 13px !important;
+  }
+
+  /* 筛选栏内的可选标签（状态筛选）与控件同高对齐 */
+  .filter-bar .ant-tag-checkable {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 12px;
+    line-height: 34px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+
   /* 分页器压缩 */
   .ant-pagination {
     flex-wrap: wrap;
@@ -1273,16 +1305,27 @@ body.msmp-dark,
     font-size: 12px !important;
   }
 
+  .ant-select-multiple .ant-select-selector {
+    height: auto !important;
+    min-height: 34px !important;
+  }
+
   .ant-select-single .ant-select-selection-item,
   .ant-select-single .ant-select-selection-placeholder {
     line-height: 32px !important;
   }
 
-  .ant-input,
+  .ant-input:not(textarea),
   .ant-input-affix-wrapper,
   .ant-input-number,
   .ant-picker {
     height: 34px !important;
+  }
+
+  .ant-input-affix-wrapper .ant-input,
+  .ant-input-affix-wrapper textarea.ant-input {
+    height: auto !important;
+    line-height: 24px !important;
   }
 
   .ant-input-number .ant-input-number-input {
@@ -1291,6 +1334,16 @@ body.msmp-dark,
 
   .ant-input {
     font-size: 13px !important;
+  }
+
+  /* 筛选栏控件与标签同步 34px */
+  .filter-bar .ant-btn {
+    height: 34px !important;
+  }
+
+  .filter-bar .ant-tag-checkable {
+    height: 34px;
+    line-height: 32px;
   }
 
   .ant-space {
