@@ -128,6 +128,9 @@ export default function MainLayout() {
       <div className="ambient-orb orb-b" />
       <div className="ambient-orb orb-c" />
 
+      {/* 全局统一背景光斑 — 跟随鼠标/重力流动 */}
+      <div className="global-glow" />
+
       {/* Desktop Sider */}
       {!isMobile && (
         <Sider

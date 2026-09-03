@@ -46,34 +46,13 @@ body.msmp-dark,
    iOS Liquid Glass — True Fluid Glass Effect
    ============================================================ */
 
-/* 基础玻璃容器 — 支持全局和局部鼠标跟踪 */
+/* 基础玻璃容器 — 统一磨砂材质，高光由全局背景提供 */
 .liquid-glass {
   position: relative;
   overflow: hidden;
-  /* CSS 变量：全局默认值 */
-  --glow-x: var(--mouse-x, 50%);
-  --glow-y: var(--mouse-y, 50%);
-  --glow-intensity: 0.6;
 }
 
-/* 动态高光层 — 跟随鼠标位置流动 */
-.liquid-glass::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(
-    circle at var(--glow-x) var(--glow-y),
-    rgba(255, 255, 255, calc(var(--glow-intensity) * 0.45)) 0%,
-    rgba(255, 255, 255, calc(var(--glow-intensity) * 0.12)) 20%,
-    transparent 55%
-  );
-  pointer-events: none;
-  z-index: 2;
-  transition: background 0.2s ease-out;
-}
-
-/* 边缘高光轮廓 */
+/* 边缘高光轮廓（统一背景：高光由全局 .global-glow 背景层提供，卡片不再绘制独立光点） */
 .liquid-glass::after {
   content: '';
   position: absolute;
@@ -112,17 +91,11 @@ body.msmp-dark,
   z-index: 1;
 }
 
-/* 液体流动动画 — 模拟玻璃内部光线折射 */
+/* 液体流动动画 — 模拟玻璃内部光线折射（均匀旋转，不产生独立光点） */
 .liquid-glass .glass-fluid {
   position: absolute;
   inset: -30%;
-  background:
-    radial-gradient(
-      46% 46% at calc((var(--glow-x) - 50%) * 1.6 + 50%) calc((var(--glow-y) - 50%) * 1.6 + 50%),
-      rgba(255, 255, 255, 0.07) 0%,
-      transparent 70%
-    ),
-    conic-gradient(
+  background: conic-gradient(
     from 0deg at 50% 50%,
     transparent 0deg,
     rgba(255, 255, 255, 0.025) 45deg,
@@ -140,15 +113,9 @@ body.msmp-dark,
   opacity: 0.8;
 }
 
-/* Dark mode 流动光斑带蓝紫氛围 */
+/* Dark mode 流动折射带蓝紫氛围 */
 .msmp-dark .liquid-glass .glass-fluid {
-  background:
-    radial-gradient(
-      46% 46% at calc((var(--glow-x) - 50%) * 1.6 + 50%) calc((var(--glow-y) - 50%) * 1.6 + 50%),
-      rgba(110, 140, 255, 0.1) 0%,
-      transparent 70%
-    ),
-    conic-gradient(
+  background: conic-gradient(
     from 0deg at 50% 50%,
     transparent 0deg,
     rgba(120, 90, 255, 0.03) 45deg,
@@ -225,16 +192,6 @@ body.msmp-dark,
     inset 0 -1px 0 rgba(0, 0, 0, 0.22);
 }
 
-/* Dark mode 高光带蓝色氛围，流动更明显 */
-.msmp-dark .liquid-glass::before {
-  background: radial-gradient(
-    circle at var(--glow-x) var(--glow-y),
-    rgba(100, 140, 255, calc(var(--glow-intensity) * 0.3)) 0%,
-    rgba(90, 120, 255, calc(var(--glow-intensity) * 0.1)) 28%,
-    transparent 62%
-  );
-}
-
 /* 全局鼠标位置变量初始化 */
 :root {
   --mouse-x: 50%;
@@ -308,6 +265,30 @@ body.msmp-dark,
 
 .msmp-dark .ambient-orb.orb-c {
   background: radial-gradient(circle, rgba(40, 200, 160, 0.08) 0%, rgba(40, 200, 160, 0.02) 40%, transparent 70%);
+}
+
+/* 全局统一背景光斑 — 跟随鼠标/重力在整块玻璃背景上游走，透过玻璃卡片柔和透出 */
+.global-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    40% 40% at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(140, 160, 255, 0.16) 0%,
+    rgba(140, 160, 255, 0.06) 34%,
+    transparent 70%
+  );
+  transition: background 0.3s ease-out;
+}
+
+.msmp-dark .global-glow {
+  background: radial-gradient(
+    40% 40% at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(110, 140, 255, 0.22) 0%,
+    rgba(110, 140, 255, 0.07) 40%,
+    transparent 72%
+  );
 }
 
 @keyframes orbDriftA {
@@ -1369,8 +1350,8 @@ body.msmp-dark,
 
 /* 打印时隐藏装饰元素 */
 @media print {
-  .ambient-orb { display: none !important; }
-  .liquid-glass::before,
+  .ambient-orb,
+  .global-glow { display: none !important; }
   .liquid-glass::after,
   .liquid-glass .glass-fluid { display: none !important; }
 }
