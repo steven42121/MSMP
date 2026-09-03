@@ -42,6 +42,8 @@ type AssetInfo struct {
 	DiskPartitions    []json.RawMessage  `json:"disk_partitions"`
 	NetworkInterfaces []json.RawMessage  `json:"network_interfaces"`
 	Processes         []json.RawMessage  `json:"processes"`
+	GPUs              []json.RawMessage  `json:"gpus"`
+	Temperatures      []json.RawMessage  `json:"temperatures"`
 }
 
 type MetricInfo struct {

@@ -60,6 +60,8 @@ func CollectAssetInfoFull() common.AgentInfo {
 		DiskPartitions:    collectDiskPartitions(),
 		NetworkInterfaces: collectNetInterfaces(),
 		Processes:         collectProcesses(),
+		GPUs:              common.CollectGPUs(),
+		Temperatures:      collectTemperatures(),
 	}
 }
 
@@ -168,6 +170,23 @@ func collectNetInterfaces() []common.NetInterface {
 			}
 		}
 		result = append(result, ni)
+	}
+	return result
+}
+
+func collectTemperatures() []common.TemperatureInfo {
+	sensors, err := host.SensorsTemperatures()
+	if err != nil {
+		return nil
+	}
+	var result []common.TemperatureInfo
+	for _, s := range sensors {
+		result = append(result, common.TemperatureInfo{
+			SensorKey: s.SensorKey,
+			Temp:      s.Temperature,
+			High:      s.High,
+			Critical:  s.Critical,
+		})
 	}
 	return result
 }

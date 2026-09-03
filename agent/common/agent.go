@@ -11,21 +11,23 @@ import (
 )
 
 type AgentInfo struct {
-	UUID              string         `json:"uuid"`
-	Hostname          string         `json:"hostname"`
-	OS                string         `json:"os"`
-	OSVersion         string         `json:"os_version"`
-	Arch              string         `json:"arch"`
-	IP                string         `json:"ip"`
-	PublicIP          string         `json:"public_ip"`
-	CPUModel          string         `json:"cpu_model"`
-	CPUCores          int            `json:"cpu_cores"`
-	MemoryTotal       uint64         `json:"memory_total"`
-	DiskTotal         uint64         `json:"disk_total"`
-	AgentVersion      string         `json:"agent_version"`
-	DiskPartitions    []DiskPartition `json:"disk_partitions"`
-	NetworkInterfaces []NetInterface  `json:"network_interfaces"`
-	Processes         []ProcessInfo   `json:"processes"`
+	UUID              string            `json:"uuid"`
+	Hostname          string            `json:"hostname"`
+	OS                string            `json:"os"`
+	OSVersion         string            `json:"os_version"`
+	Arch              string            `json:"arch"`
+	IP                string            `json:"ip"`
+	PublicIP          string            `json:"public_ip"`
+	CPUModel          string            `json:"cpu_model"`
+	CPUCores          int               `json:"cpu_cores"`
+	MemoryTotal       uint64            `json:"memory_total"`
+	DiskTotal         uint64            `json:"disk_total"`
+	AgentVersion      string            `json:"agent_version"`
+	DiskPartitions    []DiskPartition   `json:"disk_partitions"`
+	NetworkInterfaces []NetInterface    `json:"network_interfaces"`
+	Processes         []ProcessInfo     `json:"processes"`
+	GPUs              []GPUInfo         `json:"gpus"`
+	Temperatures      []TemperatureInfo `json:"temperatures"`
 }
 
 type DiskPartition struct {
@@ -51,6 +53,25 @@ type ProcessInfo struct {
 	Username    string  `json:"username"`
 	CPUPercent  float64 `json:"cpu_percent"`
 	MemPercent  float64 `json:"mem_percent"`
+}
+
+type GPUInfo struct {
+	Name           string  `json:"name"`
+	Vendor         string  `json:"vendor"`
+	MemoryTotal    uint64  `json:"memory_total"`
+	MemoryUsed     uint64  `json:"memory_used"`
+	DriverVersion  string  `json:"driver_version"`
+	UUID           string  `json:"uuid"`
+	BusID          string  `json:"bus_id"`
+	TemperatureC   float64 `json:"temperature_c"`
+	UtilizationGPU int     `json:"utilization_gpu"`
+}
+
+type TemperatureInfo struct {
+	SensorKey string  `json:"sensor_key"`
+	Temp      float64 `json:"temp"`
+	High      float64 `json:"high,omitempty"`
+	Critical  float64 `json:"critical,omitempty"`
 }
 
 type MetricData struct {

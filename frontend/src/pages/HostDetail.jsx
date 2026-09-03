@@ -86,7 +86,7 @@ export default function HostDetail() {
     } catch (e) {}
   };
 
-  useEffect(() => { loadHost(); }, [uuid]);
+  useEffect(() => { loadHost(); loadAssets(); }, [uuid]);
 
   // 切换到监控/资产/事件标签时自动加载
   useEffect(() => {
@@ -165,6 +165,13 @@ export default function HostDetail() {
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
   if (!host) return <div>主机不存在</div>;
 
+  const latestAsset = assets[0];
+  let hostDetail = null;
+  if (latestAsset) {
+    try { hostDetail = JSON.parse(latestAsset.payload); } catch (e) {}
+  }
+  const gpus = hostDetail?.gpus || [];
+
   const tagColumns = [
     { title: '键', dataIndex: 'key', key: 'key' },
     { title: '值', dataIndex: 'value', key: 'value' },
@@ -201,6 +208,9 @@ export default function HostDetail() {
           <Descriptions.Item label="CPU">{host.cpu_model} ({host.cpu_cores}核)</Descriptions.Item>
           <Descriptions.Item label="内存">{formatBytes(host.memory_total)}</Descriptions.Item>
           <Descriptions.Item label="磁盘">{formatBytes(host.disk_total)}</Descriptions.Item>
+          <Descriptions.Item label="GPU">
+            {gpus.length > 0 ? gpus.map((g) => `${g.name}（${formatBytes(g.memory_total)}）`).join('、') : '无'}
+          </Descriptions.Item>
           <Descriptions.Item label="Agent版本">{host.agent_version}</Descriptions.Item>
           <Descriptions.Item label="状态">
             <Tag color={host.status === 'online' ? 'green' : 'red'}>{host.status === 'online' ? '在线' : '离线'}</Tag>
@@ -277,6 +287,21 @@ export default function HostDetail() {
           { title: 'CPU%', dataIndex: 'cpu_percent', key: 'cpu_percent', render: (v) => v?.toFixed(1) },
           { title: '内存%', dataIndex: 'mem_percent', key: 'mem_percent', render: (v) => v?.toFixed(1) },
         ];
+        const gpuCols = [
+          { title: '型号', dataIndex: 'name', key: 'name' },
+          { title: '厂商', dataIndex: 'vendor', key: 'vendor' },
+          { title: '显存', dataIndex: 'memory_total', key: 'memory_total', render: formatBytes },
+          { title: '显存已用', dataIndex: 'memory_used', key: 'memory_used', render: formatBytes },
+          { title: '驱动', dataIndex: 'driver_version', key: 'driver_version' },
+          { title: '温度', dataIndex: 'temperature_c', key: 'temperature_c', render: (v) => (v || v === 0 ? `${v}°C` : '-') },
+          { title: '利用率', dataIndex: 'utilization_gpu', key: 'utilization_gpu', render: (v) => (v || v === 0 ? `${v}%` : '-') },
+        ];
+        const tempCols = [
+          { title: '传感器', dataIndex: 'sensor_key', key: 'sensor_key' },
+          { title: '温度', dataIndex: 'temp', key: 'temp', render: (v) => `${v}°C` },
+          { title: '高温阈值', dataIndex: 'high', key: 'high', render: (v) => (v ? `${v}°C` : '-') },
+          { title: '临界阈值', dataIndex: 'critical', key: 'critical', render: (v) => (v ? `${v}°C` : '-') },
+        ];
         return (
           <Space direction="vertical" style={{ width: '100%' }} size={16}>
             <Button onClick={loadAssets}>刷新资产快照</Button>
@@ -287,6 +312,12 @@ export default function HostDetail() {
                 <div style={{ color: '#888' }}>最近快照：{dayjs(latest.created_at).format('YYYY-MM-DD HH:mm:ss')}</div>
                 {detail?.disk_partitions && (
                   <Table title="磁盘分区" columns={diskCols} dataSource={detail.disk_partitions} rowKey="mountpoint" size="small" pagination={false} />
+                )}
+                {detail?.gpus && detail.gpus.length > 0 && (
+                  <Table title="GPU" columns={gpuCols} dataSource={detail.gpus} rowKey="uuid" size="small" pagination={false} />
+                )}
+                {detail?.temperatures && detail.temperatures.length > 0 && (
+                  <Table title="温度传感器" columns={tempCols} dataSource={detail.temperatures} rowKey="sensor_key" size="small" pagination={false} />
                 )}
                 {detail?.network_interfaces && (
                   <Table title="网络接口" columns={netCols} dataSource={detail.network_interfaces} rowKey="name" size="small" pagination={false} />
