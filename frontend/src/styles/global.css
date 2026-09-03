@@ -958,6 +958,11 @@ body.msmp-dark,
   .ant-table-wrapper {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
+    max-width: 100% !important;
+  }
+
+  .ant-table-content {
+    max-width: 100% !important;
   }
 
   .ant-table {
@@ -1018,6 +1023,10 @@ body.msmp-dark,
   }
 
   .ant-select-single .ant-select-selector {
+    height: 36px !important;
+  }
+
+  .ant-select-single {
     height: 36px !important;
   }
 
@@ -1330,6 +1339,10 @@ body.msmp-dark,
     font-size: 12px !important;
   }
 
+  .ant-select-single {
+    height: 34px !important;
+  }
+
   .ant-select-multiple .ant-select-selector {
     height: auto !important;
     min-height: 34px !important;
@@ -1367,7 +1380,7 @@ body.msmp-dark,
   }
 
   .filter-bar .ant-tag-checkable {
-    height: 34px;
+    height: 34px !important;
     line-height: 32px;
   }
 
