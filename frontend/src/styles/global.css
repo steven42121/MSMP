@@ -940,81 +940,6 @@ body.msmp-dark,
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* ========== 超小屏 (<480px) ========== */
-@media (max-width: 480px) {
-  .page-title {
-    font-size: 17px !important;
-  }
-
-  .liquid-glass.ant-card .ant-statistic-content {
-    font-size: 20px !important;
-  }
-
-  .liquid-glass.ant-card .ant-statistic-title {
-    font-size: 11px !important;
-  }
-
-  .ant-table {
-    font-size: 12px !important;
-  }
-
-  .ant-table-cell {
-    padding: 8px 6px !important;
-  }
-
-  .ant-table-thead > tr > th {
-    padding: 6px 6px !important;
-    font-size: 11px !important;
-  }
-
-  .ant-btn {
-    padding: 0 10px !important;
-    font-size: 12px !important;
-    height: 32px !important;
-  }
-
-  .ant-space {
-    gap: 4px !important;
-  }
-
-  .ant-form-item-label > label {
-    font-size: 12px !important;
-  }
-
-  .ant-select-selector {
-    height: 32px !important;
-    font-size: 12px !important;
-  }
-
-  .ant-input {
-    height: 32px !important;
-    font-size: 13px !important;
-  }
-
-  .ant-list-item {
-    padding: 8px 0 !important;
-  }
-
-  .ant-tag {
-    font-size: 10px !important;
-    padding: 0 6px !important;
-    height: 20px !important;
-    line-height: 18px !important;
-  }
-
-  /* 登录页适配 */
-  .login-container-mobile {
-    width: calc(100% - 32px) !important;
-    max-width: 360px !important;
-  }
-
-  /* Dashboard stat cards 单列 */
-  .dashboard-stats-mobile .ant-col {
-    flex: 0 0 100% !important;
-    max-width: 100% !important;
-  }
-}
-
 /* ========== 小屏 (481px-768px) ========== */
 @media (max-width: 768px) {
   .page-title {
@@ -1111,6 +1036,18 @@ body.msmp-dark,
 
   .ant-input-number {
     height: 36px !important;
+  }
+
+  .ant-input-number .ant-input-number-input {
+    height: 34px !important;
+  }
+
+  .ant-picker {
+    height: 36px !important;
+  }
+
+  .ant-picker .ant-picker-input > input {
+    font-size: 13px !important;
   }
 
   /* 表单标签 */
@@ -1219,6 +1156,13 @@ body.msmp-dark,
     width: auto !important;
   }
 
+  /* 按钮/内嵌控件组不参与拉伸，保持自身宽度，避免留白错位 */
+  .filter-bar > .ant-space-item:has(> .ant-btn),
+  .filter-bar > .ant-space-item:has(> .ant-space) {
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
   .filter-bar > .ant-space-item > .ant-btn {
     flex: 0 0 auto;
   }
@@ -1286,6 +1230,101 @@ body.msmp-dark,
   }
 }
 
+/* ========== 超小屏 (<480px) —— 覆盖上面的小屏规则，层级顺序保证生效 ========== */
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 17px !important;
+  }
+
+  .liquid-glass.ant-card .ant-statistic-content {
+    font-size: 20px !important;
+  }
+
+  .liquid-glass.ant-card .ant-statistic-title {
+    font-size: 11px !important;
+  }
+
+  .ant-table {
+    font-size: 12px !important;
+  }
+
+  .ant-table-cell {
+    padding: 8px 6px !important;
+  }
+
+  .ant-table-thead > tr > th {
+    padding: 6px 6px !important;
+    font-size: 11px !important;
+  }
+
+  .ant-btn {
+    height: 34px !important;
+    padding: 0 10px !important;
+    font-size: 12px !important;
+  }
+
+  .ant-btn-icon-only {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .ant-select-selector {
+    height: 34px !important;
+    font-size: 12px !important;
+  }
+
+  .ant-select-single .ant-select-selection-item,
+  .ant-select-single .ant-select-selection-placeholder {
+    line-height: 32px !important;
+  }
+
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-input-number,
+  .ant-picker {
+    height: 34px !important;
+  }
+
+  .ant-input-number .ant-input-number-input {
+    height: 32px !important;
+  }
+
+  .ant-input {
+    font-size: 13px !important;
+  }
+
+  .ant-space {
+    gap: 4px !important;
+  }
+
+  .ant-form-item-label > label {
+    font-size: 12px !important;
+  }
+
+  .ant-list-item {
+    padding: 8px 0 !important;
+  }
+
+  .ant-tag {
+    font-size: 10px !important;
+    padding: 0 6px !important;
+    height: 20px !important;
+    line-height: 18px !important;
+  }
+
+  /* 登录页适配 */
+  .login-container-mobile {
+    width: calc(100% - 32px) !important;
+    max-width: 360px !important;
+  }
+
+  /* Dashboard stat cards 单列 */
+  .dashboard-stats-mobile .ant-col {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+}
+
 /* ========== 平板 (769px-1024px) ========== */
 @media (max-width: 1024px) {
   .liquid-glass.ant-card .ant-statistic-content {
@@ -1303,16 +1342,8 @@ body.msmp-dark,
 
 /* ========== 通用移动端优化 ========== */
 
-/* 链接/按钮触摸目标最小 44px */
+/* 触摸目标优化（不与固定高度冲突，控件高度统一由断点规则控制） */
 @media (hover: none) and (pointer: coarse) {
-  .ant-btn,
-  .ant-select-selector,
-  .ant-input,
-  .ant-checkbox-input,
-  .ant-radio-input {
-    min-height: 44px !important;
-  }
-
   .ant-menu-item {
     min-height: 44px !important;
     padding: 0 16px !important;
