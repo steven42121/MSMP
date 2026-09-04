@@ -142,6 +142,10 @@ func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
 	if len(parts) > 1 {
 		subResource = parts[1]
 	}
+	subAction := ""
+	if len(parts) > 2 {
+		subAction = parts[2]
+	}
 
 	var host models.Host
 	if err := db.DB.Where("uuid = ? AND tenant_id = ?", uuid, tenantID).First(&host).Error; err != nil {
@@ -201,6 +205,19 @@ func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
 
 	case subResource == "ssh" && r.Method == http.MethodGet:
 		WebSSHHandler(w, r, &host, tenantID, getUserID(r))
+
+	case subResource == "files" && r.Method == http.MethodGet && subAction == "download":
+		FileDownloadHandler(w, r, &host, tenantID, getUserID(r))
+	case subResource == "files" && r.Method == http.MethodGet:
+		FileListHandler(w, r, &host, tenantID, getUserID(r))
+	case subResource == "files" && r.Method == http.MethodPost && subAction == "upload":
+		FileUploadHandler(w, r, &host, tenantID, getUserID(r))
+	case subResource == "files" && r.Method == http.MethodPost && subAction == "mkdir":
+		FileMkdirHandler(w, r, &host, tenantID, getUserID(r))
+	case subResource == "files" && r.Method == http.MethodPost && subAction == "rename":
+		FileRenameHandler(w, r, &host, tenantID, getUserID(r))
+	case subResource == "files" && r.Method == http.MethodDelete:
+		FileDeleteHandler(w, r, &host, tenantID, getUserID(r))
 
 	case r.Method == http.MethodGet:
 		writeJSON(w, http.StatusOK, host)

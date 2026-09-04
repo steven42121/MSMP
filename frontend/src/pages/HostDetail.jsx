@@ -6,6 +6,7 @@ import ReactECharts from 'echarts-for-react';
 import dayjs from 'dayjs';
 import client from '../api/client';
 import WebSSHTerminal from '../components/WebSSHTerminal';
+import FileManager from '../components/FileManager';
 
 const { Text } = Typography;
 
@@ -396,6 +397,11 @@ export default function HostDetail() {
           <Table columns={eventColumns} dataSource={events} rowKey="id" size="small" pagination={{ pageSize: 20 }} />
         </Space>
       ),
+    },
+    {
+      key: 'files',
+      label: '文件',
+      children: <FileManager host={host} />,
     },
   ];
 
