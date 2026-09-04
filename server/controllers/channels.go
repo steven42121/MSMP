@@ -33,6 +33,7 @@ func initCollectors() {
 		channelReg.Register(&collectors.PrometheusChannel{})
 		channelReg.Register(&collectors.SNMPChannel{})
 		channelReg.Register(&collectors.WinRMChannel{})
+		channelReg.Register(&collectors.VSphereChannel{})
 		if config.C != nil && config.C.Security.CredentialKey != "" {
 			credService, credInitErr = services.NewCredentialService(config.C)
 		}

@@ -356,7 +356,7 @@ export default function HostDetail() {
               dataSource={channels}
               pagination={false}
               columns={[
-                { title: '类型', dataIndex: 'type', key: 'type', width: 130, render: (v) => <Tag color={v === 'ssh' ? 'blue' : v === 'wac' ? 'purple' : v === 'baota' ? 'green' : v === 'prometheus' ? 'cyan' : v === 'snmp' ? 'orange' : 'magenta'}>{v}</Tag> },
+                { title: '类型', dataIndex: 'type', key: 'type', width: 130, render: (v) => <Tag color={v === 'ssh' ? 'blue' : v === 'wac' ? 'purple' : v === 'baota' ? 'green' : v === 'prometheus' ? 'cyan' : v === 'snmp' ? 'orange' : v === 'vsphere' ? 'pink' : 'magenta'}>{v}</Tag> },
                 { title: '地址', dataIndex: 'address', key: 'address' },
                 { title: '接入方式', dataIndex: 'auth_mode', key: 'auth_mode', width: 120 },
                 { title: '优先级', dataIndex: 'priority', key: 'priority', width: 80 },
@@ -449,14 +449,15 @@ export default function HostDetail() {
         <Form form={channelForm} layout="vertical" initialValues={{ type: 'ssh', auth_mode: 'password', priority: 100 }}>
           <Form.Item name="type" label="渠道类型" rules={[{ required: true }]}>
             <Select
-              options={[
-                { value: 'ssh', label: 'SSH（Linux 远程命令）' },
-                { value: 'wac', label: 'Windows Admin Center' },
-                { value: 'baota', label: '宝塔面板' },
-                { value: 'prometheus', label: 'Prometheus / Node Exporter' },
-                { value: 'snmp', label: 'SNMP（网络设备）' },
-                { value: 'winrm', label: 'WinRM（Windows 远程管理）' },
-              ]}
+options={[
+                 { value: 'ssh', label: 'SSH（Linux 远程命令）' },
+                 { value: 'wac', label: 'Windows Admin Center' },
+                 { value: 'baota', label: '宝塔面板' },
+                 { value: 'prometheus', label: 'Prometheus / Node Exporter' },
+                 { value: 'snmp', label: 'SNMP（网络设备）' },
+                 { value: 'winrm', label: 'WinRM（Windows 远程管理）' },
+                 { value: 'vsphere', label: 'vSphere / ESXi（ VMware 虚拟化管理）' },
+               ]}
             />
           </Form.Item>
           <Form.Item name="address" label="地址" rules={[{ required: true, message: '地址必填' }]}>
@@ -501,16 +502,20 @@ export default function HostDetail() {
                   ]}
                 />
               </Form.Item>
-            ) : f.getFieldValue('type') === 'winrm' ? (
-              <Form.Item name="auth_mode" label="认证方式" rules={[{ required: true }]}>
-                <Select
-                  options={[
-                    { value: 'basic', label: 'Basic 认证' },
-                    { value: 'ntlm', label: 'NTLM 认证' },
-                  ]}
-                />
-              </Form.Item>
-            ) : (
+) : f.getFieldValue('type') === 'winrm' ? (
+               <Form.Item name="auth_mode" label="认证方式" rules={[{ required: true }]}>
+                 <Select
+                   options={[
+                     { value: 'basic', label: 'Basic 认证' },
+                     { value: 'ntlm', label: 'NTLM 认证' },
+                   ]}
+                 />
+               </Form.Item>
+             ) : f.getFieldValue('type') === 'vsphere' ? (
+               <Form.Item name="auth_mode" label="认证方式" rules={[{ required: true }]}>
+                 <Select options={[{ value: 'password', label: '用户名 + 密码' }]} disabled />
+               </Form.Item>
+             ) : (
               <Form.Item name="auth_mode" label="接入方式" rules={[{ required: true }]}>
                 <Select options={[{ value: 'gateway', label: '网关凭据直连' }]} />
               </Form.Item>
