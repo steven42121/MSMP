@@ -7,10 +7,15 @@ MSMP（Mix System Manage Platform）是一个跨平台服务器运维管理平�
 系统采用前后端分离架构：Go 语言后端提供 REST API，React + Ant Design 前端提供交互界面，Agent 以独立二进制运行于目标主机。平台内置多租户隔离（Tenant），每个租户可管理一组主机、配置告警规则、下发远程任务、查看审计日志。
 
 关键能力包括：
-- 支持 Agent 采集与无 Agent 远程采集两种模式并存
+- 支持 Agent 采集与无 Agent 远程采集两种模式并存（SSH/WAC/宝塔/vSphere）
 - 60 秒周期心跳与 60 秒指标上报，Agent 优先的自动降级策略
 - AES-256-GCM 加密存储敏感凭据，API 响应永不明文返回
 - 完整的审计日志链路与角色权限控制（admin/member）
+- 浏览器内 SSH 终端（WebSocket 代理 + xterm.js）
+- 远程文件管理（SFTP，支持上传/下载/目录操作）
+- 告警工程化：抑制/静默/升级，防止告警风暴
+- MCP AI 工具调用，危险操作人工审批
+- ESXi vSphere API 采集（差异化竞争力）
 
 ## 技术栈
 
@@ -75,9 +80,15 @@ workspace/
 │   │   ├── channel.go         # Channel 接口、Registry、MetricDataLike
 │   │   ├── ssh.go             # SSH 渠道：/proc 解析
 │   │   ├── wac.go             # Windows Admin Center 渠道
-│   │   └── baota.go           # 宝塔面板渠道
+│   │   ├── baota.go           # 宝塔面板渠道
+│   │   └── vsphere.go         # vSphere/ESXi 渠道：govmomi API
 │   ├── services/              # 共享服务
-│   │   └── credential.go      # CredentialService（AES-256-GCM）
+│   │   └── credential.go      # CredentialService（AES-256-GCM）+ GlobalCredSvc
+│   ├── controllers/
+│   │   ├── webssh.go          # WebSocket→SSH 代理
+│   │   ├── sftp.go            # SFTP 文件管理（list/download/upload/delete/rename/mkdir）
+│   │   ├── alert_engine.go    # 告警工程化（抑制/静默/升级）
+│   │   └── alert_engine_api.go # 告警工程化 API
 │   ├── config.yaml            # 示例配置
 │   └── msmp.db                # SQLite 数据库（开发时）
 ├── frontend/                  # React 前端

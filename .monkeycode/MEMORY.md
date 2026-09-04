@@ -167,3 +167,36 @@ curl -s -X POST http://localhost:8080/api/auth/login -H 'Content-Type: applicati
 TOKEN=$(curl -s ... | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
 curl -s "http://localhost:8080/api/hosts/{uuid}/files?path=/" -H "Authorization: Bearer $TOKEN"
 ```
+
+## 2026-09-04 告警工程化实现
+
+### 核心功能
+1. **抑制 (Suppression)**: 同类型告警在时间窗口内只发一次
+   - API: GET/POST /api/alert-suppressions
+   - 模型: AlertSuppression (host_id, metric, level, window_minutes)
+   - 默认30分钟窗口，可配置
+
+2. **静默 (Silencing)**: 按时间/主机/标签静默告警
+   - API: GET/POST /api/alert-silences  
+   - 模型: AlertSilence (host_id, label_key/value, level, start_at, end_at)
+   - 支持全局和按主机静默
+
+3. **升级 (Escalation)**: 未确认告警到达时限后自动升级
+   - API: GET/POST /api/alert-escalations
+   - 模型: AlertEscalation (trigger_level, notify_after_min, retry_count)
+   - 后台每5分钟检查，创建 escalation 事件
+
+### 关键代码
+- `server/controllers/alert_engine.go`: 核心逻辑
+- `server/controllers/alert_engine_api.go`: HTTP handlers
+- `server/models/models.go`: 新增三个模型
+- 调用点: `agent_assets.go:312`, `channels.go:464` 改为 `EvaluateAlertsWithEngineering`
+
+### 验证命令
+```bash
+# 测试API
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login -H 'Content-Type: application/json' -d '{"username":"admin","password":"admin123"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+curl -s http://localhost:8080/api/alert-suppressions -H "Authorization: Bearer $TOKEN"
+curl -s http://localhost:8080/api/alert-silences -H "Authorization: Bearer $TOKEN"
+curl -s http://localhost:8080/api/alert-escalations -H "Authorization: Bearer $TOKEN"
+```

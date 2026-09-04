@@ -249,3 +249,165 @@ HTTP 状态码：
 - `409` — 冲突（如同类型渠道已启用）
 - `503` — 凭据服务不可用（未配置 credential_key）
 - `500` — 服务端内部错误
+
+---
+
+## WebSSH 终端
+
+浏览器内 SSH 终端，通过 WebSocket 代理到目标主机的 SSH 服务。
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/hosts/{uuid}/ssh` | WebSocket 升级，建立 SSH 连接 |
+
+客户端需通过 WebSocket URL 传递 JWT token：
+```javascript
+const ws = new WebSocket(`/api/hosts/${uuid}/ssh?token=${token}`);
+ws.send(JSON.stringify({ width: 80, height: 24 })); // 首条消息：终端尺寸
+```
+
+终端输入通过 BinaryMessage 发送，输出通过 BinaryMessage 接收。支持终端 resize（发送 `{type: "resize", width, height}`）。
+
+前置条件：
+- 主机配置了 `type=ssh` 的采集渠道
+- 凭证已加密存储（AES-256-GCM）
+- 用户已认证
+
+---
+
+## 文件管理（SFTP）
+
+通过 SFTP 协议管理远程主机文件。所有接口需 admin 角色。
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/hosts/{uuid}/files?path=/` | 列出目录 |
+| GET | `/api/hosts/{uuid}/files/download?path=/etc/hosts` | 下载文件 |
+| POST | `/api/hosts/{uuid}/files/upload` | 上传文件（multipart，最大 64MB） |
+| POST | `/api/hosts/{uuid}/files/mkdir` | 创建目录 `{path}` |
+| POST | `/api/hosts/{uuid}/files/rename` | 重命名 `{old_path, new_path}` |
+| DELETE | `/api/hosts/{uuid}/files?path=/tmp/xxx` | 删除文件或空目录 |
+
+文件列表响应：
+```json
+{
+  "path": "/",
+  "files": [
+    {"name": "etc", "path": "/etc", "size": 0, "is_dir": true, "mode": "drwxr-xr-x", "mod_time": "2026-09-01 12:00:00"}
+  ],
+  "count": 1
+}
+```
+
+---
+
+## 告警工程化
+
+### 抑制规则
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/alert-suppressions` | 列表（admin） |
+| POST | `/api/alert-suppressions` | 创建（admin） |
+| PUT | `/api/alert-suppressions/:id` | 更新（admin） |
+| DELETE | `/api/alert-suppressions/:id` | 删除（admin） |
+
+抑制规则字段：
+```json
+{
+  "name": "CPU 告警静默30分钟",
+  "host_id": 0,
+  "metric": "cpu",
+  "level": "warning",
+  "window_minutes": 30,
+  "enabled": true
+}
+```
+- `host_id=0` 表示全局抑制
+- 同一主机+指标+级别在窗口内只产生一条告警
+
+### 静默规则
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/alert-silences` | 列表（admin） |
+| POST | `/api/alert-silences` | 创建（admin） |
+| PUT | `/api/alert-silences/:id` | 更新（admin） |
+| DELETE | `/api/alert-silences/:id` | 删除（admin） |
+
+静默规则字段：
+```json
+{
+  "name": "维护窗口静默",
+  "host_id": 0,
+  "label_key": "",
+  "label_value": "",
+  "level": "warning",
+  "start_at": "2026-09-04T10:00:00Z",
+  "end_at": "2026-09-04T12:00:00Z"
+}
+```
+
+### 升级规则
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/alert-escalations` | 列表（admin） |
+| POST | `/api/alert-escalations` | 创建（admin） |
+| PUT | `/api/alert-escalations/:id` | 更新（admin） |
+| DELETE | `/api/alert-escalations/:id` | 删除（admin） |
+
+升级规则字段：
+```json
+{
+  "name": "Warning 升级 Critical",
+  "trigger_level": "warning",
+  "notify_after_min": 60,
+  "retry_count": 3,
+  "enabled": true
+}
+```
+- 未确认告警超过 `notify_after_min` 分钟后自动升级为 critical
+- 每轮检查最多重试 `retry_count` 次
+
+---
+
+## ESXi vSphere 采集
+
+### 渠道配置
+
+创建渠道时 `type=vsphere`：
+```json
+{
+  "type": "vsphere",
+  "address": "vcenter.example.com",
+  "auth_mode": "password",
+  "username": "administrator@vsphere.local",
+  "secret": "username:password",
+  "priority": 50
+}
+```
+
+采集指标：
+- ESXi 主机 CPU 使用率（平均值）
+- ESXi 主机内存使用率
+- VM 数量（按电源状态分类）
+- Datastore 空间（总量/可用量）
+
+---
+
+## MCP 工具接口
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/mcp/tools` | 工具定义列表（admin） |
+| POST | `/api/mcp/propose` | AI 提交工具调用，返回审批或结果 |
+| GET | `/api/mcp/approvals` | 待审批列表 |
+| POST | `/api/mcp/approvals/:id/approve` | 批准（admin） |
+| POST | `/api/mcp/approvals/:id/reject` | 拒绝 |
+
+**安全机制：**
+- `execute_command` 等危险操作必须经过人工审批
+- 审批前进行危险命令检测（`rm -rf`, `dd`, 管道注入等）
+- 仅 admin 可批准工具调用
+- 参数净化：`service` 只允许字母数字，`log_path` 防止路径穿越
