@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: '0.0.0.0',
     port: 5173,
     allowedHosts: ['.monkeycode-ai.online'],
     proxy: {
@@ -22,5 +23,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-antd': ['antd', '@ant-design/icons'],
+          'vendor-charts': ['echarts', 'echarts-for-react'],
+          'vendor-terminal': ['@xterm/xterm', '@xterm/addon-fit'],
+        },
+      },
+    },
   },
 });

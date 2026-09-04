@@ -58,29 +58,9 @@ func WebSSHHandler(w http.ResponseWriter, r *http.Request, host *models.Host, te
 	}
 
 	// 查找 SSH 凭证
-	credSvc := services.GlobalCredSvc
-	if credSvc == nil {
-		sendWSClose(ws, "凭证服务未初始化")
-		return
-	}
-
-	binding, authMethod, hostAddr, err := resolveSSHBinding(tenantID, host.ID, credSvc)
+	sshClient, err := dialHostSSH(tenantID, host.ID)
 	if err != nil {
 		sendWSClose(ws, err.Error())
-		return
-	}
-
-	// 建立 SSH 连接
-	sshConfig := &ssh.ClientConfig{
-		User:            binding.Username,
-		Auth:            []ssh.AuthMethod{authMethod},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         10 * time.Second,
-	}
-
-	sshClient, err := ssh.Dial("tcp", hostAddr, sshConfig)
-	if err != nil {
-		sendWSClose(ws, fmt.Sprintf("SSH 连接失败: %v", err))
 		return
 	}
 	defer sshClient.Close()
