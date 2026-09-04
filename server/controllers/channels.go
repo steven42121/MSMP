@@ -461,7 +461,7 @@ func collectHost(host models.Host, binding models.ChannelBinding, gate chan stru
 		"last_status": collectors.StatusOK,
 		"fail_count":  0,
 	})
-	evaluateMetricAlerts(host, sample)
+	EvaluateAlertsWithEngineering(host, sample)
 }
 
 func classifyErr(err error) string {

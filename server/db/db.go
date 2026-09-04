@@ -48,5 +48,8 @@ func Init(cfg *config.Config) error {
 		&models.Setting{},
 		&models.ChannelBinding{},
 		&models.CollectEvent{},
+		&models.AlertSuppression{},
+		&models.AlertSilence{},
+		&models.AlertEscalation{},
 	)
 }

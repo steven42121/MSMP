@@ -44,6 +44,9 @@ func main() {
 	// 启动离线检测
 	go controllers.StartOfflineChecker(cfg.Agent.OfflineAfterSec)
 
+	// 启动告警升级检查器
+	go controllers.StartEscalationChecker()
+
 	// 启动无 Agent 采集调度器（仅 leader 执行）
 	if cfg.Server.Nodes != nil && len(cfg.Server.Nodes) > 0 && !clusterState.IsLeader() {
 		log.Println("[cluster] this node is follower, skipping CollectorScheduler")
@@ -90,6 +93,12 @@ func main() {
 	mux.HandleFunc("/api/alerts/", controllers.AlertDetailHandler)
 	mux.HandleFunc("/api/alert-rules", controllers.Audit("manage", "alert_rule", controllers.RequireRole([]string{"admin"}, controllers.AlertRulesHandler)))
 	mux.HandleFunc("/api/alert-rules/", controllers.RequireRole([]string{"admin"}, controllers.AlertRuleDetailHandler))
+	mux.HandleFunc("/api/alert-suppressions", controllers.Audit("manage", "alert_suppression", controllers.RequireRole([]string{"admin"}, controllers.AlertSuppressionsHandler)))
+	mux.HandleFunc("/api/alert-suppressions/", controllers.RequireRole([]string{"admin"}, controllers.AlertSuppressionDetailHandler))
+	mux.HandleFunc("/api/alert-silences", controllers.Audit("manage", "alert_silence", controllers.RequireRole([]string{"admin"}, controllers.AlertSilencesHandler)))
+	mux.HandleFunc("/api/alert-silences/", controllers.RequireRole([]string{"admin"}, controllers.AlertSilenceDetailHandler))
+	mux.HandleFunc("/api/alert-escalations", controllers.Audit("manage", "alert_escalation", controllers.RequireRole([]string{"admin"}, controllers.AlertEscalationsHandler)))
+	mux.HandleFunc("/api/alert-escalations/", controllers.RequireRole([]string{"admin"}, controllers.AlertEscalationDetailHandler))
 
 	// 租户和用户管理
 	mux.HandleFunc("/api/tenants", controllers.Audit("manage", "tenant", controllers.RequireRole([]string{"admin"}, controllers.TenantsHandler)))

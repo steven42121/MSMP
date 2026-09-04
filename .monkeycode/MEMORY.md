@@ -132,3 +132,38 @@ Entries discovered by the Agent during task execution should follow this format:
   - 登录页玻璃卡片用 .login-glass 保留暗色材质（白字输入框依赖深底）
   - useGlobalMouseTracker 三模式：桌面鼠标 / 手机 deviceorientation 重力（iOS 需 touchend 手势触发 requestPermission）/ 空闲 3 秒后李萨如曲线自动漂移
   - glass-fluid 层 inset -30% 时 radial 光斑坐标需乘 1.6 映射：calc((var(--glow-x) - 50%) * 1.6 + 50%)
+
+## 2026-09-04 安全修复 + WebSSH + SFTP + ESXi
+
+### 凭证服务修复
+- **credentialkey 为空** 导致凭证服务无法初始化，WebSSH/SFTP 全部不可用
+- 生成32字节base64密钥写入 `config.yaml` 的 `security.credentialkey`
+- 测试主机 test-manual(id=1) 的 SSH 渠道被软删除(deleted_at!=NULL)，恢复后重建凭证
+- **加密兼容性问题**：Python cryptography 库默认 tag 长度与 Go 不同（8 vs 16字节）
+  - 必须用 Go 代码加密，Python 验证解密
+  - 命令：`go run /tmp/opencode/encrypt.go` 生成密文，存入 DB
+
+### WebSSH/SFTP 验证路径
+- 错误链验证：`凭证服务未初始化` → `主机未配置 SSH 渠道` → `凭证解密失败` → `dial tcp connection refused`
+- 最后一种错误证明代码路径完全通了，只差实际 SSH 目标
+
+### ESXi vSphere Collector
+- 使用 govmomi v0.56.0
+- 正确 API: `govmomi.NewClient(ctx, *url.URL, insecure bool)` + `c.Login(ctx, userInfo)`
+- Finder: `object.NewFinder(c.Client)` + `finder.DefaultDatacenter(ctx)` + `finder.SetDefaultDatacenter(dc)`
+- 数据获取: `dc.Folders(ctx)` → `folders.HostFolder.Children(ctx)`
+- HostMetrics: `host.Properties(ctx, ref, []string{"summary"}, &mo.HostSystem{})`
+- QuickStats 字段: `OverallCpuUsage`(MHz), `OverallMemoryUsage`(MB)
+
+### 关键命令
+```bash
+# 编译后端
+cd /workspace/server && go build ./...
+# 重启后端
+pkill -f "go run main.go"; cd /workspace/server && go run main.go &
+# 测试登录
+curl -s -X POST http://localhost:8080/api/auth/login -H 'Content-Type: application/json' -d '{"username":"admin","password":"admin123"}'
+# 测试文件接口
+TOKEN=$(curl -s ... | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+curl -s "http://localhost:8080/api/hosts/{uuid}/files?path=/" -H "Authorization: Bearer $TOKEN"
+```

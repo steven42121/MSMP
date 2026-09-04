@@ -309,7 +309,7 @@ func AgentMetricReportHandler(w http.ResponseWriter, r *http.Request) {
 		"last_heartbeat": now,
 	})
 
-	evaluateMetricAlerts(host, sample)
+	EvaluateAlertsWithEngineering(host, sample)
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

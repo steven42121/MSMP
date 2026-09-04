@@ -187,3 +187,47 @@ type CollectEvent struct {
 	Message   string    `gorm:"type:text" json:"message"`
 	CreatedAt time.Time `gorm:"index" json:"created_at"`
 }
+
+// AlertSuppression 告警抑制规则：同类型告警在时间窗口内只发一次
+type AlertSuppression struct {
+	ID            uint      `gorm:"primaryKey" json:"id"`
+	TenantID      uint      `gorm:"index;not null" json:"tenant_id"`
+	Name          string    `gorm:"size:128" json:"name"`
+	HostID        uint      `gorm:"index" json:"host_id"`          // 0 = 全局
+	Metric        string    `gorm:"size:32" json:"metric"`         // cpu, mem, disk, offline
+	Level         string    `gorm:"size:16" json:"level"`          // warning, critical
+	WindowMinutes int       `gorm:"default:30" json:"window_minutes"` // 抑制窗口（分钟）
+	Enabled       bool      `gorm:"default:true" json:"enabled"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// AlertSilence 告警静默规则：按时间/主机/标签静默告警
+type AlertSilence struct {
+	ID           uint       `gorm:"primaryKey" json:"id"`
+	TenantID     uint       `gorm:"index;not null" json:"tenant_id"`
+	Name         string     `gorm:"size:128" json:"name"`
+	HostID       uint       `gorm:"index" json:"host_id"`           // 0 = 全局
+	LabelKey     string     `gorm:"size:64" json:"label_key"`       // 标签键
+	LabelValue   string     `gorm:"size:128" json:"label_value"`    // 标签值
+	Level        string     `gorm:"size:16" json:"level"`           // warning, critical, 空=全部
+	StartAt      time.Time  `gorm:"index" json:"start_at"`          // 开始时间
+	EndAt        time.Time  `gorm:"index" json:"end_at"`            // 结束时间
+	CreatorID    uint       `json:"creator_id"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+// AlertEscalation 告警升级规则：未确认告警到达时限后自动升级
+type AlertEscalation struct {
+	ID             uint      `gorm:"primaryKey" json:"id"`
+	TenantID       uint      `gorm:"index;not null" json:"tenant_id"`
+	Name           string    `gorm:"size:128" json:"name"`
+	TriggerLevel   string    `gorm:"size:16" json:"trigger_level"`    // warning, critical
+	NotifyAfterMin int       `gorm:"default:60" json:"notify_after_min"` // 未确认N分钟后升级
+	RetryCount     int       `gorm:"default:3" json:"retry_count"`      // 最大重试次数
+	Enabled        bool      `gorm:"default:true" json:"enabled"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
