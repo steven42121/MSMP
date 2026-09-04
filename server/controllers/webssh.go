@@ -200,7 +200,7 @@ func WebSSHHandler(w http.ResponseWriter, r *http.Request, host *models.Host, te
 // resolveSSHBinding 根据 hostID 查找 SSH 渠道配置并解密凭证
 func resolveSSHBinding(tenantID, hostID uint, credSvc *services.CredentialService) (*models.ChannelBinding, ssh.AuthMethod, string, error) {
 	var binding models.ChannelBinding
-	if err := db.DB.Where("host_id = ? AND tenant_id = ? AND type = 'ssh' AND enabled = true", hostID, tenantID).
+	if err := db.DB.Where("host_id = ? AND tenant_id = ? AND type = ? AND enabled = ?", hostID, tenantID, "ssh", true).
 		Order("priority ASC").First(&binding).Error; err != nil {
 		return nil, nil, "", fmt.Errorf("主机未配置 SSH 渠道")
 	}
