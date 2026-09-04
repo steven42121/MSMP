@@ -199,6 +199,9 @@ func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
 	case subResource == "channels" && r.Method == http.MethodPost:
 		ChannelsCreateHandler(w, r, host, tenantID, getUserID(r))
 
+	case subResource == "ssh" && r.Method == http.MethodGet:
+		WebSSHHandler(w, r, &host, tenantID, getUserID(r))
+
 	case r.Method == http.MethodGet:
 		writeJSON(w, http.StatusOK, host)
 

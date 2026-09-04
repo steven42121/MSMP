@@ -22,6 +22,9 @@ type CredentialService struct {
 	key []byte
 }
 
+// GlobalCredSvc 全局凭证服务实例（由 main.go 初始化）
+var GlobalCredSvc *CredentialService
+
 func NewCredentialService(cfg *config.Config) (*CredentialService, error) {
 	raw, err := base64.StdEncoding.DecodeString(cfg.Security.CredentialKey)
 	if err != nil {

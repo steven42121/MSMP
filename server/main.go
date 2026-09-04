@@ -11,6 +11,7 @@ import (
 	"MSMP/server/config"
 	"MSMP/server/controllers"
 	"MSMP/server/db"
+	"MSMP/server/services"
 )
 
 func main() {
@@ -28,6 +29,14 @@ func main() {
 		log.Fatalf("Failed to init database: %v", err)
 	}
 	log.Println("Database initialized successfully")
+
+	// 初始化凭证服务（WebSSH 等场景使用）
+	if credSvc, err := services.NewCredentialService(cfg); err != nil {
+		log.Printf("Warning: credential service init failed: %v (SSH features disabled)", err)
+	} else {
+		services.GlobalCredSvc = credSvc
+		log.Println("Credential service initialized")
+	}
 
 	// 初始化集群状态
 	clusterState := clustering.NewClusterState(cfg)

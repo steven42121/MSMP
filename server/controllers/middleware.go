@@ -86,6 +86,12 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		// JWT 认证（Web 用户）
 		authHeader := r.Header.Get("Authorization")
+		// WebSocket 无法携带 header，允许通过 query 参数传递 token
+		if authHeader == "" {
+			if q := r.URL.Query().Get("token"); q != "" {
+				authHeader = "Bearer " + q
+			}
+		}
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 			http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 			return

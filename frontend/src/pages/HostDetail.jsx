@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Descriptions, Card, Spin, Tabs, Table, Tag, Button, Space, Input, Form, Popconfirm, message, Modal, Select, InputNumber, Typography, Switch } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, CodeOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import dayjs from 'dayjs';
 import client from '../api/client';
+import WebSSHTerminal from '../components/WebSSHTerminal';
 
 const { Text } = Typography;
 
@@ -41,6 +42,7 @@ export default function HostDetail() {
   const [loading, setLoading] = useState(true);
   const [activeKey, setActiveKey] = useState('info');
   const [tagForm] = Form.useForm();
+  const [sshOpen, setSshOpen] = useState(false);
 
   const loadHost = async () => {
     try {
@@ -408,6 +410,14 @@ export default function HostDetail() {
           </Tag>
         </Space>
         <Text type="secondary" style={{ fontSize: 12 }}>UUID: {host.uuid} &nbsp;|&nbsp; {host.ip}</Text>
+        <Button
+          type="primary"
+          icon={<CodeOutlined />}
+          style={{ marginTop: 12, borderRadius: 8 }}
+          onClick={() => setSshOpen(true)}
+        >
+          打开终端
+        </Button>
       </div>
       <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }} styles={{ body: { padding: 16 } }}>
         <Tabs
@@ -418,6 +428,8 @@ export default function HostDetail() {
           style={{ marginTop: -8 }}
         />
       </Card>
+
+      <WebSSHTerminal open={sshOpen} host={host} onClose={() => setSshOpen(false)} />
 
       <Modal
         title="添加采集渠道"
