@@ -103,7 +103,7 @@ export default function Monitor() {
   const loadMetrics = useCallback(() => {
     if (!hostUUID) return;
     setLoading(true);
-    client.get()('/metrics', { params: { host_uuid: hostUUID, duration } })
+    client.get()('/metrics', { host_uuid: hostUUID, duration })
       .then((resp) => { setMetrics(resp.data || []); setLastUpdate(new Date()); })
       .catch(() => setMetrics([]))
       .finally(() => setLoading(false));
