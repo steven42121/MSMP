@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Descriptions, Card, Spin, Tabs, Table, Tag, Button, Space, Input, Form, Popconfirm, message, Modal, Select, InputNumber, Typography, Switch } from 'antd';
 import { PlusOutlined, CodeOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
@@ -32,6 +32,7 @@ function buildOption(title, data, field, unit) {
 
 export default function HostDetail() {
   const { uuid } = useParams();
+  const navigate = useNavigate();
   const [host, setHost] = useState(null);
   const [metrics, setMetrics] = useState([]);
   const [tags, setTags] = useState([]);
