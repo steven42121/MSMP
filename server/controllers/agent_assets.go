@@ -47,19 +47,26 @@ type AssetInfo struct {
 }
 
 type MetricInfo struct {
-	UUID       string  `json:"uuid"`
-	CPUPercent float64 `json:"cpu_percent"`
-	MemPercent float64 `json:"mem_percent"`
-	MemUsed    uint64  `json:"mem_used"`
-	MemTotal   uint64  `json:"mem_total"`
-	DiskUsed   uint64  `json:"disk_used"`
-	DiskTotal  uint64  `json:"disk_total"`
-	NetRxBps   uint64  `json:"net_rx_bps"`
-	NetTxBps   uint64  `json:"net_tx_bps"`
-	Load1      float64 `json:"load1"`
-	Load5      float64 `json:"load5"`
-	Load15     float64 `json:"load15"`
-	UptimeSec  uint64  `json:"uptime_sec"`
+	UUID         string  `json:"uuid"`
+	CPUPercent   float64 `json:"cpu_percent"`
+	MemPercent   float64 `json:"mem_percent"`
+	MemUsed      uint64  `json:"mem_used"`
+	MemTotal     uint64  `json:"mem_total"`
+	SwapUsed     uint64  `json:"swap_used"`
+	SwapTotal    uint64  `json:"swap_total"`
+	DiskUsed     uint64  `json:"disk_used"`
+	DiskTotal    uint64  `json:"disk_total"`
+	DiskReadBytes uint64 `json:"disk_read_bytes"`
+	DiskWriteBytes uint64 `json:"disk_write_bytes"`
+	NetRxBps     uint64  `json:"net_rx_bps"`
+	NetTxBps     uint64  `json:"net_tx_bps"`
+	NetPktsRecv  uint64  `json:"net_pkts_recv"`
+	NetPktsSent  uint64  `json:"net_pkts_sent"`
+	ProcessCount int     `json:"process_count"`
+	Load1        float64 `json:"load1"`
+	Load5        float64 `json:"load5"`
+	Load15       float64 `json:"load15"`
+	UptimeSec    uint64  `json:"uptime_sec"`
 }
 
 type HeartbeatRequest struct {
@@ -280,21 +287,28 @@ func AgentMetricReportHandler(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	sample := models.MetricSample{
-		TenantID:   host.TenantID,
-		HostID:     host.ID,
-		Timestamp:  now,
-		CPUPercent: info.CPUPercent,
-		MemPercent: info.MemPercent,
-		MemUsed:    info.MemUsed,
-		MemTotal:   info.MemTotal,
-		DiskUsed:   info.DiskUsed,
-		DiskTotal:  info.DiskTotal,
-		NetRxBps:   info.NetRxBps,
-		NetTxBps:   info.NetTxBps,
-		Load1:      info.Load1,
-		Load5:      info.Load5,
-		Load15:     info.Load15,
-		UptimeSec:  info.UptimeSec,
+		TenantID:     host.TenantID,
+		HostID:       host.ID,
+		Timestamp:    now,
+		CPUPercent:   info.CPUPercent,
+		MemPercent:   info.MemPercent,
+		MemUsed:      info.MemUsed,
+		MemTotal:     info.MemTotal,
+		SwapUsed:     info.SwapUsed,
+		SwapTotal:    info.SwapTotal,
+		DiskUsed:     info.DiskUsed,
+		DiskTotal:    info.DiskTotal,
+		DiskReadBytes: info.DiskReadBytes,
+		DiskWriteBytes: info.DiskWriteBytes,
+		NetRxBps:     info.NetRxBps,
+		NetTxBps:     info.NetTxBps,
+		NetPktsRecv:  info.NetPktsRecv,
+		NetPktsSent:  info.NetPktsSent,
+		ProcessCount: info.ProcessCount,
+		Load1:        info.Load1,
+		Load5:        info.Load5,
+		Load15:       info.Load15,
+		UptimeSec:    info.UptimeSec,
 	}
 
 	if err := db.DB.Create(&sample).Error; err != nil {

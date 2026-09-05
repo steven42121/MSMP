@@ -92,6 +92,37 @@ export default function Monitor() {
   const cpuOption = useMemo(() => buildOption('CPU 使用率 (%)', metrics, 'cpu_percent', '%'), [metrics]);
   const memOption = useMemo(() => buildOption('内存使用率 (%)', metrics, 'mem_percent', '%'), [metrics]);
   const loadOption = useMemo(() => buildOption('系统负载 (1min)', metrics, 'load1', ''), [metrics]);
+  const procOption = useMemo(() => buildOption('进程数', metrics, 'process_count', ''), [metrics]);
+  const diskIOOption = useMemo(() => {
+    const times = metrics.map((d) => dayjs(d.timestamp).format('HH:mm:ss'));
+    return {
+      title: { text: '磁盘 IO (累计)', left: 'center', textStyle: { fontSize: 13 } },
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['读取', '写入'], bottom: 4 },
+      grid: { left: 60, right: 24, top: 40, bottom: 40 },
+      xAxis: { type: 'category', data: times, axisLabel: { fontSize: 10 } },
+      yAxis: { type: 'value', axisLabel: { formatter: formatBytes } },
+      series: [
+        { name: '读取', type: 'line', data: metrics.map((d) => d.disk_read_bytes), smooth: true, showSymbol: false, lineStyle: { width: 2 }, itemStyle: { color: '#52c41a' }, areaStyle: { opacity: 0.1 } },
+        { name: '写入', type: 'line', data: metrics.map((d) => d.disk_write_bytes), smooth: true, showSymbol: false, lineStyle: { width: 2 }, itemStyle: { color: '#faad14' }, areaStyle: { opacity: 0.1 } },
+      ],
+    };
+  }, [metrics]);
+  const netPktsOption = useMemo(() => {
+    const times = metrics.map((d) => dayjs(d.timestamp).format('HH:mm:ss'));
+    return {
+      title: { text: '网络包计数 (累计)', left: 'center', textStyle: { fontSize: 13 } },
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['收包', '发包'], bottom: 4 },
+      grid: { left: 60, right: 24, top: 40, bottom: 40 },
+      xAxis: { type: 'category', data: times, axisLabel: { fontSize: 10 } },
+      yAxis: { type: 'value' },
+      series: [
+        { name: '收包', type: 'line', data: metrics.map((d) => d.net_pkts_recv), smooth: true, showSymbol: false, lineStyle: { width: 2 }, itemStyle: { color: '#1890ff' } },
+        { name: '发包', type: 'line', data: metrics.map((d) => d.net_pkts_sent), smooth: true, showSymbol: false, lineStyle: { width: 2 }, itemStyle: { color: '#722ed1' } },
+      ],
+    };
+  }, [metrics]);
   const netOption = useMemo(() => {
     const times = metrics.map((d) => dayjs(d.timestamp).format('HH:mm:ss'));
     return {
@@ -126,12 +157,20 @@ export default function Monitor() {
     return {
       cpu: last.cpu_percent?.toFixed(1) + '%',
       mem: last.mem_percent?.toFixed(1) + '%',
+      swap: last.swap_used && last.swap_total
+        ? ((last.swap_used / last.swap_total) * 100).toFixed(1) + '%'
+        : '-',
       disk: last.disk_used && last.disk_total
         ? ((last.disk_used / last.disk_total) * 100).toFixed(1) + '%'
         : '-',
       load: last.load1?.toFixed(2) || '-',
+      procs: last.process_count?.toString() || '-',
+      diskR: formatBytes(last.disk_read_bytes),
+      diskW: formatBytes(last.disk_write_bytes),
       rx: formatNet(last.net_rx_bps),
       tx: formatNet(last.net_tx_bps),
+      pktsR: last.net_pkts_recv?.toLocaleString() || '-',
+      pktsT: last.net_pkts_sent?.toLocaleString() || '-',
     };
   }, [metrics]);
 
@@ -209,19 +248,25 @@ export default function Monitor() {
           {[
             { label: 'CPU', value: currentStats.cpu, color: '#667eea' },
             { label: '内存', value: currentStats.mem, color: '#764ba2' },
+            { label: '交换', value: currentStats.swap, color: '#faad14' },
             { label: '磁盘', value: currentStats.disk, color: '#52c41a' },
-            { label: '负载', value: currentStats.load, color: '#faad14' },
-            { label: '入站', value: currentStats.rx, color: '#1890ff' },
-            { label: '出站', value: currentStats.tx, color: '#13c2c2' },
+            { label: '进程', value: currentStats.procs, color: '#1890ff' },
+            { label: '负载', value: currentStats.load, color: '#ff4d4f' },
+            { label: '磁盘读', value: currentStats.diskR, color: '#a6ee3c' },
+            { label: '磁盘写', value: currentStats.diskW, color: '#f9e2af' },
+            { label: '入站', value: currentStats.rx, color: '#667eea' },
+            { label: '出站', value: currentStats.tx, color: '#764ba2' },
+            { label: '收包', value: currentStats.pktsR, color: '#1890ff' },
+            { label: '发包', value: currentStats.pktsT, color: '#722ed1' },
           ].map((s) => (
-            <Col key={s.label} xs={12} sm={8} md={4}>
+            <Col key={s.label} xs={12} sm={8} md={4} lg={3}>
               <div style={{
-                textAlign: 'center', padding: '10px 8px',
+                textAlign: 'center', padding: '8px 4px',
                 background: s.color + '10', borderRadius: 8,
                 border: `1px solid ${s.color}30`,
               }}>
-                <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', marginBottom: 2 }}>{s.label}</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: s.color }}>{s.value}</div>
+                <div style={{ fontSize: 10, color: 'rgba(0,0,0,0.4)', marginBottom: 2 }}>{s.label}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: s.color, wordBreak: 'break-all' }}>{s.value}</div>
               </div>
             </Col>
           ))}
@@ -264,6 +309,29 @@ export default function Monitor() {
               title={<Space><LineChartOutlined style={{ color: '#52c41a' }} /><span>网络流量</span></Space>}
             >
               <ReactECharts option={netOption} style={{ height: 260 }} />
+            </Card>
+          </Col>
+        </Row>
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <Col xs={24} md={8}>
+            <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
+              title={<Space><LineChartOutlined style={{ color: '#1890ff' }} /><span>进程数</span></Space>}
+            >
+              <ReactECharts option={procOption} style={{ height: 220 }} />
+            </Card>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
+              title={<Space><LineChartOutlined style={{ color: '#faad14' }} /><span>磁盘 IO</span></Space>}
+            >
+              <ReactECharts option={diskIOOption} style={{ height: 220 }} />
+            </Card>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
+              title={<Space><LineChartOutlined style={{ color: '#722ed1' }} /><span>网络包</span></Space>}
+            >
+              <ReactECharts option={netPktsOption} style={{ height: 220 }} />
             </Card>
           </Col>
         </Row>

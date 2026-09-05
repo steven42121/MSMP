@@ -89,25 +89,49 @@ func CollectMetrics() common.MetricData {
 		loadAvg15 = lavg.Load15
 	}
 
+	// 网络计数器（累计值，需要计算差值）
 	var netRx, netTx uint64
+	var netPktsRecv, netPktsSent uint64
 	if netIO, err := net.IOCounters(false); err == nil && len(netIO) > 0 {
 		netRx = netIO[0].BytesRecv
 		netTx = netIO[0].BytesSent
+		netPktsRecv = netIO[0].PacketsRecv
+		netPktsSent = netIO[0].PacketsSent
+	}
+
+	// 磁盘IO计数器
+	var diskRead, diskWrite uint64
+	if diskIO, err := disk.IOCounters(); err == nil {
+		for _, v := range diskIO {
+			diskRead += v.ReadBytes
+			diskWrite += v.WriteBytes
+		}
+	}
+
+	// 进程数
+	processCount := 0
+	if ps, err := process.Processes(); err == nil {
+		processCount = len(ps)
 	}
 
 	return common.MetricData{
-		CPUPercent: cpuPercent,
-		MemPercent: vmem.UsedPercent,
-		MemUsed:    vmem.Used,
-		MemTotal:   vmem.Total,
-		DiskUsed:   diskUsed,
-		DiskTotal:  diskTotal,
-		NetRxBps:   netRx,
-		NetTxBps:   netTx,
-		Load1:      loadAvg1,
-		Load5:      loadAvg5,
-		Load15:     loadAvg15,
-		UptimeSec:  uptime(),
+		CPUPercent:     cpuPercent,
+		MemPercent:     vmem.UsedPercent,
+		MemUsed:        vmem.Used,
+		MemTotal:       vmem.Total,
+		DiskUsed:       diskUsed,
+		DiskTotal:      diskTotal,
+		DiskReadBytes:  diskRead,
+		DiskWriteBytes: diskWrite,
+		NetRxBps:       netRx,
+		NetTxBps:       netTx,
+		NetPktsRecv:    netPktsRecv,
+		NetPktsSent:    netPktsSent,
+		ProcessCount:   processCount,
+		Load1:          loadAvg1,
+		Load5:          loadAvg5,
+		Load15:         loadAvg15,
+		UptimeSec:      uptime(),
 	}
 }
 

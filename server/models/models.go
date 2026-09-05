@@ -78,22 +78,29 @@ type AssetSnapshot struct {
 }
 
 type MetricSample struct {
-	ID         uint      `gorm:"primaryKey" json:"id"`
-	TenantID   uint      `gorm:"index;not null" json:"tenant_id"`
-	HostID     uint      `gorm:"index:idx_host_ts,priority:1;not null" json:"host_id"`
-	Timestamp  time.Time `gorm:"index:idx_host_ts,priority:2;not null" json:"timestamp"`
-	CPUPercent float64   `json:"cpu_percent"`
-	MemPercent float64   `json:"mem_percent"`
-	MemUsed    uint64    `json:"mem_used"`
-	MemTotal   uint64    `json:"mem_total"`
-	DiskUsed   uint64    `json:"disk_used"`
-	DiskTotal  uint64    `json:"disk_total"`
-	NetRxBps   uint64    `json:"net_rx_bps"`
-	NetTxBps   uint64    `json:"net_tx_bps"`
-	Load1      float64   `json:"load1"`
-	Load5      float64   `json:"load5"`
-	Load15     float64   `json:"load15"`
-	UptimeSec  uint64    `json:"uptime_sec"`
+	ID            uint      `gorm:"primaryKey" json:"id"`
+	TenantID      uint      `gorm:"index;not null" json:"tenant_id"`
+	HostID        uint      `gorm:"index:idx_host_ts,priority:1;not null" json:"host_id"`
+	Timestamp     time.Time `gorm:"index:idx_host_ts,priority:2;not null" json:"timestamp"`
+	CPUPercent    float64   `json:"cpu_percent"`
+	MemPercent    float64   `json:"mem_percent"`
+	MemUsed       uint64    `json:"mem_used"`
+	MemTotal      uint64    `json:"mem_total"`
+	SwapUsed      uint64    `json:"swap_used"`
+	SwapTotal     uint64    `json:"swap_total"`
+	DiskUsed      uint64    `json:"disk_used"`
+	DiskTotal     uint64    `json:"disk_total"`
+	DiskReadBytes uint64    `json:"disk_read_bytes"`
+	DiskWriteBytes uint64   `json:"disk_write_bytes"`
+	NetRxBps      uint64    `json:"net_rx_bps"`
+	NetTxBps      uint64    `json:"net_tx_bps"`
+	NetPktsRecv   uint64    `json:"net_pkts_recv"`
+	NetPktsSent   uint64    `json:"net_pkts_sent"`
+	ProcessCount  int       `json:"process_count"`
+	Load1         float64   `json:"load1"`
+	Load5         float64   `json:"load5"`
+	Load15        float64   `json:"load15"`
+	UptimeSec     uint64    `json:"uptime_sec"`
 }
 
 type HostEvent struct {
