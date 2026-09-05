@@ -292,7 +292,7 @@ export default function Monitor() {
         <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
           {[
             { label: 'CPU', value: currentStats.cpu, color: '#667eea' },
-            { label: '内存', value: currentStats.mem, color: '#764ba2' },
+            { label: '内存', value: currentStats.mem, color: '#764ba2', action: true },
             { label: '交换', value: currentStats.swap, color: '#faad14' },
             { label: '磁盘', value: currentStats.disk, color: '#52c41a' },
             { label: '进程', value: currentStats.procs, color: '#1890ff' },
@@ -309,50 +309,44 @@ export default function Monitor() {
                 textAlign: 'center', padding: '8px 4px',
                 background: s.color + '10', borderRadius: 8,
                 border: `1px solid ${s.color}30`,
+                position: 'relative',
               }}>
-                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 2 }}>{s.label}</div>
+                {s.action && (
+                  <Popconfirm
+                    title="确认清理内存缓存？"
+                    description="将释放页缓存、目录缓存和索引节点缓存"
+                    onConfirm={handleFlushCaches}
+                    okText="确认"
+                    cancelText="取消"
+                    disabled={flushing}
+                  >
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<BgColorsOutlined />}
+                      loading={flushing}
+                      disabled={flushing}
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 4,
+                        padding: '0 4px',
+                        height: 20,
+                        fontSize: 10,
+                      }}
+                      title="清理缓存"
+                    />
+                  </Popconfirm>
+                )}
+                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: s.action ? 14 : 2 }}>{s.label}</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: s.color, wordBreak: 'break-all' }}>{s.value}</div>
               </div>
             </Col>
-          ))}
-        </Row>
-      )}
+           ))}
+         </Row>
+       )}
 
-      {/* 内存清理按钮 */}
-      {currentStats && metrics.length > 0 && (
-        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-          <Col xs={24}>
-            <Card className="liquid-glass" style={{ borderRadius: 12, border: 'none' }}>
-              <Space wrap>
-                <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>内存清理：</span>
-                <Popconfirm
-                  title="确认清理内存缓存？"
-                  description="这将释放页缓存、目录缓存和索引节点缓存，可能短暂影响性能。"
-                  onConfirm={handleFlushCaches}
-                  okText="确认清理"
-                  cancelText="取消"
-                  disabled={flushing}
-                >
-                  <Button
-                    type="primary"
-                    icon={<BgColorsOutlined />}
-                    loading={flushing}
-                    disabled={flushing}
-                    style={{ borderRadius: 8 }}
-                  >
-                    一键清理缓存
-                  </Button>
-                </Popconfirm>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  当前内存：{currentStats.mem}
-                </Text>
-              </Space>
-            </Card>
-          </Col>
-        </Row>
-      )}
-
-      {!hostUUID ? (
+       {!hostUUID ? (
         <Empty description="请选择主机" style={{ margin: '80px 0' }} />
       ) : loading && metrics.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '100px 0' }}>
