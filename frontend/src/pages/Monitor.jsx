@@ -293,7 +293,7 @@ export default function Monitor() {
                 background: s.color + '10', borderRadius: 8,
                 border: `1px solid ${s.color}30`,
               }}>
-                <div style={{ fontSize: 10, color: 'rgba(0,0,0,0.4)', marginBottom: 2 }}>{s.label}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 2 }}>{s.label}</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: s.color, wordBreak: 'break-all' }}>{s.value}</div>
               </div>
             </Col>

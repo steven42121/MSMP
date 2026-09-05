@@ -196,6 +196,13 @@ body.msmp-dark,
 :root {
   --mouse-x: 50%;
   --mouse-y: 50%;
+  --text-primary: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(0, 0, 0, 0.45);
+}
+
+.msmp-dark {
+  --text-primary: rgba(255, 255, 255, 0.88);
+  --text-secondary: rgba(255, 255, 255, 0.45);
 }
 
 /* ============================================================
