@@ -128,17 +128,7 @@ function WebSSHTerminal({ open, host, onClose }) {
 
   return (
     <Modal
-      title={
-        <span>
-          终端 <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>{host?.hostname}</span>
-          <span style={{
-            marginLeft: 12, fontSize: 12,
-            color: status === 'connected' ? '#52c41a' : status === 'connecting' ? '#faad14' : '#ff4d4f',
-          }}>
-            {status === 'connected' ? '已连接' : status === 'connecting' ? '连接中…' : '已断开'}
-          </span>
-        </span>
-      }
+      title={`终端 ${host?.hostname || ''}  ${status === 'connected' ? '已连接' : status === 'connecting' ? '连接中…' : '已断开'}`}
       open={open}
       onCancel={onClose}
       footer={null}
