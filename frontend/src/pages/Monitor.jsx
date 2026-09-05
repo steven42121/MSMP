@@ -50,6 +50,14 @@ function formatNet(v) {
   return v.toFixed(0) + ' B/s';
 }
 
+function formatBytes(bytes) {
+  if (!bytes && bytes !== 0) return '-';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
 export default function Monitor() {
   const [hosts, setHosts] = useState([]);
   const [hostUUID, setHostUUID] = useState();
