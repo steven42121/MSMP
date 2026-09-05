@@ -70,6 +70,12 @@ var toolDefs = []ToolDefinition{
 		Parameters:  `{"type":"object","properties":{}}`,
 		Safe:        true,
 	},
+	{
+		Name:        "flush_caches",
+		Description: "清理Linux内存缓存（需要root权限，会短暂影响性能）",
+		Parameters:  `{"type":"object","properties":{"hostname":{"type":"string","description":"目标主机名或IP"},"cache_type":{"type":"string","description":"清理类型：pages(页缓存), dentries(目录缓存), inodes(索引节点), all(全部)"}}}`,
+		Safe:        false,
+	},
 }
 
 // GetToolDefinitions 返回所有可用工具定义
@@ -114,6 +120,15 @@ func ValidateToolCall(name string, args map[string]interface{}) error {
 
 // checkDangerousCommand 检测危险命令，对所有工具生效
 func checkDangerousCommand(name string, args map[string]interface{}) error {
+	// flush_caches 工具允许执行特定的缓存清理命令
+	if name == "flush_caches" {
+		cacheType, _ := args["cache_type"].(string)
+		if cacheType != "" && cacheType != "pages" && cacheType != "dentries" && cacheType != "inodes" && cacheType != "all" {
+			return fmt.Errorf("无效的 cache_type: %s (允许: pages, dentries, inodes, all)", cacheType)
+		}
+		return nil
+	}
+
 	if name != "execute_command" {
 		return nil
 	}

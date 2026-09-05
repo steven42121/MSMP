@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Table, Card, Tag, Space, Select, Button, Input, Popconfirm, InputNumber, message, Typography, Modal } from 'antd';
-import { ReloadOutlined, AlertOutlined, SearchOutlined, BellOutlined, PauseOutlined, RobotOutlined } from '@ant-design/icons';
+import { Table, Card, Tag, Space, Select, Button, Input, Popconfirm, InputNumber, message, Typography, Modal, Row, Col, Statistic } from 'antd';
+import { ReloadOutlined, AlertOutlined, SearchOutlined, BellOutlined, PauseOutlined, RobotOutlined, FireOutlined, WarningOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import client from '../api/client';
 
@@ -27,6 +27,22 @@ export default function Alerts() {
   const [analyzing, setAnalyzing] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [analysisVisible, setAnalysisVisible] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  const loadStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const resp = await client.get()('/alert-stats');
+      setStats(resp);
+    } catch (e) {
+      setStats(null);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadStats(); }, [loadStats]);
 
   const handleAnalyze = async (id, hostId) => {
     setAnalyzing(id);
@@ -170,12 +186,51 @@ export default function Alerts() {
 
   return (
     <div>
-      <div className="page-header" style={{ marginBottom: 20 }}>
-        <div>
-          <div className="page-title">告警管理</div>
-          <Text type="secondary" style={{ fontSize: 13 }}>实时监控告警事件，支持确认与静音操作</Text>
-        </div>
-      </div>
+      {/* 告警统计面板 */}
+      {stats && (
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={12} sm={8} md={6}>
+            <Card className="liquid-glass" style={{ borderRadius: 12, border: 'none' }}>
+              <Statistic
+                title={<Space><FireOutlined style={{ color: '#ff4d4f' }} />严重告警</Space>}
+                value={stats.by_level?.critical || 0}
+                valueStyle={{ color: '#ff4d4f' }}
+                prefix={<FireOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} sm={8} md={6}>
+            <Card className="liquid-glass" style={{ borderRadius: 12, border: 'none' }}>
+              <Statistic
+                title={<Space><WarningOutlined style={{ color: '#faad14' }} />警告</Space>}
+                value={stats.by_level?.warning || 0}
+                valueStyle={{ color: '#faad14' }}
+                prefix={<WarningOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} sm={8} md={6}>
+            <Card className="liquid-glass" style={{ borderRadius: 12, border: 'none' }}>
+              <Statistic
+                title={<Space><InfoCircleOutlined style={{ color: '#1890ff' }} />信息</Space>}
+                value={stats.by_level?.info || 0}
+                valueStyle={{ color: '#1890ff' }}
+                prefix={<InfoCircleOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} sm={8} md={6}>
+            <Card className="liquid-glass" style={{ borderRadius: 12, border: 'none' }}>
+              <Statistic
+                title="未确认"
+                value={stats.unacknowledged || 0}
+                valueStyle={{ color: '#722ed1' }}
+                suffix={<BellOutlined />}
+              />
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       <Card className="liquid-glass" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
         <Space wrap size={12} className="filter-bar">

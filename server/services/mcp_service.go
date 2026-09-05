@@ -181,6 +181,8 @@ func executeApproval(a *MCPApproval) {
 		a.Result = checkService(a, args)
 	case "view_logs":
 		a.Result = viewLogs(a, args)
+	case "flush_caches":
+		a.Result = flushCaches(a, args)
 	default:
 		// 安全工具直接执行
 		result, err := ExecuteTool(a.ToolName, args, a.TenantID)
@@ -309,6 +311,51 @@ func GetToolResult(taskID uint) (string, error) {
 		return "任务尚未完成，请稍后重试", nil
 	}
 	return task.Result, nil
+}
+
+// flushCaches 清理Linux内存缓存
+func flushCaches(a *MCPApproval, args map[string]interface{}) string {
+	hostname, _ := args["hostname"].(string)
+	cacheType, _ := args["cache_type"].(string)
+
+	if hostname == "" {
+		return "参数不完整：需要 hostname"
+	}
+
+	host, err := FindHostByIDOrName(a.TenantID, hostname)
+	if err != nil {
+		return fmt.Sprintf("找不到主机 %s: %v", hostname, err)
+	}
+
+	// 确定要执行的命令
+	var cmd string
+	switch cacheType {
+	case "pages":
+		cmd = "echo 1 > /proc/sys/vm/drop_caches"
+	case "dentries":
+		cmd = "echo 2 > /proc/sys/vm/drop_caches"
+	case "inodes":
+		cmd = "echo 4 > /proc/sys/vm/drop_caches"
+	case "all", "":
+		cmd = "echo 3 > /proc/sys/vm/drop_caches"
+	default:
+		cmd = "echo 3 > /proc/sys/vm/drop_caches"
+	}
+
+	task := models.Task{
+		TenantID: a.TenantID,
+		HostID:   host.ID,
+		Type:     "shell",
+		Command:  cmd,
+		Status:   "pending",
+		CreatedBy: a.UserID,
+	}
+	if err := db.DB.Create(&task).Error; err != nil {
+		return fmt.Sprintf("提交任务失败: %v", err)
+	}
+
+	return fmt.Sprintf("已提交清理缓存任务至主机 %s (%s)，类型: %s，任务ID=%d",
+		host.Hostname, host.IP, cacheType, task.ID)
 }
 
 // RunRawCommand 直接通过 SSH/WinRM 运行命令（占位实现）
