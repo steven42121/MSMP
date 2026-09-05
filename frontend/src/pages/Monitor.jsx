@@ -303,46 +303,39 @@ export default function Monitor() {
             { label: '出站', value: currentStats.tx, color: '#764ba2' },
             { label: '收包', value: currentStats.pktsR, color: '#1890ff' },
             { label: '发包', value: currentStats.pktsT, color: '#722ed1' },
-          ].map((s) => (
+].map((s) => (
             <Col key={s.label} xs={12} sm={8} md={4} lg={3}>
               <div style={{
                 textAlign: 'center', padding: '8px 4px',
                 background: s.color + '10', borderRadius: 8,
                 border: `1px solid ${s.color}30`,
-                position: 'relative',
               }}>
+                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 2 }}>{s.label}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: s.color, wordBreak: 'break-all' }}>{s.value}</div>
                 {s.action && (
                   <Popconfirm
                     title="确认清理内存缓存？"
                     description="将释放页缓存、目录缓存和索引节点缓存"
                     onConfirm={handleFlushCaches}
-                    okText="确认"
+                    okText="清理"
                     cancelText="取消"
                     disabled={flushing}
                   >
                     <Button
-                      type="text"
+                      type="primary"
                       size="small"
                       icon={<BgColorsOutlined />}
                       loading={flushing}
                       disabled={flushing}
-                      style={{
-                        position: 'absolute',
-                        top: 4,
-                        right: 4,
-                        padding: '0 4px',
-                        height: 20,
-                        fontSize: 10,
-                      }}
-                      title="清理缓存"
-                    />
+                      style={{ marginTop: 6, fontSize: 11, height: 22, padding: '0 8px' }}
+                    >
+                      清理缓存
+                    </Button>
                   </Popconfirm>
                 )}
-                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: s.action ? 14 : 2 }}>{s.label}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: s.color, wordBreak: 'break-all' }}>{s.value}</div>
               </div>
             </Col>
-           ))}
+          ))}
          </Row>
        )}
 
