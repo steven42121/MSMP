@@ -8,10 +8,14 @@ import client from '../api/client';
 const { Text } = Typography;
 
 const durations = [
+  { value: '30m', label: '最近 30 分钟' },
   { value: '1h', label: '最近 1 小时' },
   { value: '3h', label: '最近 3 小时' },
   { value: '6h', label: '最近 6 小时' },
+  { value: '12h', label: '最近 12 小时' },
   { value: '24h', label: '最近 24 小时' },
+  { value: '7d', label: '最近 7 天' },
+  { value: '30d', label: '最近 30 天' },
 ];
 
 const metricColors = ['#667eea', '#764ba2', '#52c41a', '#faad14', '#ff4d4f', '#1890ff'];

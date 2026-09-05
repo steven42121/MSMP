@@ -19,7 +19,7 @@ agent:
   transport: "http"
   heartbeatsec: 30
   assetreportsec: 300
-  metricreportsec: 60
+  metricreportsec: 30
   offlineaftersec: 120
 
 security:
