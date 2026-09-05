@@ -74,7 +74,27 @@ class ClusterClient {
   }
 
   get() {
-    return (path, params) => this.request('GET', path, params ? { params } : {});
+    return async (path, params) => {
+      let url = this.baseURL + path;
+      if (params) {
+        const query = Object.entries(params)
+          .filter(([_, v]) => v !== undefined && v !== null)
+          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+          .join('&');
+        if (query) url += '?' + query;
+      }
+      const config = {
+        method: 'GET',
+        url,
+        timeout: this.timeout,
+        headers: { 'Content-Type': 'application/json' },
+      };
+      const { token, tenant } = useAuthStore.getState();
+      if (token) config.headers.Authorization = `Bearer ${token}`;
+      if (tenant?.id) config.headers['X-Tenant-Id'] = tenant.id;
+      const resp = await axios(config);
+      return resp.data;
+    };
   }
 
   post() {
