@@ -100,6 +100,7 @@ func main() {
 	mux.HandleFunc("/api/alert-escalations", controllers.Audit("manage", "alert_escalation", controllers.RequireRole([]string{"admin"}, controllers.AlertEscalationsHandler)))
 	mux.HandleFunc("/api/alert-escalations/", controllers.RequireRole([]string{"admin"}, controllers.AlertEscalationDetailHandler))
 	mux.HandleFunc("/api/alert-stats", controllers.RequireRole([]string{"admin", "member"}, controllers.AlertStatsHandler))
+	mux.HandleFunc("/api/maintenance/flush-caches", controllers.RequireRole([]string{"admin"}, controllers.FlushCachesHandler))
 
 	// 租户和用户管理
 	mux.HandleFunc("/api/tenants", controllers.Audit("manage", "tenant", controllers.RequireRole([]string{"admin"}, controllers.TenantsHandler)))

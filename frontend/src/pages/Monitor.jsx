@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Card, Select, Space, Spin, Empty, Row, Col, Button, Typography } from 'antd';
-import { LineChartOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Card, Select, Space, Spin, Empty, Row, Col, Button, Typography, message, Popconfirm } from 'antd';
+import { LineChartOutlined, DownloadOutlined, ReloadOutlined, BgColorsOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import dayjs from 'dayjs';
 import client from '../api/client';
@@ -68,6 +68,23 @@ export default function Monitor() {
   const [currentHost, setCurrentHost] = useState(null);
   const [assets, setAssets] = useState([]);
   const [assetLoading, setAssetLoading] = useState(false);
+  const [flushing, setFlushing] = useState(false);
+
+  const handleFlushCaches = async () => {
+    if (!hostUUID || !currentHost) return;
+    setFlushing(true);
+    try {
+      await client.post()('/maintenance/flush-caches', {
+        host_uuid: hostUUID,
+        cache_type: 'all',
+      });
+      message.success('已提交清理缓存任务，请等待执行');
+    } catch (e) {
+      message.error('提交失败：' + (e.message || '请重试'));
+    } finally {
+      setFlushing(false);
+    }
+  };
 
   useEffect(() => {
     client.get()('/hosts', { params: { page_size: 100 } })
@@ -298,6 +315,40 @@ export default function Monitor() {
               </div>
             </Col>
           ))}
+        </Row>
+      )}
+
+      {/* 内存清理按钮 */}
+      {currentStats && metrics.length > 0 && (
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={24}>
+            <Card className="liquid-glass" style={{ borderRadius: 12, border: 'none' }}>
+              <Space wrap>
+                <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>内存清理：</span>
+                <Popconfirm
+                  title="确认清理内存缓存？"
+                  description="这将释放页缓存、目录缓存和索引节点缓存，可能短暂影响性能。"
+                  onConfirm={handleFlushCaches}
+                  okText="确认清理"
+                  cancelText="取消"
+                  disabled={flushing}
+                >
+                  <Button
+                    type="primary"
+                    icon={<BgColorsOutlined />}
+                    loading={flushing}
+                    disabled={flushing}
+                    style={{ borderRadius: 8 }}
+                  >
+                    一键清理缓存
+                  </Button>
+                </Popconfirm>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  当前内存：{currentStats.mem}
+                </Text>
+              </Space>
+            </Card>
+          </Col>
         </Row>
       )}
 
