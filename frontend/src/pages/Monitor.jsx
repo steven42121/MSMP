@@ -58,6 +58,8 @@ export default function Monitor() {
   const [loading, setLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [currentHost, setCurrentHost] = useState(null);
+  const [assets, setAssets] = useState([]);
+  const [assetLoading, setAssetLoading] = useState(false);
 
   useEffect(() => {
     client.get()('/hosts', { params: { page_size: 100 } })
@@ -71,6 +73,24 @@ export default function Monitor() {
       })
       .catch(() => setHosts([]));
   }, []);
+
+  const loadAssets = useCallback(() => {
+    if (!hostUUID) return;
+    setAssetLoading(true);
+    client.get()(`/hosts/${hostUUID}/assets`)
+      .then((resp) => {
+        const data = Array.isArray(resp) ? resp : (resp.data || []);
+        setAssets(data);
+      })
+      .catch(() => setAssets([]))
+      .finally(() => setAssetLoading(false));
+  }, [hostUUID]);
+
+  useEffect(() => { loadAssets(); }, [loadAssets]);
+  useEffect(() => {
+    const timer = setInterval(loadAssets, 5 * 60 * 1000); // 5分钟刷新
+    return () => clearInterval(timer);
+  }, [loadAssets]);
 
   const loadMetrics = useCallback(() => {
     if (!hostUUID) return;
@@ -336,8 +356,102 @@ export default function Monitor() {
              </Card>
            </Col>
          </Row>
-         </>
-       )}
-    </div>
+          </>
+        )}
+
+        {/* GPU & Temperature Assets */}
+        {hostUUID && (
+          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            <Col xs={24} md={12}>
+              <Card
+                className="liquid-glass"
+                style={{ borderRadius: 16, border: 'none' }}
+                title={<Space><LineChartOutlined style={{ color: '#52c41a' }} /><span>GPU 信息</span></Space>}
+                loading={assetLoading}
+                extra={<Button size="small" onClick={loadAssets} loading={assetLoading}>刷新</Button>}
+              >
+                {assets.length === 0 ? (
+                  <Empty description="暂无资产数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                ) : (
+                  (() => {
+                    const latest = assets[0];
+                    const gpus = latest?.gpus || [];
+                    if (gpus.length === 0) {
+                      return <Text type="secondary">未检测到 GPU</Text>;
+                    }
+                    return (
+                      <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                        {gpus.map((gpu, idx) => (
+                          <div key={idx} style={{
+                            padding: '8px 12px',
+                            background: 'rgba(82,196,26,0.08)',
+                            borderRadius: 8,
+                            marginBottom: 8,
+                          }}>
+                            <div style={{ fontWeight: 600, marginBottom: 4 }}>{gpu.name || `GPU ${idx + 1}`}</div>
+                            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>
+                              <div>厂商: {gpu.vendor || '-'}</div>
+                              <div>显存: {gpu.memory_total ? formatBytes(gpu.memory_total) : '-'} / {gpu.memory_used ? formatBytes(gpu.memory_used) : '-'}</div>
+                              <div>温度: {gpu.temperature_c != null ? `${gpu.temperature_c}°C` : '-'}</div>
+                              <div>利用率: {gpu.utilization_gpu != null ? `${gpu.utilization_gpu}%` : '-'}</div>
+                              {gpu.driver_version && <div>驱动: {gpu.driver_version}</div>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()
+                )}
+              </Card>
+            </Col>
+            <Col xs={24} md={12}>
+              <Card
+                className="liquid-glass"
+                style={{ borderRadius: 16, border: 'none' }}
+                title={<Space><LineChartOutlined style={{ color: '#faad14' }} /><span>温度传感器</span></Space>}
+                loading={assetLoading}
+                extra={<Button size="small" onClick={loadAssets} loading={assetLoading}>刷新</Button>}
+              >
+                {assets.length === 0 ? (
+                  <Empty description="暂无资产数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                ) : (
+                  (() => {
+                    const latest = assets[0];
+                    const temps = latest?.temperatures || [];
+                    if (temps.length === 0) {
+                      return <Text type="secondary">未检测到温度传感器</Text>;
+                    }
+                    return (
+                      <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                        {temps.map((t, idx) => (
+                          <div key={idx} style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            padding: '6px 12px',
+                            background: t.temp > (t.critical || 90) ? 'rgba(255,77,79,0.1)' :
+                                       t.temp > (t.high || 70) ? 'rgba(250,173,20,0.1)' : 'rgba(82,196,26,0.08)',
+                            borderRadius: 6,
+                            marginBottom: 4,
+                          }}>
+                            <span style={{ fontSize: 13 }}>{t.sensor_key || `Sensor ${idx + 1}`}</span>
+                            <span style={{
+                              fontSize: 13,
+                              fontWeight: 600,
+                              color: t.temp > (t.critical || 90) ? '#ff4d4f' :
+                                     t.temp > (t.high || 70) ? '#faad14' : '#52c41a',
+                            }}>
+                              {t.temp != null ? `${t.temp}°C` : '-'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()
+                )}
+              </Card>
+            </Col>
+          </Row>
+        )}
+     </div>
   );
 }
