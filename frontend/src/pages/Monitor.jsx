@@ -281,61 +281,63 @@ export default function Monitor() {
         </div>
       ) : metrics.length === 0 ? (
         <Empty description="暂无监控数据" style={{ margin: '80px 0' }} />
-      ) : (
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={12}>
-            <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-              title={<Space><LineChartOutlined style={{ color: '#667eea' }} /><span>CPU 使用率</span></Space>}
-            >
-              <ReactECharts option={cpuOption} style={{ height: 260 }} />
-            </Card>
-          </Col>
-          <Col xs={24} md={12}>
-            <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-              title={<Space><LineChartOutlined style={{ color: '#764ba2' }} /><span>内存使用率</span></Space>}
-            >
-              <ReactECharts option={memOption} style={{ height: 260 }} />
-            </Card>
-          </Col>
-          <Col xs={24} md={12}>
-            <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-              title={<Space><LineChartOutlined style={{ color: '#faad14' }} /><span>系统负载</span></Space>}
-            >
-              <ReactECharts option={loadOption} style={{ height: 260 }} />
-            </Card>
-          </Col>
-          <Col xs={24} md={12}>
-            <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-              title={<Space><LineChartOutlined style={{ color: '#52c41a' }} /><span>网络流量</span></Space>}
-            >
-              <ReactECharts option={netOption} style={{ height: 260 }} />
-            </Card>
-          </Col>
-        </Row>
-        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-          <Col xs={24} md={8}>
-            <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-              title={<Space><LineChartOutlined style={{ color: '#1890ff' }} /><span>进程数</span></Space>}
-            >
-              <ReactECharts option={procOption} style={{ height: 220 }} />
-            </Card>
-          </Col>
-          <Col xs={24} md={8}>
-            <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-              title={<Space><LineChartOutlined style={{ color: '#faad14' }} /><span>磁盘 IO</span></Space>}
-            >
-              <ReactECharts option={diskIOOption} style={{ height: 220 }} />
-            </Card>
-          </Col>
-          <Col xs={24} md={8}>
-            <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-              title={<Space><LineChartOutlined style={{ color: '#722ed1' }} /><span>网络包</span></Space>}
-            >
-              <ReactECharts option={netPktsOption} style={{ height: 220 }} />
-            </Card>
-          </Col>
-        </Row>
-      )}
+       ) : (
+         <>
+         <Row gutter={[16, 16]}>
+           <Col xs={24} md={12}>
+             <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
+               title={<Space><LineChartOutlined style={{ color: '#667eea' }} /><span>CPU 使用率</span></Space>}
+             >
+               <ReactECharts option={cpuOption} style={{ height: 260 }} />
+             </Card>
+           </Col>
+           <Col xs={24} md={12}>
+             <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
+               title={<Space><LineChartOutlined style={{ color: '#764ba2' }} /><span>内存使用率</span></Space>}
+             >
+               <ReactECharts option={memOption} style={{ height: 260 }} />
+             </Card>
+           </Col>
+           <Col xs={24} md={12}>
+             <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
+               title={<Space><LineChartOutlined style={{ color: '#faad14' }} /><span>系统负载</span></Space>}
+             >
+               <ReactECharts option={loadOption} style={{ height: 260 }} />
+             </Card>
+           </Col>
+           <Col xs={24} md={12}>
+             <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
+               title={<Space><LineChartOutlined style={{ color: '#52c41a' }} /><span>网络流量</span></Space>}
+             >
+               <ReactECharts option={netOption} style={{ height: 260 }} />
+             </Card>
+           </Col>
+         </Row>
+         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+           <Col xs={24} md={8}>
+             <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
+               title={<Space><LineChartOutlined style={{ color: '#1890ff' }} /><span>进程数</span></Space>}
+             >
+               <ReactECharts option={procOption} style={{ height: 220 }} />
+             </Card>
+           </Col>
+           <Col xs={24} md={8}>
+             <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
+               title={<Space><LineChartOutlined style={{ color: '#faad14' }} /><span>磁盘 IO</span></Space>}
+             >
+               <ReactECharts option={diskIOOption} style={{ height: 220 }} />
+             </Card>
+           </Col>
+           <Col xs={24} md={8}>
+             <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
+               title={<Space><LineChartOutlined style={{ color: '#722ed1' }} /><span>网络包</span></Space>}
+             >
+               <ReactECharts option={netPktsOption} style={{ height: 220 }} />
+             </Card>
+           </Col>
+         </Row>
+         </>
+       )}
     </div>
   );
 }
