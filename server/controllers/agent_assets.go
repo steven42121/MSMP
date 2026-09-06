@@ -235,14 +235,22 @@ func AgentHeartbeatHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // AgentUpgradeHandler 触发 Agent 升级，返回当前最新版信息
+// 支持两种路径：/api/agents/upgrade/{uuid} 和 /api/hosts/{uuid}/agent/upgrade
 func AgentUpgradeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
 		return
 	}
 
-	path := strings.TrimPrefix(r.URL.Path, "/api/agents/")
-	uuid := strings.Split(path, "/")[0]
+	// 解析 UUID：支持 /api/agents/upgrade/{uuid} 和 /api/hosts/{uuid}/agent/upgrade
+	path := r.URL.Path
+	var uuid string
+	if strings.HasPrefix(path, "/api/agents/upgrade/") {
+		uuid = strings.TrimPrefix(path, "/api/agents/upgrade/")
+	} else if strings.Contains(path, "/agent/upgrade") {
+		parts := strings.Split(strings.TrimPrefix(path, "/api/hosts/"), "/")
+		uuid = parts[0]
+	}
 	if uuid == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "uuid required"})
 		return
