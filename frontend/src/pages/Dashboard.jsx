@@ -211,7 +211,7 @@ export default function Dashboard() {
                     <Tag color={item.level === 'critical' ? 'red' : item.level === 'warning' ? 'orange' : 'blue'} style={{ borderRadius: 4 }}>
                       {item.level.toUpperCase()}
                     </Tag>
-                    <span style={{ maxWidth: 260, overflow: 'hidden', textOverflow: ellipsis, whiteSpace: 'nowrap' }}>
+                    <span style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {item.message}
                     </span>
                     <span style={{ color: 'rgba(0,0,0,0.35)', fontSize: 12, flexShrink: 0 }}>
