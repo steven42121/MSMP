@@ -48,6 +48,9 @@ export default function HostDetail() {
   const [vsphereVMs, setVSphereVMs] = useState([]);
   const [vsphereDatastores, setVSphereDatastores] = useState([]);
   const [vsphereLoading, setVSphereLoading] = useState(false);
+  const [pveGuests, setPVEGuests] = useState([]);
+  const [pveStorages, setPVEStorages] = useState([]);
+  const [pveLoading, setPVELoading] = useState(false);
   const [upgradeInfo, setUpgradeInfo] = useState(null);
 
   const loadHost = async () => {
@@ -105,6 +108,7 @@ export default function HostDetail() {
     if (activeKey === 'events') loadEvents();
     if (activeKey === 'channels') loadChannels();
     if (activeKey === 'vsphere') loadVSphere();
+    if (activeKey === 'pve') loadPVE();
     // tags 已在初始加载? 这里也刷新
     if (activeKey === 'tags') loadTags();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -194,6 +198,37 @@ export default function HostDetail() {
       await client.post()(`/hosts/${uuid}/vsphere/vms/${vmName}/power`, { action });
       message.success(`${vmName} ${action} 成功`);
       loadVSphere();
+    } catch (e) {
+      message.error(e?.response?.data?.error || '操作失败');
+    }
+  };
+
+  const loadPVE = async () => {
+    setPVELoading(true);
+    try {
+      const [guestRes, stRes] = await Promise.all([
+        client.get()(`/hosts/${uuid}/pve/guests`),
+        client.get()(`/hosts/${uuid}/pve/storage`),
+      ]);
+      setPVEGuests(guestRes.guests || []);
+      setPVEStorages(stRes.storages || []);
+    } catch (e) {
+      message.error('加载 Proxmox VE 数据失败');
+    } finally {
+      setPVELoading(false);
+    }
+  };
+
+  const handlePVEPower = async (guest, action) => {
+    try {
+      await client.post()(`/hosts/${uuid}/pve/guests/power`, {
+        node: guest.node,
+        vmid: guest.vmid,
+        vmtype: guest.guest_type,
+        action,
+      });
+      message.success(`${guest.name || guest.vmid} ${action} 指令已下发`);
+      setTimeout(loadPVE, 2000);
     } catch (e) {
       message.error(e?.response?.data?.error || '操作失败');
     }
@@ -413,9 +448,9 @@ export default function HostDetail() {
             <Button onClick={loadChannels}>刷新</Button>
           </Space>
           {channels.length === 0 ? (
-            <Typography.Text type="secondary">
-              暂无采集渠道。当主机无法安装 Agent 时，可配置 SSH / Windows Admin Center / 宝塔面板 / Prometheus / SNMP / WinRM 渠道远程采集指标。
-            </Typography.Text>
+              <Typography.Text type="secondary">
+                暂无采集渠道。当主机无法安装 Agent 时，可配置 SSH / Windows Admin Center / 宝塔面板 / Prometheus / SNMP / WinRM / vSphere / Proxmox VE 渠道远程采集指标。
+              </Typography.Text>
           ) : (
             <Table
               size="small"
@@ -423,7 +458,7 @@ export default function HostDetail() {
               dataSource={channels}
               pagination={false}
               columns={[
-                { title: '类型', dataIndex: 'type', key: 'type', width: 130, render: (v) => <Tag color={v === 'ssh' ? 'blue' : v === 'wac' ? 'purple' : v === 'baota' ? 'green' : v === 'prometheus' ? 'cyan' : v === 'snmp' ? 'orange' : v === 'vsphere' ? 'pink' : 'magenta'}>{v}</Tag> },
+                { title: '类型', dataIndex: 'type', key: 'type', width: 130, render: (v) => <Tag color={v === 'ssh' ? 'blue' : v === 'wac' ? 'purple' : v === 'baota' ? 'green' : v === 'prometheus' ? 'cyan' : v === 'snmp' ? 'orange' : v === 'vsphere' ? 'pink' : v === 'pve' ? 'orange' : 'magenta'}>{v}</Tag> },
                 { title: '地址', dataIndex: 'address', key: 'address' },
                 { title: '接入方式', dataIndex: 'auth_mode', key: 'auth_mode', width: 120 },
                 { title: '优先级', dataIndex: 'priority', key: 'priority', width: 80 },
@@ -567,6 +602,113 @@ export default function HostDetail() {
         </Spin>
       ),
     },
+    {
+      key: 'pve',
+      label: 'Proxmox VE',
+      children: (
+        <Spin spinning={pveLoading}>
+          <Space direction="vertical" style={{ width: '100%' }} size={16}>
+            <Button onClick={loadPVE}>刷新</Button>
+
+            <div style={{ color: '#888', fontSize: 13 }}>虚拟机 / 容器（共 {pveGuests.length} 个）</div>
+            {pveGuests.length === 0 ? (
+              <Typography.Text type="secondary">暂无虚拟机/容器数据</Typography.Text>
+            ) : (
+              <Table
+                size="small"
+                dataSource={pveGuests}
+                rowKey={(r) => `${r.node}-${r.guest_type}-${r.vmid}`}
+                pagination={false}
+                columns={[
+                  { title: 'ID', dataIndex: 'vmid', key: 'vmid', width: 70 },
+                  { title: '名称', dataIndex: 'name', key: 'name' },
+                  {
+                    title: '类型',
+                    dataIndex: 'guest_type',
+                    key: 'guest_type',
+                    width: 90,
+                    render: (v) => <Tag color={v === 'qemu' ? 'geekblue' : 'purple'}>{v === 'qemu' ? 'VM' : 'LXC'}</Tag>,
+                  },
+                  { title: '节点', dataIndex: 'node', key: 'node', width: 110 },
+                  {
+                    title: '状态',
+                    dataIndex: 'status',
+                    key: 'status',
+                    width: 90,
+                    render: (v) => {
+                      const map = { running: ['green', '运行中'], stopped: ['default', '已停止'], paused: ['orange', '已暂停'] };
+                      const m = map[v] || ['cyan', v || '-'];
+                      return <Tag color={m[0]}>{m[1]}</Tag>;
+                    },
+                  },
+                  { title: 'CPU', dataIndex: 'cpus', key: 'cpus', width: 70, render: (v) => v ? `${v}核` : '-' },
+                  { title: '内存', dataIndex: 'maxmem', key: 'maxmem', width: 100, render: formatBytes },
+                  { title: '磁盘', dataIndex: 'maxdisk', key: 'maxdisk', width: 100, render: formatBytes },
+                  { title: '运行时长', dataIndex: 'uptime', key: 'uptime', width: 100, render: (v) => (v ? `${Math.floor(v / 86400)}天${Math.floor((v % 86400) / 3600)}时` : '-') },
+                  {
+                    title: '操作',
+                    key: 'action',
+                    width: 220,
+                    render: (_, r) => (
+                      <Space size={4}>
+                        {r.status !== 'running' && (
+                          <Button type="link" size="small" onClick={() => handlePVEPower(r, 'start')}>开机</Button>
+                        )}
+                        {r.status === 'running' && (
+                          <>
+                            <Button type="link" size="small" onClick={() => handlePVEPower(r, 'stop')}>关机</Button>
+                            <Button type="link" size="small" onClick={() => handlePVEPower(r, 'reboot')}>重启</Button>
+                            {r.guest_type === 'qemu' && (
+                              <Button type="link" size="small" onClick={() => handlePVEPower(r, 'suspend')}>挂起</Button>
+                            )}
+                          </>
+                        )}
+                      </Space>
+                    ),
+                  },
+                ]}
+              />
+            )}
+
+            <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>数据存储（共 {pveStorages.length} 个）</div>
+            {pveStorages.length === 0 ? (
+              <Typography.Text type="secondary">暂无数据存储数据</Typography.Text>
+            ) : (
+              <Table
+                size="small"
+                dataSource={pveStorages}
+                rowKey={(r) => `${r.node}-${r.storage}`}
+                pagination={false}
+                columns={[
+                  { title: '名称', dataIndex: 'storage', key: 'storage' },
+                  { title: '节点', dataIndex: 'node', key: 'node', width: 110 },
+                  { title: '类型', dataIndex: 'type', key: 'type', width: 100 },
+                  { title: '容量', dataIndex: 'total', key: 'total', width: 110, render: formatBytes },
+                  { title: '已用', dataIndex: 'used', key: 'used', width: 110, render: formatBytes },
+                  {
+                    title: '使用率',
+                    dataIndex: 'total',
+                    key: 'used_pct',
+                    width: 100,
+                    render: (v, r) => {
+                      if (!v || v === 0) return '-';
+                      return `${((r.used / v) * 100).toFixed(1)}%`;
+                    },
+                  },
+                  {
+                    title: '状态',
+                    dataIndex: 'active',
+                    key: 'active',
+                    width: 80,
+                    render: (v) => v === 1 ? <Tag color="green">激活</Tag> : <Tag color="red">未激活</Tag>,
+                  },
+                ]}
+              />
+            )}
+          </Space>
+        </Spin>
+      ),
+    },
   ];
 
   return (
@@ -621,6 +763,7 @@ options={[
                  { value: 'snmp', label: 'SNMP（网络设备）' },
                  { value: 'winrm', label: 'WinRM（Windows 远程管理）' },
                  { value: 'vsphere', label: 'vSphere / ESXi（ VMware 虚拟化管理）' },
+                 { value: 'pve', label: 'Proxmox VE（开源虚拟化平台）' },
                ]}
             />
           </Form.Item>
@@ -679,6 +822,10 @@ options={[
                <Form.Item name="auth_mode" label="认证方式" rules={[{ required: true }]}>
                  <Select options={[{ value: 'password', label: '用户名 + 密码' }]} disabled />
                </Form.Item>
+             ) : f.getFieldValue('type') === 'pve' ? (
+               <Form.Item name="auth_mode" label="认证方式" rules={[{ required: true }]}>
+                 <Select options={[{ value: 'password', label: '用户名 + 密码（如 root@pam）' }]} disabled />
+               </Form.Item>
              ) : (
               <Form.Item name="auth_mode" label="接入方式" rules={[{ required: true }]}>
                 <Select options={[{ value: 'gateway', label: '网关凭据直连' }]} />
@@ -686,7 +833,7 @@ options={[
             )}
           </Form.Item>
           <Form.Item name="username" label="用户名">
-            <Input placeholder="SSH 登录用户 / 宝塔面板标识" />
+            <Input placeholder="SSH 登录用户 / PVE 用户（root@pam）/ 宝塔面板标识" />
           </Form.Item>
           <Form.Item name="secret" label="凭据（密码 / 私钥 / API Key）" rules={[{ required: true, message: '凭据必填' }]}>
             <Input.TextArea rows={3} placeholder="密码或私钥 PEM 内容或 API Key" />

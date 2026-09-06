@@ -226,6 +226,13 @@ func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
 	case subResource == "vsphere" && subAction == "datastores" && r.Method == http.MethodGet:
 		VSphereDatastoresHandler(w, r, &host, tenantID, getUserID(r))
 
+	case subResource == "pve" && subAction == "guests" && r.Method == http.MethodGet:
+		PVEGuestsHandler(w, r, &host, tenantID, getUserID(r))
+	case subResource == "pve" && subAction == "guests" && len(parts) >= 4 && parts[3] == "power" && r.Method == http.MethodPost:
+		PVEGuestPowerHandler(w, r, &host, tenantID, getUserID(r))
+	case subResource == "pve" && subAction == "storage" && r.Method == http.MethodGet:
+		PVEStorageHandler(w, r, &host, tenantID, getUserID(r))
+
 	case subResource == "agent" && subAction == "upgrade" && r.Method == http.MethodPost:
 		AgentUpgradeHandler(w, r)
 

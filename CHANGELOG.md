@@ -12,6 +12,7 @@
 - 浏览器内 WebSSH 远程终端
 - SFTP 远程文件管理
 - ESXi/vCenter vSphere API 采集（虚拟机列表、电源操作、数据存储）
+- Proxmox VE 支持（QEMU 虚拟机 + LXC 容器列表、电源操作、节点指标聚合、数据存储）
 - MCP AI 工具体系（危险操作人工审批）
 - 多租户隔离、角色权限、AES-256-GCM 凭据加密、审计日志
 

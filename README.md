@@ -10,11 +10,11 @@
 
 | 能力 | 说明 |
 |------|------|
-| **主机监控** | Agent 采集 + 无 Agent 多渠道采集（SSH / Windows Admin Center / 宝塔面板 / Prometheus / SNMP / WinRM / vSphere），CPU、内存、磁盘、网络、进程、负载、温度、GPU 等指标 |
+| **主机监控** | Agent 采集 + 无 Agent 多渠道采集（SSH / Windows Admin Center / 宝塔面板 / Prometheus / SNMP / WinRM / vSphere / Proxmox VE），CPU、内存、磁盘、网络、进程、负载、温度、GPU 等指标 |
 | **智能告警** | 阈值告警规则 + 抑制（防风暴）+ 静默（维护窗口）+ 升级（未处理超时自动升级），Webhook 通知 |
 | **远程终端** | 浏览器内 WebSSH，WebSocket 直通目标主机 SSH，支持终端尺寸自适应 |
 | **文件管理** | SFTP 远程文件浏览、上传、下载、删除、重命名、新建目录 |
-| **虚拟化管理** | ESXi/vCenter vSphere API 采集主机与虚拟机指标 |
+| **虚拟化管理** | ESXi/vCenter vSphere API + Proxmox VE REST API：采集节点与虚拟机指标，虚拟机/容器电源操作（开机/关机/重启/挂起），数据存储容量监控 |
 | **AI 运维** | MCP 工具体系，AI 可查主机状态、执行命令（危险操作人工审批）、分析告警根因 |
 | **安全** | 多租户隔离、角色权限（admin/member）、AES-256-GCM 凭据加密、完整审计日志 |
 
@@ -23,7 +23,7 @@
 - **后端**：Go 1.26，标准库 `net/http` + GORM（SQLite / PostgreSQL）
 - **前端**：React 18 + Vite 5 + Ant Design 5 + Zustand + ECharts
 - **Agent**：Go 编译的独立二进制，gopsutil 采集
-- **远程协议**：SSH / SFTP / WinRM / SNMP / vSphere（govmomi）
+- **远程协议**：SSH / SFTP / WinRM / SNMP / vSphere（govmomi）/ Proxmox VE（REST API）
 
 ## 架构
 
