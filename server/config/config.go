@@ -76,7 +76,7 @@ func Load() (*Config, error) {
 	v.SetDefault("agent.metricreportsec", 60)
 	v.SetDefault("agent.offlineaftersec", 120)
 	v.SetDefault("agent.latest_version", "0.1.0")
-	v.SetDefault("agent.download_url", "https://github.com/your-org/msmp/releases/download/{{.Tag}}/msmp-{{.Tag}}-linux-amd64.tar.gz")
+	v.SetDefault("agent.download_url", "https://github.com/steven42121/MSMP/releases/download/{{.Tag}}/msmp-{{.Tag}}-linux-amd64.tar.gz")
 	v.SetDefault("notification.webhookurl", "")
 	v.SetDefault("security.credentialkey", "")
 
