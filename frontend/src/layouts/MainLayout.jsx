@@ -15,6 +15,8 @@ import {
   BulbOutlined,
   BulbFilled,
   MenuOutlined,
+  ThunderboltOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
@@ -53,6 +55,8 @@ export default function MainLayout() {
     { key: '/alert-rules', icon: <AlertOutlined />, label: '告警规则' },
     { key: '/agent-tokens', icon: <DesktopOutlined />, label: 'Agent 接入' },
     { key: '/ai-chat', icon: <BulbOutlined />, label: 'AI 助手' },
+    { key: '/probes', icon: <ThunderboltOutlined />, label: '可用性探测' },
+    { key: '/cron-jobs', icon: <ClockCircleOutlined />, label: '定时任务' },
     { key: '/tenants', icon: <TeamOutlined />, label: '租户' },
     { key: '/users', icon: <UserOutlined />, label: '用户' },
     { key: '/audit-logs', icon: <SettingOutlined />, label: '审计日志' },

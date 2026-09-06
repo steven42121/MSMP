@@ -18,6 +18,8 @@ import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 import AIChat from './pages/AIChat';
 import LLMConfig from './pages/LLMConfig';
+import Probes from './pages/Probes';
+import CronJobs from './pages/CronJobs';
 import { useAuthStore } from './store/auth';
 import { useGlobalMouseTracker } from './hooks/useGlobalMouseTracker';
 
@@ -58,6 +60,8 @@ export default function App() {
           <Route path="settings" element={<Settings />} />
           <Route path="ai-chat" element={<AIChat />} />
           <Route path="llm-config" element={<LLMConfig />} />
+          <Route path="probes" element={<Probes />} />
+          <Route path="cron-jobs" element={<CronJobs />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
