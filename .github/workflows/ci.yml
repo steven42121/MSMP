@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (build + test + vet)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Build server
+        working-directory: server
+        run: go build ./...
+
+      - name: Build agent
+        working-directory: agent
+        run: go build ./...
+
+      - name: Test server
+        working-directory: server
+        run: go test ./...
+
+      - name: Test agent
+        working-directory: agent
+        run: go test ./...
+
+      - name: Vet server
+        working-directory: server
+        run: go vet ./...
+
+      - name: Vet agent
+        working-directory: agent
+        run: go vet ./...
+
+  frontend:
+    name: Frontend (build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build

@@ -149,12 +149,14 @@ func checkDangerousCommand(name string, args map[string]interface{}) error {
 			return fmt.Errorf("命令包含危险操作（%s），已拒绝", b)
 		}
 	}
-	// 检测管道+shell 注入
-	if strings.Contains(normalized, "| sh") || strings.Contains(normalized, "|bash") ||
-		strings.Contains(normalized, " |sh") || strings.Contains(normalized, " |bash") ||
-		strings.Contains(normalized, "; rm ") || strings.Contains(normalized, "; dd ") ||
-		strings.Contains(normalized, "&& rm ") || strings.Contains(normalized, "&& dd ") {
-		return fmt.Errorf("命令包含管道/序列注入风险，已拒绝")
+	// 检测管道/序列注入（正则捕获空格变体，避免绕过）
+	pipeShell := regexp.MustCompile(`\|\s*(sh|bash|csh|zsh|ksh)\b`)
+	if pipeShell.MatchString(normalized) {
+		return fmt.Errorf("命令包含管道到 shell 的注入风险，已拒绝")
+	}
+	seqDanger := regexp.MustCompile(`(;|&&|\|\|)\s*(rm|dd|mkfs|reboot|shutdown)\b`)
+	if seqDanger.MatchString(normalized) {
+		return fmt.Errorf("命令包含序列注入风险，已拒绝")
 	}
 	return nil
 }
