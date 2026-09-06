@@ -74,11 +74,36 @@ export default function Monitor() {
     if (!hostUUID || !currentHost) return;
     setFlushing(true);
     try {
-      await client.post()('/maintenance/flush-caches', {
+      const resp = await client.post()('/maintenance/flush-caches', {
         host_uuid: hostUUID,
         cache_type: 'all',
       });
-      message.success('已提交清理缓存任务，请等待执行');
+      const taskId = resp.task_id;
+      message.loading({ content: '清理缓存任务已提交，等待执行...', key: 'flush', duration: 0 });
+
+      // 轮询任务结果（最多等 60 秒）
+      let done = false;
+      for (let i = 0; i < 20; i++) {
+        await new Promise((r) => setTimeout(r, 3000));
+        try {
+          const task = await client.get()(`/tasks/${taskId}`);
+          if (task.status === 'success') {
+            message.success({ content: '缓存清理完成', key: 'flush', duration: 4 });
+            done = true;
+            break;
+          } else if (task.status === 'failed') {
+            message.error({ content: '清理失败：' + (task.result || '未知错误'), key: 'flush', duration: 8 });
+            done = true;
+            break;
+          }
+        } catch (e) {
+          // 轮询暂时失败，继续重试
+        }
+      }
+      if (!done) {
+        message.warning({ content: '任务仍在执行，可稍后在「任务」页查看结果', key: 'flush', duration: 4 });
+      }
+      loadMetrics();
     } catch (e) {
       message.error('提交失败：' + (e.message || '请重试'));
     } finally {

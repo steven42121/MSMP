@@ -257,7 +257,7 @@ func runTask(serverURL, uuid, agentToken string, task *AgentTask) {
 	log.Printf("Task %d received: type=%s", task.ID, task.Type)
 	var result string
 	var status string
-	if task.Type == "shell" {
+	if task.Type == "shell" || task.Type == "flush_caches" {
 		out, err := ExecuteCommand(task.Command, task.TimeoutSec)
 		if err != nil {
 			status = "failed"
