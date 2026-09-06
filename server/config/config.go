@@ -17,8 +17,13 @@ type Config struct {
 }
 
 type SecurityConfig struct {
-	CredentialKey string   `mapstructure:"credentialkey"`
-	IPAllowList   []string `mapstructure:"ip_allowlist"`
+	CredentialKey      string   `mapstructure:"credentialkey"`
+	IPAllowList        []string `mapstructure:"ip_allowlist"`
+	AllowedOrigins     []string `mapstructure:"allowed_origins"`
+	MaxLoginAttempts   int      `mapstructure:"max_login_attempts"`
+	LoginLockoutSec    int      `mapstructure:"login_lockout_sec"`
+	RateLimitPerMin    int      `mapstructure:"rate_limit_per_min"`
+	PVEReadyVerify     bool     `mapstructure:"pve_insecure_verify"`
 }
 
 type RetentionConfig struct {
@@ -88,6 +93,11 @@ func Load() (*Config, error) {
 	v.SetDefault("notification.webhookurl", "")
 	v.SetDefault("security.credentialkey", "")
 	v.SetDefault("security.ip_allowlist", []string{})
+	v.SetDefault("security.allowed_origins", []string{})
+	v.SetDefault("security.max_login_attempts", 5)
+	v.SetDefault("security.login_lockout_sec", 600)
+	v.SetDefault("security.rate_limit_per_min", 0)
+	v.SetDefault("security.pve_insecure_verify", true)
 	v.SetDefault("retention.raw_retention_days", 90)
 	v.SetDefault("retention.downsample_at_days", 7)
 	v.SetDefault("retention.downsample_interval", 5)

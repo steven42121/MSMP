@@ -16,7 +16,18 @@
 - MCP AI 工具体系（危险操作人工审批）
 - 多租户隔离、角色权限、AES-256-GCM 凭据加密、审计日志
 
-### 工程化
+### 安全加固
+- SFTP 路径穿越修复（upload/download/mkdir/rename/delete 全路径校验）
+- WebSSH Origin 校验 + admin 角色强制检查 + 并发写锁
+- Agent 端点认证收紧（heartbeat/assets/metrics 需 AgentToken）
+- 登录失败锁定（可配置次数/时长）+ 速率限制
+- IP 白名单支持 CIDR 写法
+- JWT claims 类型安全检查
+- 告警抑制记录独立 type（alert_suppressed），防止自锁续期
+- 告警升级精确 ID 匹配 + 升级通知 webhook
+- PVE LoadAvg 类型修复（string→float64 解析）+ 空数组防护
+- PVE ctx 传递修复 + InsecureSkipVerify 可配置
+- PVE Storage Node JSON tag 修正
 - 完整 README、MIT License
 - 单元测试（危险命令检测、凭据加解密、告警引擎）
 - GitHub Actions CI（构建 + 测试 + 静态检查）

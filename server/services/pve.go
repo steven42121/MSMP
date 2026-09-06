@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"MSMP/server/config"
 )
 
 // PVEClient 封装 Proxmox VE REST API（/api2/json）。
@@ -48,11 +50,11 @@ type PVEMemoryStatus struct {
 
 // PVENodeStatus 节点状态详情。
 type PVENodeStatus struct {
-	CPU     float64         `json:"cpu"`
-	Memory  PVEMemoryStatus `json:"memory"`
-	Uptime  uint64          `json:"uptime"`
-	LoadAvg []float64       `json:"loadavg"`
-	PVEVersion string       `json:"pveversion"`
+	CPU        float64   `json:"cpu"`
+	Memory     PVEMemoryStatus `json:"memory"`
+	Uptime     uint64    `json:"uptime"`
+	LoadAvg    []string  `json:"loadavg"` // PVE API 返回字符串数组
+	PVEVersion string    `json:"pveversion"`
 }
 
 // PVEMount 根分区 / 挂载信息。
@@ -90,7 +92,7 @@ type PVEStorage struct {
 	Avail    uint64 `json:"avail"`
 	Active   int    `json:"active"`
 	Enabled  int    `json:"enabled"`
-	Node     string `json:"-"`
+	Node     string `json:"node"`
 }
 
 // parsePVEAddress 规范化地址为 PVE API 入口（https://host:8006）。
@@ -125,7 +127,9 @@ func NewPVEClient(ctx context.Context, address, username, password string) (*PVE
 		http: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: !config.C.Security.PVEReadyVerify,
+				},
 			},
 		},
 	}
@@ -257,27 +261,27 @@ func truncate(s string, n int) string {
 }
 
 // Version 获取 PVE 版本。
-func (c *PVEClient) Version() (*PVEVersionResponse, error) {
+func (c *PVEClient) Version(ctx context.Context) (*PVEVersionResponse, error) {
 	var v PVEVersionResponse
-	if err := c.do(context.Background(), http.MethodGet, "/version", nil, &v); err != nil {
+	if err := c.do(ctx, http.MethodGet, "/version", nil, &v); err != nil {
 		return nil, err
 	}
 	return &v, nil
 }
 
 // Nodes 列出集群节点。
-func (c *PVEClient) Nodes() ([]PVENode, error) {
+func (c *PVEClient) Nodes(ctx context.Context) ([]PVENode, error) {
 	var nodes []PVENode
-	if err := c.do(context.Background(), http.MethodGet, "/nodes", nil, &nodes); err != nil {
+	if err := c.do(ctx, http.MethodGet, "/nodes", nil, &nodes); err != nil {
 		return nil, err
 	}
 	return nodes, nil
 }
 
 // NodeStatus 获取节点状态。
-func (c *PVEClient) NodeStatus(node string) (*PVENodeStatus, error) {
+func (c *PVEClient) NodeStatus(ctx context.Context, node string) (*PVENodeStatus, error) {
 	var st PVENodeStatus
-	if err := c.do(context.Background(), http.MethodGet, "/nodes/"+url.PathEscape(node)+"/status", nil, &st); err != nil {
+	if err := c.do(ctx, http.MethodGet, "/nodes/"+url.PathEscape(node)+"/status", nil, &st); err != nil {
 		return nil, err
 	}
 	return &st, nil
@@ -285,7 +289,7 @@ func (c *PVEClient) NodeStatus(node string) (*PVENodeStatus, error) {
 
 // ListGuests 遍历所有在线节点，列出 QEMU 虚拟机 + LXC 容器。
 func (c *PVEClient) ListGuests(ctx context.Context) ([]PVEGuest, error) {
-	nodes, err := c.Nodes()
+	nodes, err := c.Nodes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +348,7 @@ func (c *PVEClient) PowerGuest(ctx context.Context, node, guestType string, vmid
 
 // ListStorage 遍历所有在线节点，列出数据存储。
 func (c *PVEClient) ListStorage(ctx context.Context) ([]PVEStorage, error) {
-	nodes, err := c.Nodes()
+	nodes, err := c.Nodes(ctx)
 	if err != nil {
 		return nil, err
 	}

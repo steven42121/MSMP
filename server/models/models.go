@@ -254,3 +254,47 @@ type AlertEscalation struct {
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }
+
+// AvailProbe 可用性探测任务。
+type AvailProbe struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	TenantID     uint      `gorm:"index;not null" json:"tenant_id"`
+	Name         string    `gorm:"size:128" json:"name"`
+	Target       string    `gorm:"size:256" json:"target"`        // URL / IP:port / hostname
+	Type         string    `gorm:"size:16;not null" json:"type"`  // http | tcp | icmp | ssl
+	IntervalSec  int       `gorm:"default:60" json:"interval_sec"`
+	TimeoutSec   int       `gorm:"default:10" json:"timeout_sec"`
+	ExpectedCode int       `gorm:"default:0" json:"expected_code"`  // HTTP: expected status code, 0=any
+	Enabled      bool      `gorm:"default:true" json:"enabled"`
+	LastStatus   string    `gorm:"size:16" json:"last_status"`      // up | down | error
+	LastLatency  int64     `gorm:"default:0" json:"last_latency_ms"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// CronJob Cron 定时任务。
+type CronJob struct {
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	TenantID    uint      `gorm:"index;not null" json:"tenant_id"`
+	Name        string    `gorm:"size:128;not null" json:"name"`
+	Expression  string    `gorm:"size:64;not null" json:"expression"` // cron expression: min hour dom mon dow
+	Description string    `gorm:"type:text" json:"description"`
+	TargetType  string    `gorm:"size:32;not null" json:"target_type"` // host | url | task
+	TargetID    uint      `gorm:"default:0" json:"target_id"`
+	Enabled     bool      `gorm:"default:true" json:"enabled"`
+	LastRunAt   *time.Time `json:"last_run_at"`
+	NextRunAt   *time.Time `json:"next_run_at"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// CronLog Cron 任务执行日志。
+type CronLog struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	TenantID  uint      `gorm:"index;not null" json:"tenant_id"`
+	CronJobID uint      `gorm:"index;not null" json:"cron_job_id"`
+	StartedAt time.Time `json:"started_at"`
+	FinishedAt *time.Time `json:"finished_at"`
+	Status    string    `gorm:"size:16" json:"status"` // running | success | failed
+	Result    string    `gorm:"type:text" json:"result"`
+}

@@ -41,6 +41,7 @@ func Init(cfg *config.Config) error {
 		&models.AgentToken{},
 		&models.AssetSnapshot{},
 		&models.MetricSample{},
+		&models.MetricDownsample{},
 		&models.HostEvent{},
 		&models.Task{},
 		&models.AlertRule{},
@@ -51,5 +52,8 @@ func Init(cfg *config.Config) error {
 		&models.AlertSuppression{},
 		&models.AlertSilence{},
 		&models.AlertEscalation{},
+		&models.AvailProbe{},
+		&models.CronJob{},
+		&models.CronLog{},
 	)
 }

@@ -4,7 +4,6 @@ package controllers
 import (
 	"fmt"
 	"log"
-	"strconv"
 	"time"
 
 	"MSMP/server/db"
@@ -44,12 +43,12 @@ func IsAlertSilenced(hostID uint, labelKey, labelValue, level string) bool {
 	return count > 0
 }
 
-// CreateSuppressedAlert 创建被抑制的告警记录（仅记录，不发通知）
+// CreateSuppressedAlert 创建被抑制的记录（type=alert_suppressed，不触发再次抑制检查）。
 func CreateSuppressedAlert(host models.Host, metric string, level string, message string) {
 	db.DB.Create(&models.HostEvent{
 		TenantID: host.TenantID,
 		HostID:   host.ID,
-		Type:     "alert",
+		Type:     "alert_suppressed",
 		Level:    level,
 		Message:  message + " [suppressed]",
 	})
@@ -153,7 +152,7 @@ func checkEscalations() {
 	for _, esc := range escalations {
 		threshold := time.Now().Add(-time.Duration(esc.NotifyAfterMin) * time.Minute)
 
-		// 查找未确认且超过阈值的告警
+		// 查找未确认且超过阈值的告警（精确匹配 event.ID，防止 ALERT #12 误匹配 ALERT #123）
 		var events []models.HostEvent
 		db.DB.Where("tenant_id = ? AND type = 'alert' AND level = ? AND acknowledged = false AND created_at < ?",
 			esc.TenantID, esc.TriggerLevel, threshold).
@@ -162,29 +161,36 @@ func checkEscalations() {
 			Find(&events)
 
 		for _, event := range events {
-			// 检查是否已升级过
+			// 检查是否已升级过（精确匹配事件 ID）
 			var upgradeCount int64
 			db.DB.Model(&models.HostEvent{}).
-				Where("host_id = ? AND type = 'escalation' AND message LIKE ?",
-					event.HostID, "%ALERT #"+strconv.FormatUint(uint64(event.ID), 10)+"%").
+				Where("host_id = ? AND type = 'escalation' AND message = ?",
+					event.HostID,
+					fmt.Sprintf("ALERT #%d ESCALATED", event.ID)).
 				Count(&upgradeCount)
 
 			if upgradeCount >= int64(esc.RetryCount) {
 				continue
 			}
 
+			newLevel := escalateLevel(event.Level)
 			// 创建升级事件
 			upgradeMsg := fmt.Sprintf("ALERT #%d ESCALATED (level: %s -> %s)",
-				event.ID, event.Level, escalateLevel(event.Level))
-			db.DB.Create(&models.HostEvent{
+				event.ID, event.Level, newLevel)
+			upgradeEvent := models.HostEvent{
 				TenantID: event.TenantID,
 				HostID:   event.HostID,
 				Type:     "escalation",
 				Level:    "critical",
 				Message:  upgradeMsg,
-			})
+			}
+			db.DB.Create(&upgradeEvent)
+
+			// 关联原始告警
+			db.DB.Model(&event).Update("acknowledged", true)
 
 			log.Printf("[Alert] Escalated alert #%d for host #%d", event.ID, event.HostID)
+			notifyWebhook(upgradeEvent, hostFromID(event.HostID))
 		}
 	}
 }
@@ -199,4 +205,11 @@ func escalateLevel(level string) string {
 	default:
 		return level
 	}
+}
+
+// hostFromID 根据 host_id 查询主机。
+func hostFromID(hostID uint) models.Host {
+	var h models.Host
+	db.DB.Where("id = ?", hostID).First(&h)
+	return h
 }

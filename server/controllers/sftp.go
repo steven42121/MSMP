@@ -37,6 +37,11 @@ func FileListHandler(w http.ResponseWriter, r *http.Request, host *models.Host, 
 	if dirPath == "" {
 		dirPath = "/"
 	}
+	if !pathSafe(dirPath) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "非法路径"})
+		return
+	}
+	dirPath = path.Clean(dirPath)
 
 	client, err := dialHostSSH(tenantID, host.ID)
 	if err != nil {
@@ -97,6 +102,11 @@ func FileDownloadHandler(w http.ResponseWriter, r *http.Request, host *models.Ho
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "path required"})
 		return
 	}
+	if !pathSafe(filePath) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "非法路径"})
+		return
+	}
+	filePath = path.Clean(filePath)
 
 	client, err := dialHostSSH(tenantID, host.ID)
 	if err != nil {
@@ -164,7 +174,15 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 	if targetDir == "" {
 		targetDir = "/tmp"
 	}
-	targetPath := path.Join(targetDir, header.Filename)
+	if !pathSafe(targetDir) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "非法路径"})
+		return
+	}
+	targetPath, err := sanitizeUploadTarget(targetDir, header.Filename)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "非法文件名"})
+		return
+	}
 
 	client, err := dialHostSSH(tenantID, host.ID)
 	if err != nil {
@@ -222,6 +240,11 @@ func FileMkdirHandler(w http.ResponseWriter, r *http.Request, host *models.Host,
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "path required"})
 		return
 	}
+	if !pathSafe(req.Path) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "非法路径"})
+		return
+	}
+	req.Path = path.Clean(req.Path)
 
 	client, err := dialHostSSH(tenantID, host.ID)
 	if err != nil {
@@ -242,6 +265,14 @@ func FileMkdirHandler(w http.ResponseWriter, r *http.Request, host *models.Host,
 		return
 	}
 
+	db.DB.Create(&models.AuditLog{
+		TenantID: tenantID,
+		UserID:   userID,
+		Action:   "file_mkdir",
+		Resource: fmt.Sprintf("host:%d:%s", host.ID, req.Path),
+		Status:   200,
+	})
+	log.Printf("[SFTP] user=%d tenant=%d host=%d mkdir %s", userID, tenantID, host.ID, req.Path)
 	writeJSON(w, http.StatusOK, map[string]interface{}{"created": true, "path": req.Path})
 }
 
@@ -257,6 +288,11 @@ func FileDeleteHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "非法路径"})
 		return
 	}
+	if !pathSafe(targetPath) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "非法路径"})
+		return
+	}
+	targetPath = path.Clean(targetPath)
 
 	client, err := dialHostSSH(tenantID, host.ID)
 	if err != nil {
@@ -317,6 +353,12 @@ func FileRenameHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "old_path 和 new_path 必填"})
 		return
 	}
+	if !pathSafe(req.OldPath) || !pathSafe(req.NewPath) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "非法路径"})
+		return
+	}
+	req.OldPath = path.Clean(req.OldPath)
+	req.NewPath = path.Clean(req.NewPath)
 
 	client, err := dialHostSSH(tenantID, host.ID)
 	if err != nil {
@@ -337,5 +379,13 @@ func FileRenameHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 		return
 	}
 
+	db.DB.Create(&models.AuditLog{
+		TenantID: tenantID,
+		UserID:   userID,
+		Action:   "file_rename",
+		Resource: fmt.Sprintf("host:%d:%s->%s", host.ID, req.OldPath, req.NewPath),
+		Status:   200,
+	})
+	log.Printf("[SFTP] user=%d tenant=%d host=%d rename %s -> %s", userID, tenantID, host.ID, req.OldPath, req.NewPath)
 	writeJSON(w, http.StatusOK, map[string]interface{}{"renamed": true, "old_path": req.OldPath, "new_path": req.NewPath})
 }

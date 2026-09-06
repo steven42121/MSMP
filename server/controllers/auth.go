@@ -41,9 +41,22 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 登录失败锁定检查
 	ip := getRemoteIP(r)
-	const maxAttempts, lockoutSec = 5, 600
+	maxAttempts := config.C.Security.MaxLoginAttempts
+	lockoutSec := config.C.Security.LoginLockoutSec
+	if maxAttempts <= 0 {
+		maxAttempts = 5
+	}
+	if lockoutSec <= 0 {
+		lockoutSec = 600
+	}
 	if checkLoginLockout(ip, maxAttempts, lockoutSec) {
 		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "登录尝试次数过多，请稍后再试"})
+		return
+	}
+	// 速率限制
+	rateLimit := config.C.Security.RateLimitPerMin
+	if rateLimit > 0 && !CheckRateLimit(ip, rateLimit) {
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "请求过于频繁，请稍后再试"})
 		return
 	}
 
@@ -73,6 +86,9 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 		return
 	}
+	// 登录成功：清除锁定和速率限制
+	ResetRateLimit(ip)
+	clearLoginAttempts(ip)
 
 	expireAt := time.Now().Add(time.Duration(config.C.JWT.ExpireHour) * time.Hour)
 

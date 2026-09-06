@@ -53,7 +53,7 @@ func (p *PVEChannel) Probe(ctx context.Context, b *models.ChannelBinding, cred C
 	}
 	defer client.Logout()
 
-	info, err := client.Version()
+	info, err := client.Version(ctx)
 	if err != nil {
 		pr, _ := classify(err)
 		return pr, err
@@ -76,7 +76,7 @@ func (p *PVEChannel) Collect(ctx context.Context, b *models.ChannelBinding, cred
 
 	var result CollectResult
 
-	metrics, err := p.collectNodeMetrics(client)
+	metrics, err := p.collectNodeMetrics(client, ctx)
 	if err != nil {
 		log.Printf("[PVE] node metrics error: %v", err)
 	} else {
@@ -88,10 +88,10 @@ func (p *PVEChannel) Collect(ctx context.Context, b *models.ChannelBinding, cred
 }
 
 // collectNodeMetrics aggregates CPU/memory/load across all online nodes.
-func (p *PVEChannel) collectNodeMetrics(client *services.PVEClient) (MetricDataLike, error) {
+func (p *PVEChannel) collectNodeMetrics(client *services.PVEClient, ctx context.Context) (MetricDataLike, error) {
 	var m MetricDataLike
 
-	nodes, err := client.Nodes()
+	nodes, err := client.Nodes(ctx)
 	if err != nil {
 		return m, fmt.Errorf("list nodes: %w", err)
 	}
@@ -106,19 +106,23 @@ func (p *PVEChannel) collectNodeMetrics(client *services.PVEClient) (MetricDataL
 		if node.Status != "online" {
 			continue
 		}
-		status, err := client.NodeStatus(node.Node)
+		status, err := client.NodeStatus(ctx, node.Node)
 		if err != nil {
 			continue
 		}
 		cpuSum += status.CPU
 		memUsed += status.Memory.Used
 		memTotal += status.Memory.Total
-		load1 += status.LoadAvg[0]
-		if len(status.LoadAvg) > 1 {
-			load5 += status.LoadAvg[1]
-		}
-		if len(status.LoadAvg) > 2 {
-			load15 += status.LoadAvg[2]
+		for i, lv := range status.LoadAvg {
+			var f float64
+			fmt.Sscanf(lv, "%f", &f)
+			if i == 0 {
+				load1 += f
+			} else if i == 1 {
+				load5 += f
+			} else if i == 2 {
+				load15 += f
+			}
 		}
 		if status.Uptime > maxUptime {
 			maxUptime = status.Uptime

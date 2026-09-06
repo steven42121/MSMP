@@ -46,17 +46,10 @@ func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 
-		// IP 白名单检查（配置非空时生效）
+		// IP 白名单检查（配置非空时生效，支持 CIDR）
 		if len(config.C.Security.IPAllowList) > 0 {
 			clientIP := getRemoteIP(r)
-			allowed := false
-			for _, allow := range config.C.Security.IPAllowList {
-				if strings.TrimSpace(allow) == clientIP {
-					allowed = true
-					break
-				}
-			}
-			if !allowed {
+			if !ipInAllowList(clientIP, config.C.Security.IPAllowList) {
 				writeJSON(w, http.StatusForbidden, map[string]string{"error": "IP 不在白名单中"})
 				return
 			}
@@ -67,10 +60,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			"/api/health",
 			"/api/auth/login",
 			"/api/auth/refresh",
-			"/api/agents/register",
-			"/api/agents/heartbeat",
-			"/api/agents/assets",
-			"/api/agents/metrics",
+			"/api/agents/register", // 注册使用一次性 token，需单独验证
 			"/api/cluster/info",
 			"/api/cluster/ping",
 			"/api/cluster/leader",
@@ -126,17 +116,17 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		userID := uint((*claims)["user_id"].(float64))
-		tenantID := uint((*claims)["tenant_id"].(float64))
-		role := (*claims)["role"].(string)
-		username := ""
-		if u, ok := (*claims)["username"].(string); ok {
-			username = u
-		}
+		userIDFloat, _ := (*claims)["user_id"].(float64)
+		tenantIDFloat, _ := (*claims)["tenant_id"].(float64)
+		userRole, _ := (*claims)["role"].(string)
+		username, _ := (*claims)["username"].(string)
+
+		userID := uint(userIDFloat)
+		tenantID := uint(tenantIDFloat)
 
 		ctx := context.WithValue(r.Context(), ContextUserID, userID)
 		ctx = context.WithValue(ctx, ContextTenantID, tenantID)
-		ctx = context.WithValue(ctx, ContextUserRole, role)
+		ctx = context.WithValue(ctx, ContextUserRole, userRole)
 		ctx = context.WithValue(ctx, ContextUsername, username)
 
 		next.ServeHTTP(w, r.WithContext(ctx))

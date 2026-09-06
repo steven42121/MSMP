@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -26,6 +28,7 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 	log.Printf("Config loaded: server=%s, db_driver=%s", cfg.Server.Addr, cfg.DB.Driver)
+	controllers.InitAllowedOrigins()
 
 	// 初始化数据库
 	if err := db.Init(cfg); err != nil {
@@ -52,6 +55,26 @@ func main() {
 
 	// 启动时序数据降采样与保留策略清理
 	controllers.StartDownsampleCleanup()
+
+	// 启动 Cron 调度器并加载启用的任务
+	go func() {
+		sched := services.GetCronScheduler()
+		var jobs []models.CronJob
+		db.DB.Where("enabled = ?", true).Find(&jobs)
+		for _, job := range jobs {
+			next, err := services.NextRunAt(job.Expression)
+			if err != nil {
+				log.Printf("[Cron] skip job %d: invalid expr %s: %v", job.ID, job.Expression, err)
+				continue
+			}
+			job.NextRunAt = &next
+			db.DB.Model(&job).Update("next_run_at", next)
+			sched.AddJob(job.ID, job.Expression, services.CronWithContext(context.Background(), 30*time.Second, func(ctx context.Context) {
+				controllers.ExecuteCronJob(ctx, &job)
+			}))
+		}
+		log.Printf("[Cron] loaded %d enabled jobs", len(jobs))
+	}()
 
 	// 启动无 Agent 采集调度器（仅 leader 执行）
 	if cfg.Server.Nodes != nil && len(cfg.Server.Nodes) > 0 && !clusterState.IsLeader() {
@@ -116,6 +139,33 @@ func main() {
 
 	// 系统维护
 	mux.HandleFunc("/api/maintenance/downsample", controllers.RequireRole([]string{"admin"}, controllers.DownsampleHandler))
+
+	// 可用性探测
+	mux.HandleFunc("/api/probes", controllers.RequireRole([]string{"admin", "member"}, controllers.ProbesHandler))
+	mux.HandleFunc("/api/probes/", controllers.RequireRole([]string{"admin", "member"}, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/probes/run" || r.URL.Path == "/api/probes/" {
+			// /api/probes/run 不匹配具体 ID，交给下面处理
+			http.NotFound(w, r)
+			return
+		}
+		// /api/probes/{id}/run
+		if strings.HasSuffix(r.URL.Path, "/run") {
+			controllers.ProbeRunHandler(w, r)
+			return
+		}
+		controllers.ProbeDetailHandler(w, r)
+	}))
+
+	// Cron 定时任务
+	mux.HandleFunc("/api/cron-jobs", controllers.RequireRole([]string{"admin"}, controllers.CronJobsHandler))
+	mux.HandleFunc("/api/cron-jobs/", controllers.RequireRole([]string{"admin"}, func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if strings.HasSuffix(path, "/run") {
+			controllers.CronJobRunHandler(w, r)
+			return
+		}
+		controllers.CronJobDetailHandler(w, r)
+	}))
 
 	// Agent Token 管理
 	mux.HandleFunc("/api/agent-tokens", controllers.Audit("manage", "agent_token", controllers.RequireRole([]string{"admin"}, controllers.AgentTokensHandler)))
