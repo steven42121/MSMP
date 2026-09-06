@@ -1,12 +1,17 @@
 package common
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -103,6 +108,17 @@ type HeartbeatData struct {
 	IP           string `json:"ip"`
 }
 
+type UpgradeInfo struct {
+	Available bool   `json:"available"`
+	Latest    string `json:"latest"`
+	URL       string `json:"url"`
+}
+
+type HeartbeatResponse struct {
+	Status  string      `json:"status"`
+	Upgrade *UpgradeInfo `json:"upgrade,omitempty"`
+}
+
 type RegisterData struct {
 	UUID         string `json:"uuid"`
 	Hostname     string `json:"hostname"`
@@ -135,13 +151,105 @@ func Register(serverURL string, info RegisterData) error {
 	return nil
 }
 
-func Heartbeat(serverURL string, data HeartbeatData) error {
+func Heartbeat(serverURL string, data HeartbeatData) (*HeartbeatResponse, error) {
 	body, _ := json.Marshal(data)
 	resp, err := http.Post(serverURL+"/api/agents/heartbeat", "application/json", bytes.NewBuffer(body))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
+
+	var hbResp HeartbeatResponse
+	if err := json.NewDecoder(resp.Body).Decode(&hbResp); err != nil {
+		return nil, err
+	}
+	return &hbResp, nil
+}
+
+// SelfUpdate 从指定 URL 下载新版 Agent 并替换当前进程可执行文件。
+// 仅在非容器环境且 URL 非空时执行。
+func SelfUpdate(downloadURL string) error {
+	if downloadURL == "" {
+		return fmt.Errorf("download URL 为空")
+	}
+	// 容器内直接退出，由编排层替换镜像
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		log.Printf("Self-update skipped in container environment")
+		return nil
+	}
+
+	resp, err := http.Get(downloadURL)
+	if err != nil {
+		return fmt.Errorf("下载失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("下载返回 HTTP %d", resp.StatusCode)
+	}
+
+	gz, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		return fmt.Errorf("解压失败: %w", err)
+	}
+	defer gz.Close()
+
+	tarReader := tar.NewReader(gz)
+	var binData []byte
+	var binName string
+	for {
+		hdr, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("读取压缩包失败: %w", err)
+		}
+		// 只提取可执行文件（不包含目录或 config 等）
+		if hdr.Typeflag == tar.TypeReg && strings.Contains(hdr.Name, "msmp-agent") {
+			binName = filepath.Base(hdr.Name)
+			binData, err = io.ReadAll(tarReader)
+			if err != nil {
+				return fmt.Errorf("读取二进制失败: %w", err)
+			}
+			break
+		}
+	}
+
+	if len(binData) == 0 {
+		return fmt.Errorf("压缩包中未找到 msmp-agent 二进制")
+	}
+
+	currentExe, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("获取当前路径失败: %w", err)
+	}
+	currentDir := filepath.Dir(currentExe)
+	newExe := filepath.Join(currentDir, binName)
+	backupExe := currentExe + ".bak"
+
+	// 备份当前二进制
+	if err := os.Rename(currentExe, backupExe); err != nil {
+		return fmt.Errorf("备份失败: %w", err)
+	}
+
+	// 写入新二进制
+	if err := os.WriteFile(newExe, binData, 0755); err != nil {
+		os.Rename(backupExe, currentExe) // 回滚
+		return fmt.Errorf("写入失败: %w", err)
+	}
+
+	// 验证新二进制可执行
+	if err := os.Rename(newExe, currentExe); err != nil {
+		os.Rename(backupExe, currentExe) // 回滚
+		return fmt.Errorf("替换失败: %w", err)
+	}
+
+	// 清理备份
+	os.Remove(backupExe)
+
+	log.Printf("Self-update complete: %s -> %s, restarting...", AgentVersion, binName)
+	os.Exit(0)
 	return nil
 }
 
@@ -199,16 +307,23 @@ func MainLoop(router *ClusterRouter, uuid, agentToken string) {
 		ip := GetLocalIP()
 		url := router.NextNode()
 
-		hb := HeartbeatData{
+		hbData := HeartbeatData{
 			UUID:         uuid,
 			AgentVersion: AgentVersion,
 			IP:           ip,
 		}
-		if err := Heartbeat(url, hb); err != nil {
+		hbResp, err := Heartbeat(url, hbData)
+		if err != nil {
 			log.Printf("Heartbeat error: %v", err)
 			router.RecordFailure()
 		} else {
 			router.RecordSuccess()
+			if hbResp.Upgrade != nil && hbResp.Upgrade.Available {
+				log.Printf("Upgrade available: %s -> %s", AgentVersion, hbResp.Upgrade.Latest)
+				if err := SelfUpdate(hbResp.Upgrade.URL); err != nil {
+					log.Printf("Self-update failed: %v", err)
+				}
+			}
 		}
 
 		// 资产上报（每 5 分钟）

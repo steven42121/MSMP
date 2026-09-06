@@ -136,6 +136,24 @@ python3 -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())"
 - 接口文档：[.monkeycode/docs/INTERFACES.md](.monkeycode/docs/INTERFACES.md)
 - 开发者指南：[.monkeycode/docs/DEVELOPER_GUIDE.md](.monkeycode/docs/DEVELOPER_GUIDE.md)
 
+## Roadmap
+
+### 已完成
+- [x] 多源主机监控（Agent + 7 种无 Agent 渠道）
+- [x] 阈值告警 + 抑制/静默/升级工程化
+- [x] WebSSH 远程终端 + SFTP 文件管理
+- [x] ESXi/vCenter vSphere API 采集
+- [x] MCP AI 工具体系（危险操作人工审批）
+- [x] 多租户隔离、角色权限、AES-256-GCM 凭据加密
+- [x] Docker 容器化部署 + GitHub Release 自动打包
+
+### 计划中
+- [ ] Agent 自动升级（服务端下发版本 → Agent 自拉取）
+- [ ] VM 深度管理（开关机、快照创建/恢复）
+- [ ] 时序数据降采样 + 保留策略
+- [ ] 终端会话审计回放
+- [ ] 主机组维度的细粒度权限
+
 ## License
 
 [MIT](LICENSE)

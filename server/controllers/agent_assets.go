@@ -2,10 +2,13 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
+	"MSMP/server/config"
 	"MSMP/server/db"
 	"MSMP/server/models"
 )
@@ -165,6 +168,17 @@ func AgentRegisterHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+type HeartbeatResponse struct {
+	Status string      `json:"status"`
+	Upgrade *UpgradeInfo `json:"upgrade,omitempty"`
+}
+
+type UpgradeInfo struct {
+	Available bool   `json:"available"`
+	Latest    string `json:"latest"`
+	URL       string `json:"url"`
+}
+
 // AgentHeartbeatHandler Agent 心跳
 func AgentHeartbeatHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -201,7 +215,87 @@ func AgentHeartbeatHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	// 检查是否需要升级
+	var upgrade *UpgradeInfo
+	c := config.C
+	if req.AgentVersion != "" && c.Agent.LatestVersion != "" {
+		if semverLess(req.AgentVersion, c.Agent.LatestVersion) {
+			url := replaceVersionPlaceholder(c.Agent.DownloadURL, c.Agent.LatestVersion)
+			upgrade = &UpgradeInfo{
+				Available: true,
+				Latest:    c.Agent.LatestVersion,
+				URL:       url,
+			}
+		}
+	}
+
+	resp := HeartbeatResponse{Status: "ok", Upgrade: upgrade}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+// AgentUpgradeHandler 触发 Agent 升级，返回当前最新版信息
+func AgentUpgradeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	path := strings.TrimPrefix(r.URL.Path, "/api/agents/")
+	uuid := strings.Split(path, "/")[0]
+	if uuid == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "uuid required"})
+		return
+	}
+
+	var host models.Host
+	if err := db.DB.Where("uuid = ?", uuid).First(&host).Error; err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "host not found"})
+		return
+	}
+
+	c := config.C
+	resp := UpgradeInfo{
+		Latest: c.Agent.LatestVersion,
+	}
+	if host.AgentVersion != "" && semverLess(host.AgentVersion, c.Agent.LatestVersion) {
+		resp.Available = true
+		resp.URL = replaceVersionPlaceholder(c.Agent.DownloadURL, c.Agent.LatestVersion)
+	} else {
+		resp.Available = false
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// semverLess 简单语义化版本比较（仅支持主版本.次版本.修订版本）
+func semverLess(a, b string) bool {
+	pa := strings.Split(strings.TrimPrefix(a, "v"), ".")
+	pb := strings.Split(strings.TrimPrefix(b, "v"), ".")
+	for i := 0; i < 3; i++ {
+		var va, vb int
+		if i < len(pa) {
+			fmt.Sscanf(pa[i], "%d", &va)
+		}
+		if i < len(pb) {
+			fmt.Sscanf(pb[i], "%d", &vb)
+		}
+		if va < vb {
+			return true
+		}
+		if va > vb {
+			return false
+		}
+	}
+	return false
+}
+
+// replaceVersionPlaceholder 替换 download_url 模板中的 {{.Tag}} 为实际版本号
+func replaceVersionPlaceholder(template, version string) string {
+	return strings.NewReplacer(
+		"{{.Tag}}", version,
+		"{{version}}", version,
+	).Replace(template)
 }
 
 // AgentAssetReportHandler 资产上报

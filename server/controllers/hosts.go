@@ -219,6 +219,16 @@ func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
 	case subResource == "files" && r.Method == http.MethodDelete:
 		FileDeleteHandler(w, r, &host, tenantID, getUserID(r))
 
+	case subResource == "vsphere" && subAction == "vms" && r.Method == http.MethodGet:
+		VSphereVMsHandler(w, r, &host, tenantID, getUserID(r))
+	case subResource == "vsphere" && subAction == "vms" && len(parts) >= 6 && parts[5] == "power" && r.Method == http.MethodPost:
+		VSphereVMPowerHandler(w, r, &host, tenantID, getUserID(r), parts[4])
+	case subResource == "vsphere" && subAction == "datastores" && r.Method == http.MethodGet:
+		VSphereDatastoresHandler(w, r, &host, tenantID, getUserID(r))
+
+	case subResource == "agent" && subAction == "upgrade" && r.Method == http.MethodPost:
+		AgentUpgradeHandler(w, r)
+
 	case r.Method == http.MethodGet:
 		writeJSON(w, http.StatusOK, host)
 

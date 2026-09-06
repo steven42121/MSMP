@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Descriptions, Card, Spin, Tabs, Table, Tag, Button, Space, Input, Form, Popconfirm, message, Modal, Select, InputNumber, Typography, Switch } from 'antd';
-import { PlusOutlined, CodeOutlined } from '@ant-design/icons';
+import { PlusOutlined, CodeOutlined, ReloadOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import dayjs from 'dayjs';
 import client from '../api/client';
@@ -45,6 +45,10 @@ export default function HostDetail() {
   const [activeKey, setActiveKey] = useState('info');
   const [tagForm] = Form.useForm();
   const [sshOpen, setSshOpen] = useState(false);
+  const [vsphereVMs, setVSphereVMs] = useState([]);
+  const [vsphereDatastores, setVSphereDatastores] = useState([]);
+  const [vsphereLoading, setVSphereLoading] = useState(false);
+  const [upgradeInfo, setUpgradeInfo] = useState(null);
 
   const loadHost = async () => {
     try {
@@ -100,6 +104,7 @@ export default function HostDetail() {
     if (activeKey === 'assets') loadAssets();
     if (activeKey === 'events') loadEvents();
     if (activeKey === 'channels') loadChannels();
+    if (activeKey === 'vsphere') loadVSphere();
     // tags 已在初始加载? 这里也刷新
     if (activeKey === 'tags') loadTags();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -168,6 +173,55 @@ export default function HostDetail() {
     } catch (e) {}
   };
 
+  const loadVSphere = async () => {
+    setVSphereLoading(true);
+    try {
+      const [vmsRes, dsRes] = await Promise.all([
+        client.get()(`/hosts/${uuid}/vsphere/vms`),
+        client.get()(`/hosts/${uuid}/vsphere/datastores`),
+      ]);
+      setVSphereVMs(vmsRes.vms || []);
+      setVSphereDatastores(dsRes.datastores || []);
+    } catch (e) {
+      message.error('加载 vSphere 数据失败');
+    } finally {
+      setVSphereLoading(false);
+    }
+  };
+
+  const handleVMPower = async (vmName, action) => {
+    try {
+      await client.post()(`/hosts/${uuid}/vsphere/vms/${vmName}/power`, { action });
+      message.success(`${vmName} ${action} 成功`);
+      loadVSphere();
+    } catch (e) {
+      message.error(e?.response?.data?.error || '操作失败');
+    }
+  };
+
+  const checkUpgrade = async () => {
+    try {
+      const resp = await client.post()(`/agents/upgrade/${uuid}`);
+      setUpgradeInfo(resp);
+      if (resp.available) {
+        message.info(`新版本 ${resp.latest} 可用，点击下方按钮触发升级`);
+      } else {
+        message.success('已是最新版本');
+      }
+    } catch (e) {
+      message.error('检查升级失败');
+    }
+  };
+
+  const handleUpgrade = async () => {
+    try {
+      await client.post()(`/hosts/${uuid}/agent/upgrade`);
+      message.success('升级指令已下发，Agent 将自动拉取并重启');
+    } catch (e) {
+      message.error(e?.response?.data?.error || '升级失败');
+    }
+  };
+
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
   if (!host) return <div>主机不存在</div>;
 
@@ -217,7 +271,19 @@ export default function HostDetail() {
           <Descriptions.Item label="GPU">
             {gpus.length > 0 ? gpus.map((g) => `${g.name}（${formatBytes(g.memory_total)}）`).join('、') : '无'}
           </Descriptions.Item>
-          <Descriptions.Item label="Agent版本">{host.agent_version}</Descriptions.Item>
+          <Descriptions.Item label="Agent版本">
+            <Space>
+              <span>{host.agent_version || '-'}</span>
+              <Button
+                type="link"
+                size="small"
+                icon={<ReloadOutlined />}
+                style={{ padding: 0, fontSize: 12 }}
+                onClick={checkUpgrade}
+                title="检查升级"
+              />
+            </Space>
+          </Descriptions.Item>
           <Descriptions.Item label="状态">
             <Tag color={host.status === 'online' ? 'green' : 'red'}>{host.status === 'online' ? '在线' : '离线'}</Tag>
           </Descriptions.Item>
@@ -403,6 +469,103 @@ export default function HostDetail() {
       key: 'files',
       label: '文件',
       children: <FileManager host={host} />,
+    },
+    {
+      key: 'vsphere',
+      label: 'vSphere',
+      children: (
+        <Spin spinning={vsphereLoading}>
+          <Space direction="vertical" style={{ width: '100%' }} size={16}>
+            <Button onClick={loadVSphere}>刷新</Button>
+
+            <div style={{ color: '#888', fontSize: 13 }}>虚拟机（共 {vsphereVMs.length} 台）</div>
+            {vsphereVMs.length === 0 ? (
+              <Typography.Text type="secondary">暂无虚拟机数据</Typography.Text>
+            ) : (
+              <Table
+                size="small"
+                dataSource={vsphereVMs}
+                rowKey="name"
+                pagination={false}
+                columns={[
+                  { title: '名称', dataIndex: 'name', key: 'name' },
+                  {
+                    title: '状态',
+                    dataIndex: 'power_state',
+                    key: 'power_state',
+                    width: 100,
+                    render: (v) => {
+                      const map = { poweredOn: ['green', '已开机'], poweredOff: ['default', '已关机'], suspended: ['orange', '已挂起'] };
+                      const m = map[v] || ['cyan', v || '-'];
+                      return <Tag color={m[0]}>{m[1]}</Tag>;
+                    },
+                  },
+                  { title: 'CPU', dataIndex: 'num_cpu', key: 'num_cpu', width: 70 },
+                  { title: '内存', dataIndex: 'memory_mb', key: 'memory_mb', width: 100, render: (v) => v ? `${(v / 1024).toFixed(1)} GB` : '-' },
+                  { title: 'IP', dataIndex: 'ip_address', key: 'ip_address', width: 140 },
+                  { title: 'Guest OS', dataIndex: 'guest_os', key: 'guest_os' },
+                  { title: '快照数', dataIndex: 'snapshot_count', key: 'snapshot_count', width: 80 },
+                  {
+                    title: '操作',
+                    key: 'action',
+                    width: 260,
+                    render: (_, r) => (
+                      <Space size={4}>
+                        {r.power_state !== 'poweredOn' && (
+                          <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'on')}>开机</Button>
+                        )}
+                        {r.power_state === 'poweredOn' && (
+                          <>
+                            <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'off')}>关机</Button>
+                            <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'reset')}>重启</Button>
+                            <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'suspend')}>挂起</Button>
+                          </>
+                        )}
+                      </Space>
+                    ),
+                  },
+                ]}
+              />
+            )}
+
+            <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>数据存储（共 {vsphereDatastores.length} 个）</div>
+            {vsphereDatastores.length === 0 ? (
+              <Typography.Text type="secondary">暂无数据存储数据</Typography.Text>
+            ) : (
+              <Table
+                size="small"
+                dataSource={vsphereDatastores}
+                rowKey="name"
+                pagination={false}
+                columns={[
+                  { title: '名称', dataIndex: 'name', key: 'name' },
+                  { title: '类型', dataIndex: 'type', key: 'type', width: 100 },
+                  { title: '容量', dataIndex: 'capacity', key: 'capacity', width: 120, render: formatBytes },
+                  { title: '可用空间', dataIndex: 'free_space', key: 'free_space', width: 120, render: formatBytes },
+                  {
+                    title: '使用率',
+                    dataIndex: 'capacity',
+                    key: 'used_pct',
+                    width: 100,
+                    render: (v, r) => {
+                      if (!v || v === 0) return '-';
+                      const used = v - r.free_space;
+                      return `${((used / v) * 100).toFixed(1)}%`;
+                    },
+                  },
+                  {
+                    title: '可访问',
+                    dataIndex: 'accessible',
+                    key: 'accessible',
+                    width: 80,
+                    render: (v) => v ? <Tag color="green">是</Tag> : <Tag color="red">否</Tag>,
+                  },
+                ]}
+              />
+            )}
+          </Space>
+        </Spin>
+      ),
     },
   ];
 

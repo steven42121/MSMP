@@ -68,6 +68,7 @@ func main() {
 	mux.HandleFunc("/api/agents/assets", controllers.AgentAssetReportHandler)
 	mux.HandleFunc("/api/agents/metrics", controllers.AgentMetricReportHandler)
 	mux.HandleFunc("/api/agents/tasks/", controllers.AgentTaskHandler)
+	mux.HandleFunc("/api/agents/upgrade/", controllers.AgentUpgradeHandler)
 
 	// 认证接口
 	mux.HandleFunc("/api/auth/login", controllers.LoginHandler)

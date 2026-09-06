@@ -42,11 +42,13 @@ type JWTConfig struct {
 }
 
 type AgentConfig struct {
-	Transport       string
-	HeartbeatSec    int
-	AssetReportSec  int
+	Transport      string
+	HeartbeatSec   int
+	AssetReportSec int
 	MetricReportSec int
 	OfflineAfterSec int
+	LatestVersion  string `mapstructure:"latest_version"`
+	DownloadURL    string `mapstructure:"download_url"`
 }
 
 var C *Config
@@ -73,6 +75,8 @@ func Load() (*Config, error) {
 	v.SetDefault("agent.assetreportsec", 300)
 	v.SetDefault("agent.metricreportsec", 60)
 	v.SetDefault("agent.offlineaftersec", 120)
+	v.SetDefault("agent.latest_version", "0.1.0")
+	v.SetDefault("agent.download_url", "https://github.com/your-org/msmp/releases/download/{{.Tag}}/msmp-{{.Tag}}-linux-amd64.tar.gz")
 	v.SetDefault("notification.webhookurl", "")
 	v.SetDefault("security.credentialkey", "")
 
