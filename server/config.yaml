@@ -26,3 +26,6 @@ agent:
 
 security:
   credentialkey: "N2+vko0Opmja3d7NQk8jMPNPArzTqjOrqiUFR1Na+NA="    # base64 编码的 32 字节 AES 密钥，留空则无法保存采集渠道凭据
+  # ip_allowlist:                                              # IP 白名单（为空则不限制，非空时仅允许列表内 IP）
+  #   - "127.0.0.1"
+  #   - "10.0.0.0/8"

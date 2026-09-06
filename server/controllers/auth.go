@@ -39,6 +39,14 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 登录失败锁定检查
+	ip := getRemoteIP(r)
+	const maxAttempts, lockoutSec = 5, 600
+	if checkLoginLockout(ip, maxAttempts, lockoutSec) {
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "登录尝试次数过多，请稍后再试"})
+		return
+	}
+
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
@@ -61,6 +69,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+		recordLoginFailure(ip, maxAttempts, lockoutSec)
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 		return
 	}

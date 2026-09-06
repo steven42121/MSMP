@@ -16,7 +16,8 @@ type Config struct {
 }
 
 type SecurityConfig struct {
-	CredentialKey string
+	CredentialKey string   `mapstructure:"credentialkey"`
+	IPAllowList   []string `mapstructure:"ip_allowlist"`
 }
 
 type NotificationConfig struct {
@@ -79,6 +80,7 @@ func Load() (*Config, error) {
 	v.SetDefault("agent.download_url", "https://github.com/steven42121/MSMP/releases/download/{{.Tag}}/msmp-{{.Tag}}-linux-amd64.tar.gz")
 	v.SetDefault("notification.webhookurl", "")
 	v.SetDefault("security.credentialkey", "")
+	v.SetDefault("security.ip_allowlist", []string{})
 
 	v.SetEnvPrefix("MSMP")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))

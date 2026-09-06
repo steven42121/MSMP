@@ -46,6 +46,22 @@ func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 
+		// IP 白名单检查（配置非空时生效）
+		if len(config.C.Security.IPAllowList) > 0 {
+			clientIP := getRemoteIP(r)
+			allowed := false
+			for _, allow := range config.C.Security.IPAllowList {
+				if strings.TrimSpace(allow) == clientIP {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				writeJSON(w, http.StatusForbidden, map[string]string{"error": "IP 不在白名单中"})
+				return
+			}
+		}
+
 		// 公开接口，无需认证
 		publicPaths := []string{
 			"/api/health",
@@ -58,6 +74,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			"/api/cluster/info",
 			"/api/cluster/ping",
 			"/api/cluster/leader",
+			"/metrics",
 		}
 		for _, pp := range publicPaths {
 			if path == pp {

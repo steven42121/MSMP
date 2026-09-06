@@ -6,11 +6,14 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"MSMP/server/clustering"
 	"MSMP/server/config"
 	"MSMP/server/controllers"
 	"MSMP/server/db"
+	"MSMP/server/metrics"
+	"MSMP/server/models"
 	"MSMP/server/services"
 )
 
@@ -144,10 +147,37 @@ func main() {
 		controllers.ClusterLeaderHandler(w, r, clusterState)
 	})
 
+	// /metrics 端点：Prometheus 抓取服务器自监控指标（无需认证）
+	mux.Handle("/metrics", http.HandlerFunc(metrics.Handler))
+
 	// 应用中间件（JWT 认证 + 多租户）
 	handler := controllers.CORSMiddleware(
-		controllers.AuthMiddleware(mux),
+		requestCounterMiddleware(controllers.AuthMiddleware(mux)),
 	)
+
+	// 定期清理过期的登录失败记录（每 5 分钟）
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			controllers.CleanExpiredAttempts(600)
+		}
+	}()
+
+	// 定期刷新资源计数（每 30 秒）
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			var hostCount, agentOnline, metricCount int64
+			db.DB.Model(&models.Host{}).Count(&hostCount)
+			db.DB.Model(&models.Host{}).Where("status = ?", "online").Count(&agentOnline)
+			db.DB.Model(&models.MetricSample{}).Count(&metricCount)
+			metrics.Global.HostCount.Store(hostCount)
+			metrics.Global.AgentCount.Store(agentOnline)
+			metrics.Global.MetricCount.Store(metricCount)
+		}
+	}()
 
 	// 优雅退出
 	go func() {
@@ -162,4 +192,23 @@ func main() {
 	if err := http.ListenAndServe(cfg.Server.Addr, handler); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
+}
+
+// requestCounterMiddleware 包装内层 handler，统计请求数与错误数。
+func requestCounterMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+		metrics.Global.ObserveRequest(rec.status >= 400)
+	})
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
 }
