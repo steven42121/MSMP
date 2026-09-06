@@ -13,11 +13,18 @@ type Config struct {
 	Agent        AgentConfig
 	Notification NotificationConfig
 	Security     SecurityConfig
+	Retention    RetentionConfig
 }
 
 type SecurityConfig struct {
 	CredentialKey string   `mapstructure:"credentialkey"`
 	IPAllowList   []string `mapstructure:"ip_allowlist"`
+}
+
+type RetentionConfig struct {
+	RawRetentionDays   int `mapstructure:"raw_retention_days"`   // 原始数据保留天数
+	DownsampleAtDays   int `mapstructure:"downsample_at_days"`   // 在此天数之后开始降采样
+	DownsampleInterval int `mapstructure:"downsample_interval"`  // 降采样粒度（分钟），默认 5
 }
 
 type NotificationConfig struct {
@@ -81,6 +88,9 @@ func Load() (*Config, error) {
 	v.SetDefault("notification.webhookurl", "")
 	v.SetDefault("security.credentialkey", "")
 	v.SetDefault("security.ip_allowlist", []string{})
+	v.SetDefault("retention.raw_retention_days", 90)
+	v.SetDefault("retention.downsample_at_days", 7)
+	v.SetDefault("retention.downsample_interval", 5)
 
 	v.SetEnvPrefix("MSMP")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))

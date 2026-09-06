@@ -50,6 +50,9 @@ func main() {
 	// 启动告警升级检查器
 	go controllers.StartEscalationChecker()
 
+	// 启动时序数据降采样与保留策略清理
+	controllers.StartDownsampleCleanup()
+
 	// 启动无 Agent 采集调度器（仅 leader 执行）
 	if cfg.Server.Nodes != nil && len(cfg.Server.Nodes) > 0 && !clusterState.IsLeader() {
 		log.Println("[cluster] this node is follower, skipping CollectorScheduler")
@@ -110,6 +113,9 @@ func main() {
 	mux.HandleFunc("/api/tenants", controllers.Audit("manage", "tenant", controllers.RequireRole([]string{"admin"}, controllers.TenantsHandler)))
 	mux.HandleFunc("/api/users", controllers.UsersHandler)
 	mux.HandleFunc("/api/users/", controllers.Audit("manage", "user", controllers.UserDetailHandler))
+
+	// 系统维护
+	mux.HandleFunc("/api/maintenance/downsample", controllers.RequireRole([]string{"admin"}, controllers.DownsampleHandler))
 
 	// Agent Token 管理
 	mux.HandleFunc("/api/agent-tokens", controllers.Audit("manage", "agent_token", controllers.RequireRole([]string{"admin"}, controllers.AgentTokensHandler)))

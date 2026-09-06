@@ -88,3 +88,13 @@ func FlushCachesHandler(w http.ResponseWriter, r *http.Request) {
 		"message":   fmt.Sprintf("已提交清理缓存任务，类型: %s", cacheType),
 	})
 }
+
+// DownsampleHandler 手动触发一次时序数据降采样与清理。
+func DownsampleHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	runDownsampleCleanup()
+	writeJSON(w, http.StatusOK, map[string]string{"message": "降采样清理已触发"})
+}

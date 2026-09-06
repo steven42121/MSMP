@@ -103,6 +103,22 @@ type MetricSample struct {
 	UptimeSec     uint64    `json:"uptime_sec"`
 }
 
+// MetricDownsample 时序降采样聚合记录（5 分钟粒度）。
+type MetricDownsample struct {
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	TenantID    uint      `gorm:"index;not null" json:"tenant_id"`
+	HostID      uint      `gorm:"index:idx_ds_host_ts,priority:1;not null" json:"host_id"`
+	Timestamp   time.Time `gorm:"index:idx_ds_host_ts,priority:2;not null" json:"timestamp"`
+	CPUPercent  float64   `json:"cpu_percent"`
+	MemPercent  float64   `json:"mem_percent"`
+	MemUsed     uint64    `json:"mem_used"`
+	MemTotal    uint64    `json:"mem_total"`
+	Load1       float64   `json:"load1"`
+	Load5       float64   `json:"load5"`
+	Load15      float64   `json:"load15"`
+	ProcessCount int     `json:"process_count"`
+}
+
 type HostEvent struct {
 	ID           uint       `gorm:"primaryKey" json:"id"`
 	TenantID     uint       `gorm:"index;not null" json:"tenant_id"`

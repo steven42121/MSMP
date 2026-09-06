@@ -23,6 +23,9 @@
 - GitHub Releases（tag push 自动打包多平台二进制）
 - Dockerfile + docker-compose 容器化部署
 - Makefile 统一构建命令
+- Prometheus 格式 `/metrics` 自监控端点（请求数/错误数/GC/主机/Agent 计数）
+- 时序数据降采样与保留策略（默认 7 天降采样至 5 分钟粒度，90 天自动清理）
+- 登录失败锁定（5 次失败锁定 10 分钟）+ IP 白名单（config.yaml 配置）
 
 [unreleased]: https://github.com/steven42121/MSMP/compare/v0.1.0...HEAD
 [v0.1.0]: https://github.com/steven42121/MSMP/releases/tag/v0.1.0
