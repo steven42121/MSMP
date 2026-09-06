@@ -23,5 +23,5 @@
 - Dockerfile + docker-compose 容器化部署
 - Makefile 统一构建命令
 
-[unreleased]: https://github.com/your-org/msmp/compare/v0.1.0...HEAD
-[v0.1.0]: https://github.com/your-org/msmp/releases/tag/v0.1.0
+[unreleased]: https://github.com/steven42121/MSMP/compare/v0.1.0...HEAD
+[v0.1.0]: https://github.com/steven42121/MSMP/releases/tag/v0.1.0
