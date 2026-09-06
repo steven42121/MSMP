@@ -292,7 +292,7 @@ export default function Monitor() {
         <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
           {[
             { label: 'CPU', value: currentStats.cpu, color: '#667eea' },
-            { label: '内存', value: currentStats.mem, color: '#764ba2', action: true },
+            { label: '内存', value: currentStats.mem, color: '#764ba2' },
             { label: '交换', value: currentStats.swap, color: '#faad14' },
             { label: '磁盘', value: currentStats.disk, color: '#52c41a' },
             { label: '进程', value: currentStats.procs, color: '#1890ff' },
@@ -312,27 +312,6 @@ export default function Monitor() {
               }}>
                 <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 2 }}>{s.label}</div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: s.color, wordBreak: 'break-all' }}>{s.value}</div>
-                {s.action && (
-                  <Popconfirm
-                    title="确认清理内存缓存？"
-                    description="将释放页缓存、目录缓存和索引节点缓存"
-                    onConfirm={handleFlushCaches}
-                    okText="清理"
-                    cancelText="取消"
-                    disabled={flushing}
-                  >
-                    <Button
-                      type="primary"
-                      size="small"
-                      icon={<BgColorsOutlined />}
-                      loading={flushing}
-                      disabled={flushing}
-                      style={{ marginTop: 6, fontSize: 11, height: 22, padding: '0 8px' }}
-                    >
-                      清理缓存
-                    </Button>
-                  </Popconfirm>
-                )}
               </div>
             </Col>
           ))}
@@ -357,13 +336,33 @@ export default function Monitor() {
                <ReactECharts option={cpuOption} style={{ height: 260 }} />
              </Card>
            </Col>
-           <Col xs={24} md={12}>
-             <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-               title={<Space><LineChartOutlined style={{ color: '#764ba2' }} /><span>内存使用率</span></Space>}
-             >
-               <ReactECharts option={memOption} style={{ height: 260 }} />
-             </Card>
-           </Col>
+<Col xs={24} md={12}>
+              <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
+                title={<Space><LineChartOutlined style={{ color: '#764ba2' }} /><span>内存使用率</span></Space>}
+                extra={
+                  <Popconfirm
+                    title="确认清理内存缓存？"
+                    description="将释放页缓存、目录缓存和索引节点缓存"
+                    onConfirm={handleFlushCaches}
+                    okText="清理"
+                    cancelText="取消"
+                    disabled={flushing}
+                  >
+                    <Button
+                      type="primary"
+                      size="small"
+                      icon={<BgColorsOutlined />}
+                      loading={flushing}
+                      disabled={flushing}
+                    >
+                      清理缓存
+                    </Button>
+                  </Popconfirm>
+                }
+              >
+                <ReactECharts option={memOption} style={{ height: 260 }} />
+              </Card>
+            </Col>
            <Col xs={24} md={12}>
              <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
                title={<Space><LineChartOutlined style={{ color: '#faad14' }} /><span>系统负载</span></Space>}
