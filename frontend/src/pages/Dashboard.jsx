@@ -60,23 +60,22 @@ function buildPieOption(title, data, dark) {
     },
     series: [{
       type: 'pie',
-      radius: ['40%', '58%'],
-      center: ['50%', '47%'],
+      radius: ['36%', '50%'],
+      center: ['50%', '53%'],
       avoidLabelOverlap: true,
       padAngle: 2,
       itemStyle: { borderRadius: 6, borderColor: cBorder, borderWidth: 2 },
       label: {
         show: hasData,
-        formatter: '{b}\n{d}%',
+        formatter: '{b} {d}%',
         fontSize: 11,
-        lineHeight: 15,
         color: cText,
       },
-      labelLine: { length: 12, length2: 8, lineStyle: { color: cLine } },
+      labelLine: { length: 10, length2: 6, lineStyle: { color: cLine } },
       emphasis: {
         scaleSize: 6,
         itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,0.25)' },
-        label: { fontSize: 13, fontWeight: 600, color: cTitle },
+        label: { fontSize: 12, fontWeight: 600, color: cTitle },
       },
       data: hasData
         ? data
@@ -84,11 +83,11 @@ function buildPieOption(title, data, dark) {
     }],
     // 中心显示总数
     graphic: hasData ? {
-      type: 'text', left: 'center', top: '40%',
+      type: 'text', left: 'center', top: '48%',
       style: {
         text: String(total),
         textAlign: 'center',
-        fontSize: 24, fontWeight: 700,
+        fontSize: 22, fontWeight: 700,
         fill: cTitle,
       },
     } : undefined,
