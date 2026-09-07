@@ -166,8 +166,16 @@ func HealthHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil || sqlDB.Ping() != nil {
 		dbStatus = "error"
 	}
-	writeJSON(w, http.StatusOK, map[string]string{
+	resp := map[string]interface{}{
 		"status": "running",
 		"db":     dbStatus,
-	})
+	}
+	// 附加运行信息（用于更新门禁判断新版本是否生效）
+	if v := getBuildVersion(); v != "" {
+		resp["version"] = v
+	}
+	if u := getUptimeSeconds(); u >= 0 {
+		resp["uptime_sec"] = u
+	}
+	writeJSON(w, http.StatusOK, resp)
 }

@@ -1,13 +1,21 @@
 .PHONY: build server agent frontend test lint vet run-server run-frontend \
         docker docker-up docker-down docker-logs \
         service-install service-remove service-status service-start service-stop service-restart \
-        deploy clean help
+        update deploy clean help
+
+# 版本号：优先取最近 git tag，回退 CHANGELOG，再回退 dev
+VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null || grep -m1 -oE '\[v?[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md 2>/dev/null | tr -d '[]' | head -1 || echo dev)
+BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+LDFLAGS := -s -w -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.Commit=$(COMMIT)
 
 # ── 构建 ────────────────────────────────────────────────────────────────────
 server:
-	cd server && go build -o ../dist/msmp-server .
+	mkdir -p dist
+	cd server && go build -ldflags "$(LDFLAGS)" -o ../dist/msmp-server .
 
 agent:
+	mkdir -p dist
 	cd agent && GOOS=linux GOARCH=amd64 go build -o ../dist/msmp-agent-linux-amd64 .
 	cd agent && GOOS=linux GOARCH=arm64 go build -o ../dist/msmp-agent-linux-arm64 .
 	cd agent && GOOS=windows GOARCH=amd64 go build -o ../dist/msmp-agent-windows-amd64.exe .
@@ -16,7 +24,7 @@ frontend:
 	cd frontend && npm install && npm run build
 
 build: server agent frontend
-	@echo "Build complete: dist/msmp-server, dist/msmp-agent-*"
+	@echo "Build complete: dist/msmp-server ($(VERSION))"
 
 # ── 测试 ────────────────────────────────────────────────────────────────────
 test:
@@ -66,24 +74,8 @@ service-install: build
 	sudo cp server/config.yaml $(INSTALL_DIR)/
 	sudo chown -R root:root $(INSTALL_DIR)
 	sudo chmod 755 $(INSTALL_DIR)/msmp-server
-	sudo tee /etc/systemd/system/$(SERVICE_NAME).service > /dev/null <<EOF
-[Unit]
-Description=MSMP Server - Mix System Manage Platform
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=$(INSTALL_DIR)
-ExecStart=$(INSTALL_DIR)/msmp-server
-Restart=on-failure
-RestartSec=5
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=multi-user.target
-EOF
+	sudo cp contrib/systemd/msmp-server.service /etc/systemd/system/$(SERVICE_NAME).service
+	sudo sed -i 's|/opt/msmp|$(INSTALL_DIR)|g' /etc/systemd/system/$(SERVICE_NAME).service
 	sudo systemctl daemon-reload
 	@echo "Install complete. Run 'make service-start' to start."
 
@@ -109,6 +101,15 @@ service-restart:
 service-logs:
 	journalctl -u $(SERVICE_NAME) -f --no-pager
 
+# ── 零停机更新 ──────────────────────────────────────────────────────────────
+update: build
+	@echo "=== 零停机更新 ==="
+	sudo cp dist/msmp-server $(INSTALL_DIR)/msmp-server.new
+	sudo mv $(INSTALL_DIR)/msmp-server.new $(INSTALL_DIR)/msmp-server
+	sudo chmod 755 $(INSTALL_DIR)/msmp-server
+	sudo systemctl restart $(SERVICE_NAME)
+	@echo "✓ 更新完成，验证: curl -s http://localhost:8080/api/health"
+
 # ── 辅助命令 ────────────────────────────────────────────────────────────────
 clean:
 	rm -rf dist/
@@ -117,7 +118,7 @@ clean:
 
 help:
 	@echo "MSMP Build Commands:"
-	@echo "  make build          - Build server + agent + frontend"
+	@echo "  make build          - Build server + agent + frontend (version: $(VERSION))"
 	@echo "  make server         - Build server binary"
 	@echo "  make agent          - Build agent (linux/amd64, linux/arm64, windows/amd64)"
 	@echo "  make frontend       - Build frontend (npm run build)"
@@ -131,4 +132,5 @@ help:
 	@echo "  make service-status  - Check service status"
 	@echo "  make service-restart - Restart service"
 	@echo "  make service-logs    - Tail service logs"
+	@echo "  make update         - Zero-downtime update (build + graceful restart)"
 	@echo "  make clean          - Remove build artifacts"

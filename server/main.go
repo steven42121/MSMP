@@ -20,6 +20,13 @@ import (
 	"MSMP/server/services"
 )
 
+// 编译时通过 -ldflags "-X main.Version=x.y.z" 注入，未注入时默认为 dev。
+var (
+	Version   = "dev"
+	BuildTime = ""
+	Commit    = ""
+)
+
 func main() {
 	log.Println("MSMP Server Starting...")
 
@@ -29,6 +36,8 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 	log.Printf("Config loaded: server=%s, db_driver=%s", cfg.Server.Addr, cfg.DB.Driver)
+	controllers.SetBuildVersion(Version)
+	log.Printf("Build: version=%s build_time=%s commit=%s", Version, BuildTime, Commit)
 	controllers.InitAllowedOrigins()
 
 	// 初始化数据库
@@ -252,22 +261,33 @@ func main() {
 		}
 	}()
 
-	// 优雅退出：等待活跃请求完成后关闭
+	// 优雅退出：等待活跃请求完成，超时强制关闭（防止 WebSocket 等长连接卡死）
 	var srv *http.Server
 	go func() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		<-sigCh
 		log.Println("Shutting down server (graceful) ...")
-		if err := srv.Shutdown(context.Background()); err != nil {
-			log.Printf("Shutdown error: %v", err)
+
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			log.Printf("Graceful shutdown timeout, forcing close: %v", err)
+			_ = srv.Close()
 		}
 		log.Println("Server stopped")
 		os.Exit(0)
 	}()
 
 	log.Printf("MSMP Server listening on %s", cfg.Server.Addr)
-	srv = &http.Server{Addr: cfg.Server.Addr, Handler: handler}
+	srv = &http.Server{
+		Addr:         cfg.Server.Addr,
+		Handler:      handler,
+		ReadTimeout:  30 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Server failed: %v", err)
 	}

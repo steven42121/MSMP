@@ -18,18 +18,29 @@ import (
 )
 
 // pveHTTPClient 包级共享 HTTP 客户端，复用连接池避免每次采集新建连接。
-var pveHTTPClient = func() *http.Client {
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: !config.C.Security.PVEInsecureSkipVerify},
-		MaxIdleConns:        32,
-		MaxIdleConnsPerHost: 8,
-		IdleConnTimeout:     90 * time.Second,
-	}
-	return &http.Client{
-		Timeout:   30 * time.Second,
-		Transport: transport,
-	}
-}()
+// 用 sync.Once 懒加载（config.C 在 init 阶段尚未就绪，不能立即初始化）。
+var (
+	pveHTTPClientOnce sync.Once
+	pveHTTPClient     *http.Client
+)
+
+func getPVEHTTPClient() *http.Client {
+	pveHTTPClientOnce.Do(func() {
+		transport := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: !config.C.Security.PVEInsecureSkipVerify,
+			},
+			MaxIdleConns:        32,
+			MaxIdleConnsPerHost: 8,
+			IdleConnTimeout:     90 * time.Second,
+		}
+		pveHTTPClient = &http.Client{
+			Timeout:   30 * time.Second,
+			Transport: transport,
+		}
+	})
+	return pveHTTPClient
+}
 
 // PVEClient 封装 Proxmox VE REST API（/api2/json）。
 type PVEClient struct {
@@ -157,7 +168,7 @@ func (c *PVEClient) login(ctx context.Context) error {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := pveHTTPClient.Do(req)
+	resp, err := getPVEHTTPClient().Do(req)
 	if err != nil {
 		return fmt.Errorf("unreachable:连接 PVE 失败: %w", err)
 	}
@@ -226,7 +237,7 @@ func (c *PVEClient) do(ctx context.Context, method, path string, body url.Values
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	resp, err := pveHTTPClient.Do(req)
+	resp, err := getPVEHTTPClient().Do(req)
 	if err != nil {
 		return fmt.Errorf("unreachable:请求 PVE 失败: %w", err)
 	}
