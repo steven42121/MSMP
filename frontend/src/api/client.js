@@ -2,6 +2,17 @@ import axios from 'axios';
 import { message } from 'antd';
 import { useAuthStore } from '../store/auth';
 
+// normalizeParams 兼容两种 query 参数格式：
+//   1. 裸对象：  client.get()('/hosts', { page_size: 100 })
+//   2. axios 风格：client.get()('/hosts', { params: { page_size: 100 } })
+function normalizeParams(params) {
+  if (!params) return undefined;
+  if (typeof params === 'object' && !Array.isArray(params) && 'params' in params && typeof params.params === 'object') {
+    return params.params;
+  }
+  return params;
+}
+
 // ClusterClient 支持多节点轮询 + 自动故障转移
 class ClusterClient {
   constructor(urls) {
@@ -74,27 +85,7 @@ class ClusterClient {
   }
 
   get() {
-    return async (path, params) => {
-      let url = this.baseURL + path;
-      if (params) {
-        const query = Object.entries(params)
-          .filter(([_, v]) => v !== undefined && v !== null)
-          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-          .join('&');
-        if (query) url += '?' + query;
-      }
-      const config = {
-        method: 'GET',
-        url,
-        timeout: this.timeout,
-        headers: { 'Content-Type': 'application/json' },
-      };
-      const { token, tenant } = useAuthStore.getState();
-      if (token) config.headers.Authorization = `Bearer ${token}`;
-      if (tenant?.id) config.headers['X-Tenant-Id'] = tenant.id;
-      const resp = await axios(config);
-      return resp.data;
-    };
+    return (path, params) => this.request('GET', path, { params: normalizeParams(params) });
   }
 
   post() {
@@ -106,7 +97,7 @@ class ClusterClient {
   }
 
   delete() {
-    return (path) => this.request('DELETE', path);
+    return (path, params) => this.request('DELETE', path, { params: normalizeParams(params) });
   }
 }
 
