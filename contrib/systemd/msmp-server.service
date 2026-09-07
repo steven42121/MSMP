@@ -1,0 +1,32 @@
+[Unit]
+Description=MSMP Server - Mix System Manage Platform
+Documentation=https://github.com/steven42121/MSMP
+After=network.target postgresql.service mysql.service
+
+[Service]
+Type=simple
+User=msmp
+Group=msmp
+WorkingDirectory=/opt/msmp
+ExecStart=/opt/msmp/msmp-server
+Restart=on-failure
+RestartSec=5
+SuccessExitStatus=0
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=msmp-server
+
+# 安全加固
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/msmp/data
+
+# 资源限制
+LimitNOFILE=65536
+MemoryMax=2G
+CPUQuota=200%
+
+[Install]
+WantedBy=multi-user.target

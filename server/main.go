@@ -252,17 +252,23 @@ func main() {
 		}
 	}()
 
-	// 优雅退出
+	// 优雅退出：等待活跃请求完成后关闭
+	var srv *http.Server
 	go func() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		<-sigCh
-		log.Println("Shutting down server...")
+		log.Println("Shutting down server (graceful) ...")
+		if err := srv.Shutdown(context.Background()); err != nil {
+			log.Printf("Shutdown error: %v", err)
+		}
+		log.Println("Server stopped")
 		os.Exit(0)
 	}()
 
 	log.Printf("MSMP Server listening on %s", cfg.Server.Addr)
-	if err := http.ListenAndServe(cfg.Server.Addr, handler); err != nil {
+	srv = &http.Server{Addr: cfg.Server.Addr, Handler: handler}
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Server failed: %v", err)
 	}
 }
