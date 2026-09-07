@@ -3,8 +3,11 @@
 package posix
 
 import (
+	"fmt"
 	"os"
+	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 
 	"MSMP/agent/common"
@@ -60,6 +63,8 @@ func CollectAssetInfoFull() common.AgentInfo {
 		DiskPartitions:    collectDiskPartitions(),
 		NetworkInterfaces: collectNetInterfaces(),
 		Processes:         collectProcesses(),
+		NetworkConns:      collectNetworkConnections(),
+		Packages:          collectPackages(),
 		GPUs:              common.CollectGPUs(),
 		Temperatures:      collectTemperatures(),
 	}
@@ -239,4 +244,124 @@ func collectProcesses() []common.ProcessInfo {
 		result = result[:50]
 	}
 	return result
+}
+
+// collectNetworkConnections 收集监听中的 TCP/UDP 端口。
+func collectNetworkConnections() []common.NetConnInfo {
+	conns, err := net.Connections("all")
+	if err != nil {
+		return nil
+	}
+	var result []common.NetConnInfo
+	tcpMap := map[uint32]string{1: "tcp", 2: "tcp6"}
+	udpMap := map[uint32]string{3: "udp", 4: "udp6"}
+
+	for _, c := range conns {
+		proto := ""
+		if s, ok := tcpMap[c.Type]; ok {
+			proto = s
+		} else if s, ok := udpMap[c.Type]; ok {
+			proto = s
+		} else {
+			continue
+		}
+		// 只收集 LISTEN 状态的 TCP 和所有 UDP
+		if proto == "tcp" && c.Status != "LISTEN" {
+			continue
+		}
+		family := "inet"
+		if c.Family == 10 { // AF_INET6
+			family = "inet6"
+		}
+		result = append(result, common.NetConnInfo{
+			Family:    family,
+			Type:      proto,
+			LocalAddr: c.Laddr.IP,
+			LocalPort: int(c.Laddr.Port),
+			State:     c.Status,
+			PID:       c.Pid,
+		})
+	}
+
+	// 去重
+	seen := make(map[string]bool)
+	deduped := make([]common.NetConnInfo, 0)
+	for _, c := range result {
+		key := fmt.Sprintf("%s:%s:%d", c.Family, c.Type, c.LocalPort)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		deduped = append(deduped, c)
+	}
+	return deduped
+}
+
+// collectPackages 收集已安装软件包列表（通过包管理器）。
+func collectPackages() []common.PackageInfo {
+	var result []common.PackageInfo
+	// 优先 dpkg（Debian/Ubuntu）
+	if pkgs, err := listDpkgPackages(); err == nil {
+		result = append(result, pkgs...)
+	} else if pkgs, err := listRpmPackages(); err == nil {
+		result = append(result, pkgs...)
+	}
+	// 限制条数
+	if len(result) > 500 {
+		result = result[:500]
+	}
+	return result
+}
+
+func listDpkgPackages() ([]common.PackageInfo, error) {
+	out, err := execCommand("dpkg-query", "-W", "-f", "${Package}\t${Version}\t${Installed-Size}\n")
+	if err != nil {
+		return nil, err
+	}
+	var result []common.PackageInfo
+	for _, line := range strings.Split(out, "\n") {
+		parts := strings.SplitN(line, "\t", 3)
+		if len(parts) < 2 {
+			continue
+		}
+		var size int64
+		fmt.Sscanf(parts[2], "%d", &size)
+		size *= 1024 // dpkg 返回 KB
+		result = append(result, common.PackageInfo{
+			Name:    parts[0],
+			Version: parts[1],
+			Size:    size,
+			Source:  "dpkg",
+		})
+	}
+	return result, nil
+}
+
+func listRpmPackages() ([]common.PackageInfo, error) {
+	out, err := execCommand("rpm", "-qa", "--qf", "%{NAME}\t%{VERSION}\t%{SIZE}\n")
+	if err != nil {
+		return nil, err
+	}
+	var result []common.PackageInfo
+	for _, line := range strings.Split(out, "\n") {
+		parts := strings.SplitN(line, "\t", 3)
+		if len(parts) < 2 {
+			continue
+		}
+		var size int64
+		fmt.Sscanf(parts[2], "%d", &size)
+		result = append(result, common.PackageInfo{
+			Name:    parts[0],
+			Version: parts[1],
+			Size:    size,
+			Source:  "rpm",
+		})
+	}
+	return result, nil
+}
+
+func execCommand(name string, args ...string) (string, error) {
+	cmd := exec.Command(name, args...)
+	out, err := cmd.Output()
+	return string(out), err
 }

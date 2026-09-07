@@ -55,5 +55,8 @@ func Init(cfg *config.Config) error {
 		&models.AvailProbe{},
 		&models.CronJob{},
 		&models.CronLog{},
+		&models.HostProcess{},
+		&models.HostPort{},
+		&models.HostPackage{},
 	)
 }

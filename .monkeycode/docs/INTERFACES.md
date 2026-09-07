@@ -411,3 +411,113 @@ ws.send(JSON.stringify({ width: 80, height: 24 })); // 首条消息：终端尺�
 - 审批前进行危险命令检测（`rm -rf`, `dd`, 管道注入等）
 - 仅 admin 可批准工具调用
 - 参数净化：`service` 只允许字母数字，`log_path` 防止路径穿越
+
+---
+
+## 平台自监控
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/metrics` | Prometheus 格式指标（无需认证） |
+
+响应示例：
+```
+# HELP msmp_process_uptime_seconds 服务器运行时间（秒）
+msmp_process_uptime_seconds 3600.50
+# HELP msmp_requests_total 总请求数
+msmp_requests_total 12345
+# HELP msmp_errors_total 总错误请求数
+msmp_errors_total 23
+# HELP msmp_hosts_total 主机总数
+msmp_hosts_total 42
+# HELP msmp_agents_total 在线 Agent 数
+msmp_agents_total 38
+```
+
+---
+
+## 可用性探测
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/probes` | 列出探测任务（admin/member） |
+| POST | `/api/probes` | 创建探测任务 |
+| PUT | `/api/probes/{id}` | 更新探测任务 |
+| DELETE | `/api/probes/{id}` | 删除探测任务 |
+| POST | `/api/probes/{id}/run` | 手动执行一次探测 |
+
+创建请求体：
+```json
+{ "name": "Google DNS", "target": "https://www.google.com", "type": "http", "interval_sec": 60, "timeout_sec": 10 }
+```
+
+探测类型：`http` / `https` / `tcp` / `ssl`（证书有效期检测）
+
+---
+
+## 定时任务（Cron）
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/cron-jobs` | 列出定时任务（admin） |
+| POST | `/api/cron-jobs` | 创建定时任务 |
+| PUT | `/api/cron-jobs/{id}` | 更新定时任务 |
+| DELETE | `/api/cron-jobs/{id}` | 删除定时任务 |
+| POST | `/api/cron-jobs/{id}/run` | 手动触发一次执行 |
+
+Cron 表达式格式：`秒 分 时 日 月 周`（6 位，秒级精度）
+示例：`0 30 8 * * *` = 每天 08:30:00
+
+---
+
+## 主机资产清单
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/hosts/{uuid}/assets/processes` | 进程清单（分页 limit/offset） |
+| GET | `/api/hosts/{uuid}/assets/ports` | 监听端口清单 |
+| GET | `/api/hosts/{uuid}/assets/packages?keyword=xxx` | 软件包清单（支持搜索） |
+
+---
+
+## WebSSH 会话录制
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/sessions` | 列出所有会话录制文件（admin） |
+| GET | `/api/sessions/{filename}` | 下载录制文件内容（admin） |
+| DELETE | `/api/sessions/{filename}` | 删除录制文件（admin） |
+
+录制文件保存路径：`data/sessions/{timestamp}_user{uid}_host{hid}_{random}.log`
+
+---
+
+## 系统维护
+
+| Method | Path | 说明 |
+|--------|------|------|
+| POST | `/api/maintenance/downsample` | 手动触发时序数据降采样（admin） |
+| POST | `/api/maintenance/flush-caches` | 清理主机内存缓存（admin） |
+
+---
+
+## 安全配置（config.yaml）
+
+```yaml
+security:
+  credentialkey: "..."        # AES-256-GCM 密钥（必填）
+  ip_allowlist:               # IP 白名单（支持 CIDR，为空=不限制）
+    - "127.0.0.1"
+    - "10.0.0.0/8"
+  allowed_origins:            # WebSocket Origin 白名单（空=开发模式放行）
+    - "http://localhost:5173"
+  max_login_attempts: 5       # 登录失败最大次数
+  login_lockout_sec: 600      # 锁定时长（秒）
+  rate_limit_per_min: 0       # 登录速率限制（次/分钟，0=不限）
+  pve_insecure_verify: true   # PVE TLS 证书校验（实验室建议 true）
+
+retention:
+  raw_retention_days: 90      # 原始指标保留天数
+  downsample_at_days: 7       # 超过此天数的原始数据降采样
+  downsample_interval: 5      # 降采样粒度（分钟）
+```

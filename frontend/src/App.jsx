@@ -20,6 +20,7 @@ import AIChat from './pages/AIChat';
 import LLMConfig from './pages/LLMConfig';
 import Probes from './pages/Probes';
 import CronJobs from './pages/CronJobs';
+import AssetInventory from './pages/AssetInventory';
 import { useAuthStore } from './store/auth';
 import { useGlobalMouseTracker } from './hooks/useGlobalMouseTracker';
 
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="llm-config" element={<LLMConfig />} />
           <Route path="probes" element={<Probes />} />
           <Route path="cron-jobs" element={<CronJobs />} />
+          <Route path="hosts/:uuid/assets" element={<AssetInventory />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

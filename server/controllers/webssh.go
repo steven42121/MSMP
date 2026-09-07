@@ -144,28 +144,35 @@ func WebSSHHandler(w http.ResponseWriter, r *http.Request, host *models.Host, te
 		return
 	}
 
-	// 审计日志
+	// 审计日志 + 会话录制
+	sessionID := getRecorder().StartRecording(userID, host.ID, host.Hostname)
 	db.DB.Create(&models.AuditLog{
 		TenantID: tenantID,
 		UserID:   userID,
 		Action:   "webssh_connect",
-		Resource: fmt.Sprintf("host:%d", host.ID),
+		Resource: fmt.Sprintf("host:%d session:%s", host.ID, sessionID),
 		Status:   200,
 	})
-	log.Printf("[WebSSH] user=%d tenant=%d host=%d (%s) connected", userID, tenantID, host.ID, host.Hostname)
+	log.Printf("[WebSSH] user=%d tenant=%d host=%d (%s) session=%s connected",
+		userID, tenantID, host.ID, host.Hostname, sessionID)
 
 	// 双向管道
 	done := make(chan struct{})
 	var once sync.Once
 	closeDone := func() { once.Do(func() { close(done) }) }
 
-	// SSH 输出 → WebSocket（加锁防止并发写 panic）
+	// SSH 输出 → WebSocket（加锁防止并发写 panic，同时录制到文件）
+	recWriter := getRecorder().GetWriter(sessionID)
 	copyOutput := func(pipe io.Reader) {
 		defer closeDone()
 		buf := make([]byte, 4096)
 		for {
 			n, err := pipe.Read(buf)
 			if n > 0 {
+				// 同时写入录制文件
+				if recWriter != nil {
+					recWriter.Write(buf[:n])
+				}
 				ws.SetWriteDeadline(time.Now().Add(30 * time.Second))
 				wsMu.Lock()
 				werr := ws.WriteMessage(websocket.BinaryMessage, buf[:n])
@@ -210,11 +217,14 @@ func WebSSHHandler(w http.ResponseWriter, r *http.Request, host *models.Host, te
 
 	<-done
 
+	// 关闭录制
+	getRecorder().StopRecording(sessionID)
+
 	ws.SetWriteDeadline(time.Now().Add(2 * time.Second))
 	ws.WriteMessage(websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, "session ended"))
 
-	log.Printf("[WebSSH] user=%d tenant=%d host=%d disconnected", userID, tenantID, host.ID)
+	log.Printf("[WebSSH] user=%d tenant=%d host=%d session=%s disconnected", userID, tenantID, host.ID, sessionID)
 }
 
 // resolveSSHBinding 根据 hostID 查找 SSH 渠道配置并解密凭证

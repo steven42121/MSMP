@@ -45,6 +45,8 @@ type AssetInfo struct {
 	DiskPartitions    []json.RawMessage  `json:"disk_partitions"`
 	NetworkInterfaces []json.RawMessage  `json:"network_interfaces"`
 	Processes         []json.RawMessage  `json:"processes"`
+	NetworkConns      []json.RawMessage  `json:"network_connections"`
+	Packages          []json.RawMessage  `json:"packages"`
 	GPUs              []json.RawMessage  `json:"gpus"`
 	Temperatures      []json.RawMessage  `json:"temperatures"`
 }
@@ -358,6 +360,83 @@ func AgentAssetReportHandler(w http.ResponseWriter, r *http.Request) {
 		Payload:  string(payload),
 	}
 	db.DB.Create(&snapshot)
+
+	// 存储进程清单（去重：按 PID 替换最新记录）
+	now := time.Now()
+	for _, raw := range info.Processes {
+		var proc struct {
+			PID        int     `json:"pid"`
+			Name       string  `json:"name"`
+			Username   string  `json:"username"`
+			CPUPercent float64 `json:"cpu_percent"`
+			MemPercent float64 `json:"mem_percent"`
+		}
+		if err := json.Unmarshal(raw, &proc); err != nil {
+			continue
+		}
+		db.DB.Where("host_id = ? AND pid = ?", host.ID, proc.PID).
+			Assign(models.HostProcess{
+				TenantID:   host.TenantID,
+				HostID:     host.ID,
+				PID:        proc.PID,
+				Name:       proc.Name,
+				Username:   proc.Username,
+				CPUPercent: proc.CPUPercent,
+				MemPercent: proc.MemPercent,
+				CollectedAt: now,
+			}).
+			FirstOrCreate(&models.HostProcess{HostID: host.ID, PID: proc.PID})
+	}
+
+	// 存储端口清单
+	for _, raw := range info.NetworkConns {
+		var conn struct {
+			Family    string `json:"family"`
+			Type      string `json:"type"`
+			LocalAddr string `json:"local_addr"`
+			LocalPort int    `json:"local_port"`
+			State     string `json:"state"`
+			PID       int    `json:"pid"`
+		}
+		if err := json.Unmarshal(raw, &conn); err != nil {
+			continue
+		}
+		db.DB.Create(&models.HostPort{
+			TenantID:    host.TenantID,
+			HostID:      host.ID,
+			Family:      conn.Family,
+			Type:        conn.Type,
+			LocalAddr:   conn.LocalAddr,
+			LocalPort:   conn.LocalPort,
+			State:       conn.State,
+			PID:         conn.PID,
+			CollectedAt: now,
+		})
+	}
+
+	// 存储软件包清单（按 name+version 去重）
+	for _, raw := range info.Packages {
+		var pkg struct {
+			Name    string `json:"name"`
+			Version string `json:"version"`
+			Size    int64  `json:"size_bytes"`
+			Source  string `json:"source"`
+		}
+		if err := json.Unmarshal(raw, &pkg); err != nil {
+			continue
+		}
+		db.DB.Where("host_id = ? AND name = ? AND version = ?", host.ID, pkg.Name, pkg.Version).
+			Assign(models.HostPackage{
+				TenantID:   host.TenantID,
+				HostID:     host.ID,
+				Name:       pkg.Name,
+				Version:    pkg.Version,
+				SizeBytes:  pkg.Size,
+				Source:     pkg.Source,
+				CollectedAt: now,
+			}).
+			FirstOrCreate(&models.HostPackage{HostID: host.ID, Name: pkg.Name, Version: pkg.Version})
+	}
 
 	log.Printf("Asset updated: %s (%s)", info.Hostname, info.UUID)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})

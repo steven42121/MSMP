@@ -31,6 +31,8 @@ type AgentInfo struct {
 	DiskPartitions    []DiskPartition   `json:"disk_partitions"`
 	NetworkInterfaces []NetInterface    `json:"network_interfaces"`
 	Processes         []ProcessInfo     `json:"processes"`
+	NetworkConns      []NetConnInfo     `json:"network_connections"`
+	Packages          []PackageInfo     `json:"packages"`
 	GPUs              []GPUInfo         `json:"gpus"`
 	Temperatures      []TemperatureInfo `json:"temperatures"`
 }
@@ -58,6 +60,24 @@ type ProcessInfo struct {
 	Username    string  `json:"username"`
 	CPUPercent  float64 `json:"cpu_percent"`
 	MemPercent  float64 `json:"mem_percent"`
+}
+
+// NetConnInfo 网络连接信息（监听端口）。
+type NetConnInfo struct {
+	Family  string `json:"family"`   // inet, inet6
+	Type    string `json:"type"`     // tcp, udp
+	LocalAddr string `json:"local_addr"`
+	LocalPort int    `json:"local_port"`
+	State   string `json:"state"`    // LISTEN, ESTABLISHED, etc.
+	PID     int32  `json:"pid,omitempty"`
+}
+
+// PackageInfo 已安装软件包信息。
+type PackageInfo struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	Size    int64  `json:"size_bytes"`
+	Source  string `json:"source,omitempty"` // dpkg/rpm/npm/pip 等
 }
 
 type GPUInfo struct {

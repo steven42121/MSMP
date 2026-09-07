@@ -236,6 +236,13 @@ func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
 	case subResource == "agent" && subAction == "upgrade" && r.Method == http.MethodPost:
 		AgentUpgradeHandler(w, r)
 
+	case subResource == "assets" && subAction == "processes" && r.Method == http.MethodGet:
+		HostProcessesHandler(w, r)
+	case subResource == "assets" && subAction == "ports" && r.Method == http.MethodGet:
+		HostPortsHandler(w, r)
+	case subResource == "assets" && subAction == "packages" && r.Method == http.MethodGet:
+		HostPackagesHandler(w, r)
+
 	case r.Method == http.MethodGet:
 		writeJSON(w, http.StatusOK, host)
 

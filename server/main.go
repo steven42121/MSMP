@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -46,6 +47,12 @@ func main() {
 
 	// 初始化集群状态
 	clusterState := clustering.NewClusterState(cfg)
+
+	// 初始化会话录制器
+	sessionsDir := filepath.Join("data", "sessions")
+	os.MkdirAll(sessionsDir, 0755)
+	controllers.InitSessionRecorder("data")
+	log.Println("Session recorder initialized")
 
 	// 启动离线检测
 	go controllers.StartOfflineChecker(cfg.Agent.OfflineAfterSec)
@@ -139,6 +146,16 @@ func main() {
 
 	// 系统维护
 	mux.HandleFunc("/api/maintenance/downsample", controllers.RequireRole([]string{"admin"}, controllers.DownsampleHandler))
+
+	// 会话录制（仅管理员）
+	mux.HandleFunc("/api/sessions", controllers.RequireRole([]string{"admin"}, controllers.SessionRecordingsHandler))
+	mux.HandleFunc("/api/sessions/", controllers.RequireRole([]string{"admin"}, func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/audit") {
+			controllers.SessionAuditHandler(w, r)
+			return
+		}
+		controllers.SessionDownloadHandler(w, r)
+	}))
 
 	// 可用性探测
 	mux.HandleFunc("/api/probes", controllers.RequireRole([]string{"admin", "member"}, controllers.ProbesHandler))

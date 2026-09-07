@@ -298,3 +298,42 @@ type CronLog struct {
 	Status    string    `gorm:"size:16" json:"status"` // running | success | failed
 	Result    string    `gorm:"type:text" json:"result"`
 }
+
+// HostProcess 主机进程清单（从 Agent 资产上报解析存储）。
+type HostProcess struct {
+	ID         uint      `gorm:"primaryKey" json:"id"`
+	TenantID   uint      `gorm:"index;not null" json:"tenant_id"`
+	HostID     uint      `gorm:"index:idx_hp_host_ts,priority:1;not null" json:"host_id"`
+	PID        int       `json:"pid"`
+	Name       string    `gorm:"size:256" json:"name"`
+	Username   string    `gorm:"size:128" json:"username"`
+	CPUPercent float64   `json:"cpu_percent"`
+	MemPercent float64   `json:"mem_percent"`
+	CollectedAt time.Time `gorm:"index:idx_hp_host_ts,priority:2;not null" json:"collected_at"`
+}
+
+// HostPort 主机监听端口清单。
+type HostPort struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	TenantID  uint      `gorm:"index;not null" json:"tenant_id"`
+	HostID    uint      `gorm:"index:idx_hp_port_host_ts,priority:1;not null" json:"host_id"`
+	Family    string    `gorm:"size:8" json:"family"`     // inet, inet6
+	Type      string    `gorm:"size:8" json:"type"`       // tcp, udp
+	LocalAddr string    `gorm:"size:64" json:"local_addr"`
+	LocalPort int       `json:"local_port"`
+	State     string    `gorm:"size:16" json:"state"`
+	PID       int       `json:"pid,omitempty"`
+	CollectedAt time.Time `gorm:"index:idx_hp_port_host_ts,priority:2;not null" json:"collected_at"`
+}
+
+// HostPackage 主机已安装软件包清单。
+type HostPackage struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	TenantID  uint      `gorm:"index;not null" json:"tenant_id"`
+	HostID    uint      `gorm:"index:idx_hp_pkg_host,priority:1;not null" json:"host_id"`
+	Name      string    `gorm:"size:256;index" json:"name"`
+	Version   string    `gorm:"size:128" json:"version"`
+	SizeBytes int64     `json:"size_bytes"`
+	Source    string    `gorm:"size:32" json:"source"` // dpkg, rpm, npm, pip
+	CollectedAt time.Time `gorm:"index:idx_hp_pkg_host,priority:2;not null" json:"collected_at"`
+}
