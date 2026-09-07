@@ -1,28 +1,44 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Card, Select, Space, Spin, Empty, Row, Col, Button, Typography, message, Popconfirm } from 'antd';
-import { LineChartOutlined, DownloadOutlined, ReloadOutlined, BgColorsOutlined } from '@ant-design/icons';
+import { Card, Select, Space, Spin, Empty, Row, Col, Button, Typography, Popconfirm, Tag } from 'antd';
+import { LineChartOutlined, DownloadOutlined, ReloadOutlined, BgColorsOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import dayjs from 'dayjs';
 import client from '../api/client';
 
 const { Text } = Typography;
 
-const durations = [
-  { value: '30m', label: '最近 30 分钟' },
-  { value: '1h', label: '最近 1 小时' },
-  { value: '3h', label: '最近 3 小时' },
-  { value: '6h', label: '最近 6 小时' },
-  { value: '12h', label: '最近 12 小时' },
-  { value: '24h', label: '最近 24 小时' },
-  { value: '7d', label: '最近 7 天' },
-  { value: '30d', label: '最近 30 天' },
+// ── 常量 ────────────────────────────────────────────────────────────────────
+const DURATIONS = [
+  { value: '30m', label: '30 分钟' },
+  { value: '1h',  label: '1 小时'  },
+  { value: '3h',  label: '3 小时'  },
+  { value: '6h',  label: '6 小时'  },
+  { value: '12h', label: '12 小时' },
+  { value: '24h', label: '24 小时' },
+  { value: '7d',  label: '7 天'    },
+  { value: '30d', label: '30 天'   },
 ];
 
-const metricColors = ['#667eea', '#764ba2', '#52c41a', '#faad14', '#ff4d4f', '#1890ff'];
+const METRIC_COLORS = ['#667eea', '#764ba2', '#52c41a', '#faad14', '#ff4d4f', '#1890ff', '#722ed1', '#a6ee3c'];
 
-function buildOption(title, data, field, unit) {
+// ── 工具函数 ────────────────────────────────────────────────────────────────
+function fmtBytes(bytes) {
+  if (!bytes || bytes <= 0) return '0 B';
+  const k = 1024, sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function fmtNet(v) {
+  if (!v) return '0 B/s';
+  if (v >= 1e6) return (v / 1e6).toFixed(2) + ' MB/s';
+  if (v >= 1e3) return (v / 1e3).toFixed(1) + ' KB/s';
+  return v.toFixed(0) + ' B/s';
+}
+
+// 生成单线图 ECharts 配置
+function buildLineOption(title, data, field, unit, color) {
   const times = data.map((d) => dayjs(d.timestamp).format('HH:mm:ss'));
-  const values = data.map((d) => d[field]);
   return {
     title: { text: title, left: 'center', textStyle: { fontSize: 13 } },
     tooltip: { trigger: 'axis' },
@@ -34,30 +50,43 @@ function buildOption(title, data, field, unit) {
       splitLine: { lineStyle: { type: 'dashed', color: 'rgba(0,0,0,0.06)' } },
     },
     series: [{
-      name: title, type: 'line', data: values, smooth: true,
-      showSymbol: false,
-      areaStyle: { opacity: 0.12 },
-      itemStyle: { color: metricColors[0] },
+      name: title, type: 'line', data: data.map((d) => d[field]),
+      smooth: true, showSymbol: false,
+      areaStyle: { opacity: 0.1 },
+      itemStyle: { color },
       lineStyle: { width: 2.5 },
     }],
   };
 }
 
-function formatNet(v) {
-  if (!v) return '0 B/s';
-  if (v >= 1e6) return (v / 1e6).toFixed(2) + ' MB/s';
-  if (v >= 1e3) return (v / 1e3).toFixed(2) + ' KB/s';
-  return v.toFixed(0) + ' B/s';
+// ── 子组件：指标卡片 ─────────────────────────────────────────────────────────
+function MetricChart({ title, iconColor, option, height = 260, extra }) {
+  return (
+    <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
+      title={<Space><LineChartOutlined style={{ color: iconColor }} /><span>{title}</span></Space>}
+      extra={extra}
+    >
+      <ReactECharts option={option} style={{ height }} />
+    </Card>
+  );
 }
 
-function formatBytes(bytes) {
-  if (bytes === null || bytes === undefined || isNaN(bytes) || bytes <= 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+// ── 子组件：资产卡片（GPU / 温度） ───────────────────────────────────────────
+function SensorCard({ title, iconColor, loading, onRefresh, emptyMsg, renderContent }) {
+  return (
+    <Col xs={24} md={12}>
+      <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
+        title={<Space><LineChartOutlined style={{ color: iconColor }} /><span>{title}</span></Space>}
+        loading={loading}
+        extra={<Button size="small" onClick={onRefresh} loading={loading}>刷新</Button>}
+      >
+        {renderContent()}
+      </Card>
+    </Col>
+  );
 }
 
+// ── 主页面 ──────────────────────────────────────────────────────────────────
 export default function Monitor() {
   const [hosts, setHosts] = useState([]);
   const [hostUUID, setHostUUID] = useState();
@@ -70,51 +99,11 @@ export default function Monitor() {
   const [assetLoading, setAssetLoading] = useState(false);
   const [flushing, setFlushing] = useState(false);
 
-  const handleFlushCaches = async () => {
-    if (!hostUUID || !currentHost) return;
-    setFlushing(true);
-    try {
-      const resp = await client.post()('/maintenance/flush-caches', {
-        host_uuid: hostUUID,
-        cache_type: 'all',
-      });
-      const taskId = resp.task_id;
-      message.loading({ content: '清理缓存任务已提交，等待执行...', key: 'flush', duration: 0 });
-
-      // 轮询任务结果（最多等 60 秒）
-      let done = false;
-      for (let i = 0; i < 20; i++) {
-        await new Promise((r) => setTimeout(r, 3000));
-        try {
-          const task = await client.get()(`/tasks/${taskId}`);
-          if (task.status === 'success') {
-            message.success({ content: '缓存清理完成', key: 'flush', duration: 4 });
-            done = true;
-            break;
-          } else if (task.status === 'failed') {
-            message.error({ content: '清理失败：' + (task.result || '未知错误'), key: 'flush', duration: 8 });
-            done = true;
-            break;
-          }
-        } catch (e) {
-          // 轮询暂时失败，继续重试
-        }
-      }
-      if (!done) {
-        message.warning({ content: '任务仍在执行，可稍后在「任务」页查看结果', key: 'flush', duration: 4 });
-      }
-      loadMetrics();
-    } catch (e) {
-      message.error('提交失败：' + (e.message || '请重试'));
-    } finally {
-      setFlushing(false);
-    }
-  };
-
-  useEffect(() => {
+  // ── 数据加载 ────────────────────────────────────────────────────────────
+  const loadHosts = useCallback(() => {
     client.get()('/hosts', { params: { page_size: 100 } })
       .then((resp) => {
-        const data = resp.data || [];
+        const data = resp.data || resp || [];
         setHosts(data);
         if (data.length) {
           setHostUUID(data[0].uuid);
@@ -128,19 +117,10 @@ export default function Monitor() {
     if (!hostUUID) return;
     setAssetLoading(true);
     client.get()(`/hosts/${hostUUID}/assets`)
-      .then((resp) => {
-        const data = Array.isArray(resp) ? resp : (resp.data || []);
-        setAssets(data);
-      })
+      .then((resp) => setAssets(Array.isArray(resp) ? resp : (resp.data || [])))
       .catch(() => setAssets([]))
       .finally(() => setAssetLoading(false));
   }, [hostUUID]);
-
-  useEffect(() => { loadAssets(); }, [loadAssets]);
-  useEffect(() => {
-    const timer = setInterval(loadAssets, 5 * 60 * 1000); // 5分钟刷新
-    return () => clearInterval(timer);
-  }, [loadAssets]);
 
   const loadMetrics = useCallback(() => {
     if (!hostUUID) return;
@@ -151,39 +131,78 @@ export default function Monitor() {
       .finally(() => setLoading(false));
   }, [hostUUID, duration]);
 
-  useEffect(() => { loadMetrics(); }, [loadMetrics]);
+  // 初始化：加载主机列表，选中第一台后自动加载指标和资产
+  useEffect(() => {
+    loadHosts();
+  }, [loadHosts]);
 
   useEffect(() => {
     if (!hostUUID) return;
-    const timer = setInterval(loadMetrics, 30000);
-    return () => clearInterval(timer);
-  }, [hostUUID, loadMetrics]);
+    loadMetrics();
+    loadAssets();
+  }, [hostUUID, loadMetrics, loadAssets]);
 
-  const cpuOption = useMemo(() => buildOption('CPU 使用率 (%)', metrics, 'cpu_percent', '%'), [metrics]);
-  const memOption = useMemo(() => buildOption('内存使用率 (%)', metrics, 'mem_percent', '%'), [metrics]);
-  const loadOption = useMemo(() => buildOption('系统负载 (1min)', metrics, 'load1', ''), [metrics]);
-  const procOption = useMemo(() => buildOption('进程数', metrics, 'process_count', ''), [metrics]);
-  const diskIOOption = useMemo(() => {
+  // 定时刷新
+  useEffect(() => {
+    if (!hostUUID) return;
+    const mt = setInterval(loadMetrics, 30_000);
+    const at = setInterval(loadAssets, 5 * 60_000);
+    return () => { clearInterval(mt); clearInterval(at); };
+  }, [hostUUID, loadMetrics, loadAssets]);
+
+  // ── 缓存清理 ────────────────────────────────────────────────────────────
+  const handleFlushCaches = async () => {
+    if (!hostUUID || !currentHost) return;
+    setFlushing(true);
+    try {
+      const resp = await client.post()('/maintenance/flush-caches', {
+        host_uuid: hostUUID, cache_type: 'all',
+      });
+      const taskId = resp.task_id;
+      message.loading({ content: '清理缓存任务已提交，等待执行...', key: 'flush', duration: 0 });
+      for (let i = 0; i < 20; i++) {
+        await new Promise((r) => setTimeout(r, 3_000));
+        try {
+          const task = await client.get()(`/tasks/${taskId}`);
+          if (task.status === 'success') {
+            message.success({ content: '缓存清理完成', key: 'flush', duration: 4 });
+            break;
+          }
+          if (task.status === 'failed') {
+            message.error({ content: '清理失败：' + (task.result || '未知错误'), key: 'flush', duration: 8 });
+            break;
+          }
+        } catch {}
+      }
+      loadMetrics();
+    } catch (e) {
+      message.error('提交失败：' + (e.message || '请重试'));
+    } finally {
+      setFlushing(false);
+    }
+  };
+
+  // ── 图表选项（memo） ────────────────────────────────────────────────────
+  const charts = useMemo(() => {
+    if (!metrics.length) return null;
+    const mk = (title, field, unit, color) => buildLineOption(title, metrics, field, unit, color);
     const times = metrics.map((d) => dayjs(d.timestamp).format('HH:mm:ss'));
-    return {
+
+    const diskIO = {
       title: { text: '磁盘 IO (累计)', left: 'center', textStyle: { fontSize: 13 } },
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['读取', '写入'], bottom: 4 },
+      tooltip: { trigger: 'axis' }, legend: { data: ['读取', '写入'], bottom: 4 },
       grid: { left: 60, right: 24, top: 40, bottom: 40 },
       xAxis: { type: 'category', data: times, axisLabel: { fontSize: 10 } },
-      yAxis: { type: 'value', axisLabel: { formatter: formatBytes } },
+      yAxis: { type: 'value', axisLabel: { formatter: fmtBytes } },
       series: [
         { name: '读取', type: 'line', data: metrics.map((d) => d.disk_read_bytes), smooth: true, showSymbol: false, lineStyle: { width: 2 }, itemStyle: { color: '#52c41a' }, areaStyle: { opacity: 0.1 } },
         { name: '写入', type: 'line', data: metrics.map((d) => d.disk_write_bytes), smooth: true, showSymbol: false, lineStyle: { width: 2 }, itemStyle: { color: '#faad14' }, areaStyle: { opacity: 0.1 } },
       ],
     };
-  }, [metrics]);
-  const netPktsOption = useMemo(() => {
-    const times = metrics.map((d) => dayjs(d.timestamp).format('HH:mm:ss'));
-    return {
+
+    const netPkts = {
       title: { text: '网络包计数 (累计)', left: 'center', textStyle: { fontSize: 13 } },
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['收包', '发包'], bottom: 4 },
+      tooltip: { trigger: 'axis' }, legend: { data: ['收包', '发包'], bottom: 4 },
       grid: { left: 60, right: 24, top: 40, bottom: 40 },
       xAxis: { type: 'category', data: times, axisLabel: { fontSize: 10 } },
       yAxis: { type: 'value' },
@@ -192,77 +211,73 @@ export default function Monitor() {
         { name: '发包', type: 'line', data: metrics.map((d) => d.net_pkts_sent), smooth: true, showSymbol: false, lineStyle: { width: 2 }, itemStyle: { color: '#722ed1' } },
       ],
     };
-  }, [metrics]);
-  const netOption = useMemo(() => {
-    const times = metrics.map((d) => dayjs(d.timestamp).format('HH:mm:ss'));
-    return {
+
+    const net = {
       title: { text: '网络流量', left: 'center', textStyle: { fontSize: 13 } },
       tooltip: {
         trigger: 'axis',
         formatter: (params) => {
           let s = `<span style="font-weight:600">${params[0].axisValue}</span><br/>`;
-          params.forEach((p) => {
-            s += `${p.marker}${p.seriesName}: <b>${formatNet(p.value)}</b><br/>`;
-          });
+          params.forEach((p) => { s += `${p.marker}${p.seriesName}: <b>${fmtNet(p.value)}</b><br/>`; });
           return s;
         },
       },
       legend: { data: ['入站', '出站'], bottom: 4, textStyle: { fontSize: 11 } },
       grid: { left: 60, right: 24, top: 40, bottom: 40 },
       xAxis: { type: 'category', data: times, axisLabel: { fontSize: 10 } },
-      yAxis: {
-        type: 'value', axisLabel: { formatter: formatNet },
-        splitLine: { lineStyle: { type: 'dashed', color: 'rgba(0,0,0,0.06)' } },
-      },
+      yAxis: { type: 'value', axisLabel: { formatter: fmtNet }, splitLine: { lineStyle: { type: 'dashed', color: 'rgba(0,0,0,0.06)' } } },
       series: [
         { name: '入站', type: 'line', data: metrics.map((d) => d.net_rx_bps), smooth: true, showSymbol: false, lineStyle: { width: 2.5 }, itemStyle: { color: '#667eea' }, areaStyle: { opacity: 0.1 } },
         { name: '出站', type: 'line', data: metrics.map((d) => d.net_tx_bps), smooth: true, showSymbol: false, lineStyle: { width: 2.5 }, itemStyle: { color: '#764ba2' }, areaStyle: { opacity: 0.1 } },
       ],
     };
+
+    return { cpu: mk('CPU 使用率 (%)', 'cpu_percent', '%', METRIC_COLORS[0]),
+             mem: mk('内存使用率 (%)', 'mem_percent', '%', METRIC_COLORS[1]),
+             load: mk('系统负载 (1min)', 'load1', '', METRIC_COLORS[3]),
+             proc: mk('进程数', 'process_count', '', METRIC_COLORS[5]),
+             diskIO, netPkts, net };
   }, [metrics]);
 
-  const currentStats = useMemo(() => {
+  // ── 实时统计条 ──────────────────────────────────────────────────────────
+  const stats = useMemo(() => {
     if (!metrics.length) return null;
-    const last = metrics[metrics.length - 1];
+    const l = metrics[metrics.length - 1];
     return {
-      cpu: last.cpu_percent?.toFixed(1) + '%',
-      mem: last.mem_percent?.toFixed(1) + '%',
-      swap: last.swap_used && last.swap_total
-        ? ((last.swap_used / last.swap_total) * 100).toFixed(1) + '%'
-        : '-',
-      disk: last.disk_used && last.disk_total
-        ? ((last.disk_used / last.disk_total) * 100).toFixed(1) + '%'
-        : '-',
-      load: last.load1?.toFixed(2) || '-',
-      procs: last.process_count?.toString() || '-',
-      diskR: formatBytes(last.disk_read_bytes),
-      diskW: formatBytes(last.disk_write_bytes),
-      rx: formatNet(last.net_rx_bps),
-      tx: formatNet(last.net_tx_bps),
-      pktsR: last.net_pkts_recv?.toLocaleString() || '-',
-      pktsT: last.net_pkts_sent?.toLocaleString() || '-',
+      cpu: l.cpu_percent?.toFixed(1) + '%',
+      mem: l.mem_percent?.toFixed(1) + '%',
+      swap: (l.swap_used && l.swap_total) ? ((l.swap_used / l.swap_total) * 100).toFixed(1) + '%' : '-',
+      disk: (l.disk_used && l.disk_total) ? ((l.disk_used / l.disk_total) * 100).toFixed(1) + '%' : '-',
+      load: l.load1?.toFixed(2) || '-',
+      procs: l.process_count?.toString() || '-',
+      diskR: fmtBytes(l.disk_read_bytes),
+      diskW: fmtBytes(l.disk_write_bytes),
+      rx: fmtNet(l.net_rx_bps),
+      tx: fmtNet(l.net_tx_bps),
+      pktsR: l.net_pkts_recv?.toLocaleString() || '-',
+      pktsT: l.net_pkts_sent?.toLocaleString() || '-',
     };
   }, [metrics]);
 
-  const handleExport = () => {
+  // ── CSV 导出 ────────────────────────────────────────────────────────────
+  const handleExport = useCallback(() => {
     if (!metrics.length) return;
     const header = 'timestamp,cpu_percent,mem_percent,mem_used,mem_total,disk_used,disk_total,net_rx_bps,net_tx_bps,load1\n';
-    const lines = metrics.map((d) => [
-      d.timestamp, d.cpu_percent, d.mem_percent, d.mem_used, d.mem_total,
-      d.disk_used, d.disk_total, d.net_rx_bps, d.net_tx_bps, d.load1,
-    ].join(',')).join('\n');
+    const lines = metrics.map((d) => [d.timestamp, d.cpu_percent, d.mem_percent, d.mem_used, d.mem_total,
+      d.disk_used, d.disk_total, d.net_rx_bps, d.net_tx_bps, d.load1].join(',')).join('\n');
     const blob = new Blob([header + lines], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = URL.createObjectURL(blob);
     a.download = `metrics_${hostUUID || 'unknown'}.csv`;
     a.click();
-    URL.revokeObjectURL(url);
-  };
+    URL.revokeObjectURL(a.href);
+  }, [metrics, hostUUID]);
+
+  // ── 渲染 ────────────────────────────────────────────────────────────────
+  const latestAsset = assets[0];
 
   return (
     <div>
-      {/* Page header */}
       <div className="page-header" style={{ marginBottom: 24 }}>
         <div>
           <div className="page-title">监控</div>
@@ -270,258 +285,147 @@ export default function Monitor() {
         </div>
       </div>
 
-      {/* Controls */}
+      {/* 控制面板 */}
       <Card className="liquid-glass" style={{ marginBottom: 16, borderRadius: 16, border: 'none' }}>
         <Space wrap className="filter-bar">
-          <Select
-            showSearch
-            style={{ width: 320 }}
-            placeholder="选择主机"
-            optionFilterProp="label"
-            value={hostUUID}
-            onChange={(v) => {
-              setHostUUID(v);
-              setMetrics([]);
-              setCurrentHost(hosts.find(h => h.uuid === v) || null);
-            }}
-            options={hosts.map((h) => ({
-              value: h.uuid,
-              label: `${h.hostname || '未知主机'} (${h.ip || '-'})`,
-            }))}
-          />
-          <Select
-            style={{ width: 160 }}
-            value={duration}
-            onChange={setDuration}
-            options={durations}
-          />
-          <Button onClick={loadMetrics} loading={loading} icon={<ReloadOutlined />} style={{ borderRadius: 8 }}>
-            刷新
-          </Button>
-          <Button
-            onClick={handleExport} disabled={!metrics.length}
-            icon={<DownloadOutlined />} style={{ borderRadius: 8 }}
-          >
-            导出 CSV
-          </Button>
-          {lastUpdate && (
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              最后更新：{dayjs(lastUpdate).format('HH:mm:ss')}
-            </Text>
-          )}
+          <Select showSearch style={{ width: 320 }} placeholder="选择主机" optionFilterProp="label"
+            value={hostUUID} onChange={(v) => { setHostUUID(v); setMetrics([]); setCurrentHost(hosts.find(h => h.uuid === v) || null); }}
+            options={hosts.map((h) => ({ value: h.uuid, label: `${h.hostname || '未知主机'} (${h.ip || '-'})` }))} />
+          <Select style={{ width: 140 }} value={duration} onChange={setDuration} options={DURATIONS} />
+          <Button onClick={loadMetrics} loading={loading} icon={<ReloadOutlined />} style={{ borderRadius: 8 }}>刷新</Button>
+          <Button onClick={handleExport} disabled={!metrics.length} icon={<DownloadOutlined />} style={{ borderRadius: 8 }}>导出 CSV</Button>
+          {lastUpdate && <Text type="secondary" style={{ fontSize: 12 }}>最后更新：{dayjs(lastUpdate).format('HH:mm:ss')}</Text>}
         </Space>
       </Card>
 
-      {/* Current stats bar */}
-      {currentStats && metrics.length > 0 && (
+      {/* 实时统计条 */}
+      {stats && (
         <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
           {[
-            { label: 'CPU', value: currentStats.cpu, color: '#667eea' },
-            { label: '内存', value: currentStats.mem, color: '#764ba2' },
-            { label: '交换', value: currentStats.swap, color: '#faad14' },
-            { label: '磁盘', value: currentStats.disk, color: '#52c41a' },
-            { label: '进程', value: currentStats.procs, color: '#1890ff' },
-            { label: '负载', value: currentStats.load, color: '#ff4d4f' },
-            { label: '磁盘读', value: currentStats.diskR, color: '#a6ee3c' },
-            { label: '磁盘写', value: currentStats.diskW, color: '#f9e2af' },
-            { label: '入站', value: currentStats.rx, color: '#667eea' },
-            { label: '出站', value: currentStats.tx, color: '#764ba2' },
-            { label: '收包', value: currentStats.pktsR, color: '#1890ff' },
-            { label: '发包', value: currentStats.pktsT, color: '#722ed1' },
-].map((s) => (
-            <Col key={s.label} xs={12} sm={8} md={4} lg={3}>
-              <div style={{
-                textAlign: 'center', padding: '8px 4px',
-                background: s.color + '10', borderRadius: 8,
-                border: `1px solid ${s.color}30`,
-              }}>
-                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 2 }}>{s.label}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: s.color, wordBreak: 'break-all' }}>{s.value}</div>
+            { label: 'CPU',    value: stats.cpu,    color: '#667eea' },
+            { label: '内存',   value: stats.mem,    color: '#764ba2' },
+            { label: '交换',   value: stats.swap,   color: '#faad14' },
+            { label: '磁盘',   value: stats.disk,   color: '#52c41a' },
+            { label: '进程',   value: stats.procs,  color: '#1890ff' },
+            { label: '负载',   value: stats.load,   color: '#ff4d4f' },
+            { label: '磁盘读', value: stats.diskR,  color: '#a6ee3c' },
+            { label: '磁盘写', value: stats.diskW,  color: '#f9e2af' },
+            { label: '入站',   value: stats.rx,     color: '#667eea' },
+            { label: '出站',   value: stats.tx,     color: '#764ba2' },
+            { label: '收包',   value: stats.pktsR,  color: '#1890ff' },
+            { label: '发包',   value: stats.pktsT,  color: '#722ed1' },
+          ].map(({ label, value, color }) => (
+            <Col key={label} xs={12} sm={8} md={4} lg={3}>
+              <div style={{ textAlign: 'center', padding: '8px 4px', background: color + '10', borderRadius: 8, border: `1px solid ${color}30` }}>
+                <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 2 }}>{label}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color, wordBreak: 'break-all' }}>{value}</div>
               </div>
             </Col>
           ))}
-         </Row>
-       )}
+        </Row>
+      )}
 
-       {!hostUUID ? (
-        <Empty description="请选择主机" style={{ margin: '80px 0' }} />
-      ) : loading && metrics.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '100px 0' }}>
-          <Spin size="large" />
-        </div>
-      ) : metrics.length === 0 ? (
-        <Empty description="暂无监控数据" style={{ margin: '80px 0' }} />
-       ) : (
-         <>
-         <Row gutter={[16, 16]}>
-           <Col xs={24} md={12}>
-             <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-               title={<Space><LineChartOutlined style={{ color: '#667eea' }} /><span>CPU 使用率</span></Space>}
-             >
-               <ReactECharts option={cpuOption} style={{ height: 260 }} />
-             </Card>
-           </Col>
-<Col xs={24} md={12}>
-              <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-                title={<Space><LineChartOutlined style={{ color: '#764ba2' }} /><span>内存使用率</span></Space>}
-                extra={
-                  <Popconfirm
-                    title="确认清理内存缓存？"
-                    description="将释放页缓存、目录缓存和索引节点缓存"
-                    onConfirm={handleFlushCaches}
-                    okText="清理"
-                    cancelText="取消"
-                    disabled={flushing}
-                  >
-                    <Button
-                      type="primary"
-                      size="small"
-                      icon={<BgColorsOutlined />}
-                      loading={flushing}
-                      disabled={flushing}
-                    >
-                      清理缓存
-                    </Button>
-                  </Popconfirm>
-                }
-              >
-                <ReactECharts option={memOption} style={{ height: 260 }} />
-              </Card>
-            </Col>
-           <Col xs={24} md={12}>
-             <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-               title={<Space><LineChartOutlined style={{ color: '#faad14' }} /><span>系统负载</span></Space>}
-             >
-               <ReactECharts option={loadOption} style={{ height: 260 }} />
-             </Card>
-           </Col>
-           <Col xs={24} md={12}>
-             <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-               title={<Space><LineChartOutlined style={{ color: '#52c41a' }} /><span>网络流量</span></Space>}
-             >
-               <ReactECharts option={netOption} style={{ height: 260 }} />
-             </Card>
-           </Col>
-         </Row>
-         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-           <Col xs={24} md={8}>
-             <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-               title={<Space><LineChartOutlined style={{ color: '#1890ff' }} /><span>进程数</span></Space>}
-             >
-               <ReactECharts option={procOption} style={{ height: 220 }} />
-             </Card>
-           </Col>
-           <Col xs={24} md={8}>
-             <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-               title={<Space><LineChartOutlined style={{ color: '#faad14' }} /><span>磁盘 IO</span></Space>}
-             >
-               <ReactECharts option={diskIOOption} style={{ height: 220 }} />
-             </Card>
-           </Col>
-           <Col xs={24} md={8}>
-             <Card className="liquid-glass" style={{ borderRadius: 16, border: 'none' }}
-               title={<Space><LineChartOutlined style={{ color: '#722ed1' }} /><span>网络包</span></Space>}
-             >
-               <ReactECharts option={netPktsOption} style={{ height: 220 }} />
-             </Card>
-           </Col>
-         </Row>
-          </>
-        )}
+      {/* 图表区 */}
+      {!hostUUID
+        ? <Empty description="请选择主机" style={{ margin: '80px 0' }} />
+        : loading && !metrics.length
+          ? <div style={{ textAlign: 'center', padding: '100px 0' }}><Spin size="large" /></div>
+          : !metrics.length
+            ? <Empty description="暂无监控数据" style={{ margin: '80px 0' }} />
+            : charts && (
+              <>
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} md={12}>
+                    <MetricChart title="CPU 使用率" iconColor="#667eea" option={charts.cpu} />
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <MetricChart
+                      title="内存使用率" iconColor="#764ba2" option={charts.mem} height={260}
+                      extra={
+                        <Popconfirm title="确认清理内存缓存？" description="将释放页缓存、目录缓存和索引节点缓存"
+                          onConfirm={handleFlushCaches} okText="清理" cancelText="取消" disabled={flushing}>
+                          <Button type="primary" size="small" icon={<BgColorsOutlined />} loading={flushing} disabled={flushing}>清理缓存</Button>
+                        </Popconfirm>
+                      }
+                    />
+                  </Col>
+                </Row>
+                <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                  <Col xs={24} md={12}>
+                    <MetricChart title="系统负载" iconColor="#faad14" option={charts.load} />
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <MetricChart title="网络流量" iconColor="#52c41a" option={charts.net} />
+                  </Col>
+                </Row>
+                <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                  <Col xs={24} md={8}>
+                    <MetricChart title="进程数" iconColor="#1890ff" option={charts.proc} height={220} />
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <MetricChart title="磁盘 IO" iconColor="#faad14" option={charts.diskIO} height={220} />
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <MetricChart title="网络包" iconColor="#722ed1" option={charts.netPkts} height={220} />
+                  </Col>
+                </Row>
+              </>
+            )
+      }
 
-        {/* GPU & Temperature Assets */}
-        {hostUUID && (
-          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-            <Col xs={24} md={12}>
-              <Card
-                className="liquid-glass"
-                style={{ borderRadius: 16, border: 'none' }}
-                title={<Space><LineChartOutlined style={{ color: '#52c41a' }} /><span>GPU 信息</span></Space>}
-                loading={assetLoading}
-                extra={<Button size="small" onClick={loadAssets} loading={assetLoading}>刷新</Button>}
-              >
-                {assets.length === 0 ? (
-                  <Empty description="暂无资产数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-                ) : (
-                  (() => {
-                    const latest = assets[0];
-                    const gpus = latest?.gpus || [];
-                    if (gpus.length === 0) {
-                      return <Text type="secondary">未检测到 GPU</Text>;
-                    }
+      {/* GPU & 温度 */}
+      {hostUUID && (
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <SensorCard title="GPU 信息" iconColor="#52c41a" loading={assetLoading} onRefresh={loadAssets}
+            emptyMsg="未检测到 GPU"
+            renderContent={() => {
+              const gpus = latestAsset?.gpus || [];
+              if (!gpus.length) return <Text type="secondary">未检测到 GPU</Text>;
+              return (
+                <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                  {gpus.map((gpu, i) => (
+                    <div key={i} style={{ padding: '8px 12px', background: 'rgba(82,196,26,0.08)', borderRadius: 8, marginBottom: 8 }}>
+                      <div style={{ fontWeight: 600, marginBottom: 4 }}>{gpu.name || `GPU ${i + 1}`}</div>
+                      <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>
+                        <div>厂商: {gpu.vendor || '-'}</div>
+                        <div>显存: {gpu.memory_total ? fmtBytes(gpu.memory_total) : '-'} / {gpu.memory_used ? fmtBytes(gpu.memory_used) : '-'}</div>
+                        <div>温度: {gpu.temperature_c != null ? `${gpu.temperature_c}°C` : '-'}</div>
+                        <div>利用率: {gpu.utilization_gpu != null ? `${gpu.utilization_gpu}%` : '-'}</div>
+                        {gpu.driver_version && <div>驱动: {gpu.driver_version}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            }}
+          />
+          <SensorCard title="温度传感器" iconColor="#faad14" loading={assetLoading} onRefresh={loadAssets}
+            emptyMsg="未检测到温度传感器"
+            renderContent={() => {
+              const temps = latestAsset?.temperatures || [];
+              if (!temps.length) return <Text type="secondary">未检测到温度传感器</Text>;
+              return (
+                <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                  {temps.map((t, i) => {
+                    const isHigh = t.temp > (t.critical || 90);
+                    const isWarn = t.temp > (t.high || 70);
                     return (
-                      <div style={{ maxHeight: 200, overflowY: 'auto' }}>
-                        {gpus.map((gpu, idx) => (
-                          <div key={idx} style={{
-                            padding: '8px 12px',
-                            background: 'rgba(82,196,26,0.08)',
-                            borderRadius: 8,
-                            marginBottom: 8,
-                          }}>
-                            <div style={{ fontWeight: 600, marginBottom: 4 }}>{gpu.name || `GPU ${idx + 1}`}</div>
-                            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>
-                              <div>厂商: {gpu.vendor || '-'}</div>
-                              <div>显存: {gpu.memory_total ? formatBytes(gpu.memory_total) : '-'} / {gpu.memory_used ? formatBytes(gpu.memory_used) : '-'}</div>
-                              <div>温度: {gpu.temperature_c != null ? `${gpu.temperature_c}°C` : '-'}</div>
-                              <div>利用率: {gpu.utilization_gpu != null ? `${gpu.utilization_gpu}%` : '-'}</div>
-                              {gpu.driver_version && <div>驱动: {gpu.driver_version}</div>}
-                            </div>
-                          </div>
-                        ))}
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px',
+                        background: isHigh ? 'rgba(255,77,79,0.1)' : isWarn ? 'rgba(250,173,20,0.1)' : 'rgba(82,196,26,0.08)',
+                        borderRadius: 6, marginBottom: 4 }}>
+                        <span style={{ fontSize: 13 }}>{t.sensor_key || `Sensor ${i + 1}`}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: isHigh ? '#ff4d4f' : isWarn ? '#faad14' : '#52c41a' }}>
+                          {t.temp != null ? `${t.temp}°C` : '-'}
+                        </span>
                       </div>
                     );
-                  })()
-                )}
-              </Card>
-            </Col>
-            <Col xs={24} md={12}>
-              <Card
-                className="liquid-glass"
-                style={{ borderRadius: 16, border: 'none' }}
-                title={<Space><LineChartOutlined style={{ color: '#faad14' }} /><span>温度传感器</span></Space>}
-                loading={assetLoading}
-                extra={<Button size="small" onClick={loadAssets} loading={assetLoading}>刷新</Button>}
-              >
-                {assets.length === 0 ? (
-                  <Empty description="暂无资产数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-                ) : (
-                  (() => {
-                    const latest = assets[0];
-                    const temps = latest?.temperatures || [];
-                    if (temps.length === 0) {
-                      return <Text type="secondary">未检测到温度传感器</Text>;
-                    }
-                    return (
-                      <div style={{ maxHeight: 200, overflowY: 'auto' }}>
-                        {temps.map((t, idx) => (
-                          <div key={idx} style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            padding: '6px 12px',
-                            background: t.temp > (t.critical || 90) ? 'rgba(255,77,79,0.1)' :
-                                       t.temp > (t.high || 70) ? 'rgba(250,173,20,0.1)' : 'rgba(82,196,26,0.08)',
-                            borderRadius: 6,
-                            marginBottom: 4,
-                          }}>
-                            <span style={{ fontSize: 13 }}>{t.sensor_key || `Sensor ${idx + 1}`}</span>
-                            <span style={{
-                              fontSize: 13,
-                              fontWeight: 600,
-                              color: t.temp > (t.critical || 90) ? '#ff4d4f' :
-                                     t.temp > (t.high || 70) ? '#faad14' : '#52c41a',
-                            }}>
-                              {t.temp != null ? `${t.temp}°C` : '-'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()
-                )}
-              </Card>
-            </Col>
-          </Row>
-        )}
-     </div>
+                  })}
+                </div>
+              );
+            }}
+          />
+        </Row>
+      )}
+    </div>
   );
 }
