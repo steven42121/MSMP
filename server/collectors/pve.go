@@ -51,7 +51,6 @@ func (p *PVEChannel) Probe(ctx context.Context, b *models.ChannelBinding, cred C
 		pr, _ := classify(err)
 		return pr, err
 	}
-	defer client.Logout()
 
 	info, err := client.Version(ctx)
 	if err != nil {
@@ -72,7 +71,6 @@ func (p *PVEChannel) Collect(ctx context.Context, b *models.ChannelBinding, cred
 	if err != nil {
 		return CollectResult{}, err
 	}
-	defer client.Logout()
 
 	var result CollectResult
 

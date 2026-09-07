@@ -23,7 +23,7 @@ type SecurityConfig struct {
 	MaxLoginAttempts   int      `mapstructure:"max_login_attempts"`
 	LoginLockoutSec    int      `mapstructure:"login_lockout_sec"`
 	RateLimitPerMin    int      `mapstructure:"rate_limit_per_min"`
-	PVEReadyVerify     bool     `mapstructure:"pve_insecure_verify"`
+	PVEInsecureSkipVerify bool     `mapstructure:"pve_insecure_verify"`
 }
 
 type RetentionConfig struct {

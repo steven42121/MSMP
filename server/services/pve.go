@@ -17,6 +17,20 @@ import (
 	"MSMP/server/config"
 )
 
+// pveHTTPClient 包级共享 HTTP 客户端，复用连接池避免每次采集新建连接。
+var pveHTTPClient = func() *http.Client {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: !config.C.Security.PVEInsecureSkipVerify},
+		MaxIdleConns:        32,
+		MaxIdleConnsPerHost: 8,
+		IdleConnTimeout:     90 * time.Second,
+	}
+	return &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: transport,
+	}
+}()
+
 // PVEClient 封装 Proxmox VE REST API（/api2/json）。
 type PVEClient struct {
 	baseURL  string
@@ -24,7 +38,6 @@ type PVEClient struct {
 	password string
 	ticket   string
 	csrf     string
-	http     *http.Client
 	mu       sync.Mutex
 }
 
@@ -124,14 +137,6 @@ func NewPVEClient(ctx context.Context, address, username, password string) (*PVE
 		baseURL:  parsePVEAddress(address),
 		username: username,
 		password: password,
-		http: &http.Client{
-			Timeout: 30 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: !config.C.Security.PVEReadyVerify,
-				},
-			},
-		},
 	}
 	if err := c.login(ctx); err != nil {
 		return nil, err
@@ -152,7 +157,7 @@ func (c *PVEClient) login(ctx context.Context) error {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := c.http.Do(req)
+	resp, err := pveHTTPClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("unreachable:连接 PVE 失败: %w", err)
 	}
@@ -189,7 +194,7 @@ func (c *PVEClient) login(ctx context.Context) error {
 	return nil
 }
 
-// Logout 退出登录（PVE API 无显式 logout 端点需求，保留以对齐调用方）。
+// Logout 留空（共享连接池无需逐次注销）。
 func (c *PVEClient) Logout() {}
 
 // do 执行带认证的 API 请求并解码 data 字段。
@@ -221,7 +226,7 @@ func (c *PVEClient) do(ctx context.Context, method, path string, body url.Values
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	resp, err := c.http.Do(req)
+	resp, err := pveHTTPClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("unreachable:请求 PVE 失败: %w", err)
 	}

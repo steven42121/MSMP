@@ -71,7 +71,6 @@ func PVEGuestsHandler(w http.ResponseWriter, r *http.Request, host *models.Host,
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 		return
 	}
-	defer client.Logout()
 
 	guests, err := client.ListGuests(r.Context())
 	if err != nil {
@@ -120,7 +119,6 @@ func PVEGuestPowerHandler(w http.ResponseWriter, r *http.Request, host *models.H
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 		return
 	}
-	defer client.Logout()
 
 	if err := client.PowerGuest(r.Context(), req.Node, req.GuestType, req.VMID, req.Action); err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
@@ -155,7 +153,6 @@ func PVEStorageHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 		return
 	}
-	defer client.Logout()
 
 	storages, err := client.ListStorage(r.Context())
 	if err != nil {
