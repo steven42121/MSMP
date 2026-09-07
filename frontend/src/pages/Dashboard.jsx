@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Row, Col, Card, Statistic, Table, Button, List, Tag, Space, Typography } from 'antd';
 import {
   DesktopOutlined,
@@ -11,6 +11,7 @@ import {
 import ReactECharts from 'echarts-for-react';
 import dayjs from 'dayjs';
 import client from '../api/client';
+import { useThemeStore } from '../store/theme';
 
 const { Title, Text } = Typography;
 
@@ -37,59 +38,65 @@ const statCards = [
   { title: '告警数量', value: 'alert', icon: <WarningOutlined />, color: '#faad14', bgColor: 'rgba(250,173,20,0.1)', textColor: '#faad14' },
 ];
 
-// 环形图统一配置：中心总数 + 外部标签（名称 + 百分比）
-function buildPieOption(title, data) {
+// 环形图统一配置：中心总数 + 外部标签（名称 + 百分比），适配明暗主题
+function buildPieOption(title, data, dark) {
   const total = data.reduce((s, d) => s + (d.value || 0), 0);
   const hasData = total > 0;
+  // 文字颜色随主题切换
+  const cTitle = dark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.78)';
+  const cText = dark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.65)';
+  const cLine = dark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.3)';
+  const cBorder = dark ? 'rgba(22,22,28,0.9)' : '#fff';
   return {
     title: {
-      text: title, left: 'center', top: 8,
-      textStyle: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.75)' },
+      text: title, left: 'center', top: 0,
+      textStyle: { fontSize: 14, fontWeight: 600, color: cTitle },
     },
     tooltip: { trigger: 'item', formatter: '{b}: {c}（{d}%）' },
     legend: {
       bottom: 0, left: 'center', icon: 'circle',
       itemWidth: 10, itemHeight: 10, itemGap: 16,
-      textStyle: { fontSize: 12, color: 'rgba(0,0,0,0.65)' },
+      textStyle: { fontSize: 12, color: cText },
     },
     series: [{
       type: 'pie',
-      radius: ['46%', '66%'],
-      center: ['50%', '44%'],
+      radius: ['40%', '58%'],
+      center: ['50%', '47%'],
       avoidLabelOverlap: true,
       padAngle: 2,
-      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+      itemStyle: { borderRadius: 6, borderColor: cBorder, borderWidth: 2 },
       label: {
         show: hasData,
         formatter: '{b}\n{d}%',
         fontSize: 11,
         lineHeight: 15,
-        color: 'rgba(0,0,0,0.65)',
+        color: cText,
       },
-      labelLine: { length: 14, length2: 10, lineStyle: { color: 'rgba(0,0,0,0.3)' } },
+      labelLine: { length: 12, length2: 8, lineStyle: { color: cLine } },
       emphasis: {
         scaleSize: 6,
-        itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,0.2)' },
-        label: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.85)' },
+        itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,0.25)' },
+        label: { fontSize: 13, fontWeight: 600, color: cTitle },
       },
       data: hasData
         ? data
-        : [{ name: '暂无数据', value: 1, itemStyle: { color: '#e8e8e8' } }],
+        : [{ name: '暂无数据', value: 1, itemStyle: { color: dark ? 'rgba(255,255,255,0.08)' : '#e8e8e8' } }],
     }],
     // 中心显示总数
     graphic: hasData ? {
-      type: 'text', left: 'center', top: '38%',
+      type: 'text', left: 'center', top: '40%',
       style: {
         text: String(total),
         textAlign: 'center',
-        fontSize: 26, fontWeight: 700,
-        fill: 'rgba(0,0,0,0.75)',
+        fontSize: 24, fontWeight: 700,
+        fill: cTitle,
       },
     } : undefined,
   };
 }
 
 export default function Dashboard() {
+  const { dark } = useThemeStore();
   const [stats, setStats] = useState({ total: 0, online: 0, pending: 0, offline: 0, alert: 0 });
   const [recentHosts, setRecentHosts] = useState([]);
   const [allHosts, setAllHosts] = useState([]);
@@ -174,18 +181,17 @@ export default function Dashboard() {
     { title: '状态', dataIndex: 'status' },
   ];
 
-  const statusPieData = [
+  const statusOption = useMemo(() => buildPieOption('主机状态分布', [
     { name: '在线', value: stats.online, itemStyle: { color: '#52c41a' } },
     { name: '待接入', value: stats.pending, itemStyle: { color: '#faad14' } },
     { name: '离线', value: stats.offline, itemStyle: { color: '#ff4d4f' } },
-  ];
-  const statusOption = buildPieOption('主机状态分布', statusPieData);
+  ], dark), [stats, dark]);
 
-  const osPieData = Object.entries(osDist).map(([name, value], i) => ({
-    name, value,
-    itemStyle: { color: ['#667eea', '#764ba2', '#52c41a', '#faad14', '#ff4d4f', '#1890ff', '#13c2c2'][i % 7] },
-  }));
-  const osOption = buildPieOption('操作系统分布', osPieData);
+  const osOption = useMemo(() => buildPieOption('操作系统分布',
+    Object.entries(osDist).map(([name, value], i) => ({
+      name, value,
+      itemStyle: { color: ['#667eea', '#764ba2', '#52c41a', '#faad14', '#ff4d4f', '#1890ff', '#13c2c2'][i % 7] },
+    })), dark), [allHosts, dark]);
 
   return (
     <div>
