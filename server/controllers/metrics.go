@@ -29,11 +29,11 @@ func MetricsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 默认查询最近 1 小时
+	// 默认查询最近 24 小时
 	duration := r.URL.Query().Get("duration")
 	dur, err := time.ParseDuration(duration)
 	if err != nil || duration == "" {
-		dur = 1 * time.Hour
+		dur = 24 * time.Hour
 	}
 
 	since := time.Now().Add(-dur)

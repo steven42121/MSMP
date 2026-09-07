@@ -61,7 +61,7 @@ function formatBytes(bytes) {
 export default function Monitor() {
   const [hosts, setHosts] = useState([]);
   const [hostUUID, setHostUUID] = useState();
-  const [duration, setDuration] = useState('1h');
+  const [duration, setDuration] = useState('24h');
   const [metrics, setMetrics] = useState([]);
   const [loading, setLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
