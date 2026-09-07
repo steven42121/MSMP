@@ -37,6 +37,58 @@ const statCards = [
   { title: '告警数量', value: 'alert', icon: <WarningOutlined />, color: '#faad14', bgColor: 'rgba(250,173,20,0.1)', textColor: '#faad14' },
 ];
 
+// 环形图统一配置：中心总数 + 外部标签（名称 + 百分比）
+function buildPieOption(title, data) {
+  const total = data.reduce((s, d) => s + (d.value || 0), 0);
+  const hasData = total > 0;
+  return {
+    title: {
+      text: title, left: 'center', top: 8,
+      textStyle: { fontSize: 14, fontWeight: 600, color: 'rgba(0,0,0,0.75)' },
+    },
+    tooltip: { trigger: 'item', formatter: '{b}: {c}（{d}%）' },
+    legend: {
+      bottom: 0, left: 'center', icon: 'circle',
+      itemWidth: 10, itemHeight: 10, itemGap: 16,
+      textStyle: { fontSize: 12, color: 'rgba(0,0,0,0.65)' },
+    },
+    series: [{
+      type: 'pie',
+      radius: ['46%', '66%'],
+      center: ['50%', '44%'],
+      avoidLabelOverlap: true,
+      padAngle: 2,
+      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+      label: {
+        show: hasData,
+        formatter: '{b}\n{d}%',
+        fontSize: 11,
+        lineHeight: 15,
+        color: 'rgba(0,0,0,0.65)',
+      },
+      labelLine: { length: 14, length2: 10, lineStyle: { color: 'rgba(0,0,0,0.3)' } },
+      emphasis: {
+        scaleSize: 6,
+        itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,0.2)' },
+        label: { fontSize: 13, fontWeight: 600, color: 'rgba(0,0,0,0.85)' },
+      },
+      data: hasData
+        ? data
+        : [{ name: '暂无数据', value: 1, itemStyle: { color: '#e8e8e8' } }],
+    }],
+    // 中心显示总数
+    graphic: hasData ? {
+      type: 'text', left: 'center', top: '38%',
+      style: {
+        text: String(total),
+        textAlign: 'center',
+        fontSize: 26, fontWeight: 700,
+        fill: 'rgba(0,0,0,0.75)',
+      },
+    } : undefined,
+  };
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState({ total: 0, online: 0, pending: 0, offline: 0, alert: 0 });
   const [recentHosts, setRecentHosts] = useState([]);
@@ -122,36 +174,18 @@ export default function Dashboard() {
     { title: '状态', dataIndex: 'status' },
   ];
 
-  const statusOption = {
-    title: { text: '主机状态分布', left: 'center', textStyle: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
-    tooltip: { trigger: 'item' },
-    legend: { bottom: 4, textStyle: { fontSize: 12 } },
-    series: [{
-      type: 'pie', radius: ['38%', '68%'], center: ['50%', '46%'],
-      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
-      label: { show: true, position: 'inside', formatter: '{c}', fontSize: 11 },
-      data: [
-        { name: '在线', value: stats.online, itemStyle: { color: '#52c41a' } },
-        { name: '待接入', value: stats.pending, itemStyle: { color: '#faad14' } },
-        { name: '离线', value: stats.offline, itemStyle: { color: '#ff4d4f' } },
-      ],
-    }],
-  };
+  const statusPieData = [
+    { name: '在线', value: stats.online, itemStyle: { color: '#52c41a' } },
+    { name: '待接入', value: stats.pending, itemStyle: { color: '#faad14' } },
+    { name: '离线', value: stats.offline, itemStyle: { color: '#ff4d4f' } },
+  ];
+  const statusOption = buildPieOption('主机状态分布', statusPieData);
 
-  const osOption = {
-    title: { text: '操作系统分布', left: 'center', textStyle: { fontSize: 13, color: 'rgba(0,0,0,0.65)' } },
-    tooltip: { trigger: 'item' },
-    legend: { bottom: 4, textStyle: { fontSize: 12 } },
-    series: [{
-      type: 'pie', radius: ['38%', '68%'], center: ['50%', '46%'],
-      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
-      label: { show: true, position: 'inside', formatter: '{c}', fontSize: 11 },
-      data: Object.entries(osDist).map(([name, value], i) => ({
-        name, value,
-        itemStyle: { color: ['#667eea', '#764ba2', '#52c41a', '#faad14', '#ff4d4f', '#1890ff', '#13c2c2'][i % 7] },
-      })),
-    }],
-  };
+  const osPieData = Object.entries(osDist).map(([name, value], i) => ({
+    name, value,
+    itemStyle: { color: ['#667eea', '#764ba2', '#52c41a', '#faad14', '#ff4d4f', '#1890ff', '#13c2c2'][i % 7] },
+  }));
+  const osOption = buildPieOption('操作系统分布', osPieData);
 
   return (
     <div>
