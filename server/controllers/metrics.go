@@ -46,6 +46,16 @@ func MetricsHandler(w http.ResponseWriter, r *http.Request) {
 	db.DB.Where("host_id = ? AND timestamp >= ?", host.ID, since).
 		Order("timestamp ASC").Limit(limit).Find(&metrics)
 
+	// 窗口内无数据时回退到最近 limit 条（覆盖离线主机：最后一批指标已超出查询窗口）
+	if len(metrics) == 0 {
+		db.DB.Where("host_id = ?", host.ID).
+			Order("timestamp DESC").Limit(limit).Find(&metrics)
+		// 反转为时间升序，保持前端曲线从左到右递增
+		for i, j := 0, len(metrics)-1; i < j; i, j = i+1, j-1 {
+			metrics[i], metrics[j] = metrics[j], metrics[i]
+		}
+	}
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"host_uuid": hostUUID,
 		"duration":  dur.String(),
