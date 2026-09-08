@@ -5,18 +5,11 @@ import { PlusOutlined, CodeOutlined, ReloadOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import dayjs from 'dayjs';
 import client from '../api/client';
+import { formatBytes } from '../utils/format';
 import WebSSHTerminal from '../components/WebSSHTerminal';
 import FileManager from '../components/FileManager';
 
 const { Text } = Typography;
-
-function formatBytes(bytes) {
-  if (!bytes || bytes === 0) return '-';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
 
 function buildOption(title, data, field, unit) {
   const times = data.map((d) => dayjs(d.timestamp).format('HH:mm:ss'));

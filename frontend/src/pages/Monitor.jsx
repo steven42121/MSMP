@@ -4,6 +4,7 @@ import { LineChartOutlined, DownloadOutlined, ReloadOutlined, BgColorsOutlined }
 import ReactECharts from 'echarts-for-react';
 import dayjs from 'dayjs';
 import client from '../api/client';
+import { formatBytes, formatNetSpeed } from '../utils/format';
 
 const { Text } = Typography;
 
@@ -20,21 +21,6 @@ const DURATIONS = [
 ];
 
 const METRIC_COLORS = ['#667eea', '#764ba2', '#52c41a', '#faad14', '#ff4d4f', '#1890ff', '#722ed1', '#a6ee3c'];
-
-// ── 工具函数 ────────────────────────────────────────────────────────────────
-function fmtBytes(bytes) {
-  if (!bytes || bytes <= 0) return '0 B';
-  const k = 1024, sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
-
-function fmtNet(v) {
-  if (!v) return '0 B/s';
-  if (v >= 1e6) return (v / 1e6).toFixed(2) + ' MB/s';
-  if (v >= 1e3) return (v / 1e3).toFixed(1) + ' KB/s';
-  return v.toFixed(0) + ' B/s';
-}
 
 // 生成单线图 ECharts 配置
 function buildLineOption(title, data, field, unit, color) {
@@ -179,7 +165,7 @@ export default function Monitor() {
       tooltip: { trigger: 'axis' }, legend: { data: ['读取', '写入'], bottom: 4 },
       grid: { left: 60, right: 24, top: 40, bottom: 40 },
       xAxis: { type: 'category', data: times, axisLabel: { fontSize: 10 } },
-      yAxis: { type: 'value', axisLabel: { formatter: fmtBytes } },
+      yAxis: { type: 'value', axisLabel: { formatter: formatBytes } },
       series: [
         { name: '读取', type: 'line', data: metrics.map((d) => d.disk_read_bytes), smooth: true, showSymbol: false, lineStyle: { width: 2 }, itemStyle: { color: '#52c41a' }, areaStyle: { opacity: 0.1 } },
         { name: '写入', type: 'line', data: metrics.map((d) => d.disk_write_bytes), smooth: true, showSymbol: false, lineStyle: { width: 2 }, itemStyle: { color: '#faad14' }, areaStyle: { opacity: 0.1 } },
@@ -204,14 +190,14 @@ export default function Monitor() {
         trigger: 'axis',
         formatter: (params) => {
           let s = `<span style="font-weight:600">${params[0].axisValue}</span><br/>`;
-          params.forEach((p) => { s += `${p.marker}${p.seriesName}: <b>${fmtNet(p.value)}</b><br/>`; });
+          params.forEach((p) => { s += `${p.marker}${p.seriesName}: <b>${formatNetSpeed(p.value)}</b><br/>`; });
           return s;
         },
       },
       legend: { data: ['入站', '出站'], bottom: 4, textStyle: { fontSize: 11 } },
       grid: { left: 60, right: 24, top: 40, bottom: 40 },
       xAxis: { type: 'category', data: times, axisLabel: { fontSize: 10 } },
-      yAxis: { type: 'value', axisLabel: { formatter: fmtNet }, splitLine: { lineStyle: { type: 'dashed', color: 'rgba(0,0,0,0.06)' } } },
+      yAxis: { type: 'value', axisLabel: { formatter: formatNetSpeed }, splitLine: { lineStyle: { type: 'dashed', color: 'rgba(0,0,0,0.06)' } } },
       series: [
         { name: '入站', type: 'line', data: metrics.map((d) => d.net_rx_bps), smooth: true, showSymbol: false, lineStyle: { width: 2.5 }, itemStyle: { color: '#667eea' }, areaStyle: { opacity: 0.1 } },
         { name: '出站', type: 'line', data: metrics.map((d) => d.net_tx_bps), smooth: true, showSymbol: false, lineStyle: { width: 2.5 }, itemStyle: { color: '#764ba2' }, areaStyle: { opacity: 0.1 } },
@@ -236,10 +222,10 @@ export default function Monitor() {
       disk: (l.disk_used && l.disk_total) ? ((l.disk_used / l.disk_total) * 100).toFixed(1) + '%' : '-',
       load: l.load1?.toFixed(2) || '-',
       procs: l.process_count?.toString() || '-',
-      diskR: fmtBytes(l.disk_read_bytes),
-      diskW: fmtBytes(l.disk_write_bytes),
-      rx: fmtNet(l.net_rx_bps),
-      tx: fmtNet(l.net_tx_bps),
+      diskR: formatBytes(l.disk_read_bytes),
+      diskW: formatBytes(l.disk_write_bytes),
+      rx: formatNetSpeed(l.net_rx_bps),
+      tx: formatNetSpeed(l.net_tx_bps),
       pktsR: l.net_pkts_recv?.toLocaleString() || '-',
       pktsT: l.net_pkts_sent?.toLocaleString() || '-',
     };
@@ -383,7 +369,7 @@ export default function Monitor() {
                         <div style={{ fontWeight: 600, marginBottom: 4 }}>{gpu.name || `GPU ${i + 1}`}</div>
                         <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>
                           <div>厂商: {gpu.vendor || '-'}</div>
-                          <div>显存: {gpu.memory_total ? fmtBytes(gpu.memory_total) : '-'} / {gpu.memory_used ? fmtBytes(gpu.memory_used) : '-'}</div>
+                          <div>显存: {gpu.memory_total ? formatBytes(gpu.memory_total) : '-'} / {gpu.memory_used ? formatBytes(gpu.memory_used) : '-'}</div>
                           <div>温度: {gpu.temperature_c != null ? `${gpu.temperature_c}°C` : '-'}</div>
                           <div>利用率: {gpu.utilization_gpu != null ? `${gpu.utilization_gpu}%` : '-'}</div>
                           {gpu.driver_version && <div>驱动: {gpu.driver_version}</div>}

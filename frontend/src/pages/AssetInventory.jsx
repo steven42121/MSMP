@@ -4,16 +4,9 @@ import { Table, Tag, Input, Button, Space, Spin, Typography, Tabs } from 'antd';
 import { ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import client from '../api/client';
+import { formatBytes } from '../utils/format';
 
 const { Text } = Typography;
-
-function formatBytes(bytes) {
-  if (!bytes || bytes === 0) return '-';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
 
 export default function AssetInventory() {
   const { uuid } = useParams();
