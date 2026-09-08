@@ -58,6 +58,50 @@ function ChartCard({ title, iconColor, loading, onRefresh, extra, children }) {
   );
 }
 
+// GPU 列表内容
+function GpuInfo({ gpus }) {
+  if (!gpus.length) return <Text type="secondary">未检测到 GPU</Text>;
+  return (
+    <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+      {gpus.map((gpu, i) => (
+        <div key={i} style={{ padding: '10px 12px', background: 'rgba(82,196,26,0.08)', borderRadius: 8, marginBottom: 8 }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>{gpu.name || `GPU ${i + 1}`}</div>
+          <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>
+            <div>厂商: {gpu.vendor || '-'}</div>
+            <div>显存: {gpu.memory_total ? formatBytes(gpu.memory_total) : '-'} / {gpu.memory_used ? formatBytes(gpu.memory_used) : '-'}</div>
+            <div>温度: {gpu.temperature_c != null ? `${gpu.temperature_c}°C` : '-'}</div>
+            <div>利用率: {gpu.utilization_gpu != null ? `${gpu.utilization_gpu}%` : '-'}</div>
+            {gpu.driver_version && <div>驱动: {gpu.driver_version}</div>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// 温度传感器列表内容
+function TempInfo({ temps }) {
+  if (!temps.length) return <Text type="secondary">未检测到温度传感器</Text>;
+  return (
+    <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+      {temps.map((t, i) => {
+        const isHigh = t.temp > (t.critical || 90);
+        const isWarn = t.temp > (t.high || 70);
+        return (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px',
+            background: isHigh ? 'rgba(255,77,79,0.1)' : isWarn ? 'rgba(250,173,20,0.1)' : 'rgba(82,196,26,0.08)',
+            borderRadius: 6, marginBottom: 4 }}>
+            <span style={{ fontSize: 13 }}>{t.sensor_key || `Sensor ${i + 1}`}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: isHigh ? '#ff4d4f' : isWarn ? '#faad14' : '#52c41a' }}>
+              {t.temp != null ? `${t.temp}°C` : '-'}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── 主页面 ──────────────────────────────────────────────────────────────────
 export default function Monitor() {
   const [hosts, setHosts] = useState([]);
@@ -297,117 +341,77 @@ export default function Monitor() {
         </Row>
       )}
 
-      {/* 图表区 */}
-      {!hostUUID
-        ? <Empty description="请选择主机" style={{ margin: '80px 0' }} />
-        : loading && !metrics.length
-          ? <div style={{ textAlign: 'center', padding: '100px 0' }}><Spin size="large" /></div>
-          : !metrics.length
-            ? <Empty description="暂无监控数据" style={{ margin: '80px 0' }} />
-            : charts && (
-              <>
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} md={12}>
-                    <ChartCard title="CPU 使用率" iconColor="#667eea">
-                      <ReactECharts option={charts.cpu} style={{ height: 260 }} />
-                    </ChartCard>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <ChartCard title="内存使用率" iconColor="#764ba2"
-                      extra={
-                        <Popconfirm title="确认清理内存缓存？" description="将释放页缓存、目录缓存和索引节点缓存"
-                          onConfirm={handleFlushCaches} okText="清理" cancelText="取消" disabled={flushing}>
-                          <Button type="primary" size="small" icon={<BgColorsOutlined />} loading={flushing} disabled={flushing}>清理缓存</Button>
-                        </Popconfirm>
-                      }
-                    >
-                      <ReactECharts option={charts.mem} style={{ height: 260 }} />
-                    </ChartCard>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <ChartCard title="系统负载" iconColor="#faad14">
-                      <ReactECharts option={charts.load} style={{ height: 260 }} />
-                    </ChartCard>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <ChartCard title="网络流量" iconColor="#52c41a">
-                      <ReactECharts option={charts.net} style={{ height: 260 }} />
-                    </ChartCard>
-                  </Col>
-                  <Col xs={24} md={8}>
-                    <ChartCard title="进程数" iconColor="#1890ff">
-                      <ReactECharts option={charts.proc} style={{ height: 220 }} />
-                    </ChartCard>
-                  </Col>
-                  <Col xs={24} md={8}>
-                    <ChartCard title="磁盘 IO" iconColor="#faad14">
-                      <ReactECharts option={charts.diskIO} style={{ height: 220 }} />
-                    </ChartCard>
-                  </Col>
-                  <Col xs={24} md={8}>
-                    <ChartCard title="网络包" iconColor="#722ed1">
-                      <ReactECharts option={charts.netPkts} style={{ height: 220 }} />
-                    </ChartCard>
-                  </Col>
-                </Row>
-              </>
-            )
-      }
+      {/* 内容区：所有卡片统一依赖主机选择 */}
+      {!hostUUID ? (
+        <Empty description="请选择主机" style={{ margin: '80px 0' }} />
+      ) : (
+        <>
+          {/* 指标图表：加载中 / 空数据 / 有数据三种状态 */}
+          {loading && !metrics.length ? (
+            <div style={{ textAlign: 'center', padding: '80px 0' }}><Spin size="large" /></div>
+          ) : !metrics.length ? (
+            <Empty description="暂无监控数据" style={{ margin: '60px 0' }} />
+          ) : (
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={12}>
+                <ChartCard title="CPU 使用率" iconColor="#667eea">
+                  <ReactECharts option={charts.cpu} style={{ height: 260 }} />
+                </ChartCard>
+              </Col>
+              <Col xs={24} md={12}>
+                <ChartCard title="内存使用率" iconColor="#764ba2"
+                  extra={
+                    <Popconfirm title="确认清理内存缓存？" description="将释放页缓存、目录缓存和索引节点缓存"
+                      onConfirm={handleFlushCaches} okText="清理" cancelText="取消" disabled={flushing}>
+                      <Button type="primary" size="small" icon={<BgColorsOutlined />} loading={flushing} disabled={flushing}>清理缓存</Button>
+                    </Popconfirm>
+                  }
+                >
+                  <ReactECharts option={charts.mem} style={{ height: 260 }} />
+                </ChartCard>
+              </Col>
+              <Col xs={24} md={12}>
+                <ChartCard title="系统负载" iconColor="#faad14">
+                  <ReactECharts option={charts.load} style={{ height: 260 }} />
+                </ChartCard>
+              </Col>
+              <Col xs={24} md={12}>
+                <ChartCard title="网络流量" iconColor="#52c41a">
+                  <ReactECharts option={charts.net} style={{ height: 260 }} />
+                </ChartCard>
+              </Col>
+              <Col xs={24} md={8}>
+                <ChartCard title="进程数" iconColor="#1890ff">
+                  <ReactECharts option={charts.proc} style={{ height: 220 }} />
+                </ChartCard>
+              </Col>
+              <Col xs={24} md={8}>
+                <ChartCard title="磁盘 IO" iconColor="#faad14">
+                  <ReactECharts option={charts.diskIO} style={{ height: 220 }} />
+                </ChartCard>
+              </Col>
+              <Col xs={24} md={8}>
+                <ChartCard title="网络包" iconColor="#722ed1">
+                  <ReactECharts option={charts.netPkts} style={{ height: 220 }} />
+                </ChartCard>
+              </Col>
+            </Row>
+          )}
 
-      {/* GPU & 温度（资产快照） */}
-      {hostUUID && (
-        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-          <Col xs={24} md={12}>
-            <ChartCard title="GPU 信息" iconColor="#52c41a" loading={assetLoading} onRefresh={loadAssets}>
-              {(() => {
-                const gpus = latestAsset?.gpus || [];
-                if (!gpus.length) return <Text type="secondary">未检测到 GPU</Text>;
-                return (
-                  <div style={{ maxHeight: 220, overflowY: 'auto' }}>
-                    {gpus.map((gpu, i) => (
-                      <div key={i} style={{ padding: '10px 12px', background: 'rgba(82,196,26,0.08)', borderRadius: 8, marginBottom: 8 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>{gpu.name || `GPU ${i + 1}`}</div>
-                        <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>
-                          <div>厂商: {gpu.vendor || '-'}</div>
-                          <div>显存: {gpu.memory_total ? formatBytes(gpu.memory_total) : '-'} / {gpu.memory_used ? formatBytes(gpu.memory_used) : '-'}</div>
-                          <div>温度: {gpu.temperature_c != null ? `${gpu.temperature_c}°C` : '-'}</div>
-                          <div>利用率: {gpu.utilization_gpu != null ? `${gpu.utilization_gpu}%` : '-'}</div>
-                          {gpu.driver_version && <div>驱动: {gpu.driver_version}</div>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-            </ChartCard>
-          </Col>
-          <Col xs={24} md={12}>
-            <ChartCard title="温度传感器" iconColor="#faad14" loading={assetLoading} onRefresh={loadAssets}>
-              {(() => {
-                const temps = latestAsset?.temperatures || [];
-                if (!temps.length) return <Text type="secondary">未检测到温度传感器</Text>;
-                return (
-                  <div style={{ maxHeight: 220, overflowY: 'auto' }}>
-                    {temps.map((t, i) => {
-                      const isHigh = t.temp > (t.critical || 90);
-                      const isWarn = t.temp > (t.high || 70);
-                      return (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px',
-                          background: isHigh ? 'rgba(255,77,79,0.1)' : isWarn ? 'rgba(250,173,20,0.1)' : 'rgba(82,196,26,0.08)',
-                          borderRadius: 6, marginBottom: 4 }}>
-                          <span style={{ fontSize: 13 }}>{t.sensor_key || `Sensor ${i + 1}`}</span>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: isHigh ? '#ff4d4f' : isWarn ? '#faad14' : '#52c41a' }}>
-                            {t.temp != null ? `${t.temp}°C` : '-'}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-            </ChartCard>
-          </Col>
-        </Row>
+          {/* GPU & 温度（资产快照，选中主机即渲染） */}
+          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            <Col xs={24} md={12}>
+              <ChartCard title="GPU 信息" iconColor="#52c41a" loading={assetLoading} onRefresh={loadAssets}>
+                <GpuInfo gpus={latestAsset?.gpus || []} />
+              </ChartCard>
+            </Col>
+            <Col xs={24} md={12}>
+              <ChartCard title="温度传感器" iconColor="#faad14" loading={assetLoading} onRefresh={loadAssets}>
+                <TempInfo temps={latestAsset?.temperatures || []} />
+              </ChartCard>
+            </Col>
+          </Row>
+        </>
       )}
     </div>
   );
