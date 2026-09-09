@@ -45,6 +45,11 @@ export default function HostDetail() {
   const [pveStorages, setPVEStorages] = useState([]);
   const [pveLoading, setPVELoading] = useState(false);
   const [upgradeInfo, setUpgradeInfo] = useState(null);
+  const [snapshotModal, setSnapshotModal] = useState(false);
+  const [snapshotTarget, setSnapshotTarget] = useState(null); // { type:'pve'|'vsphere', node, vmid, vmtype, vmName }
+  const [snapshots, setSnapshots] = useState([]);
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [snapshotName, setSnapshotName] = useState('');
 
   const loadHost = async () => {
     try {
@@ -222,6 +227,84 @@ export default function HostDetail() {
       });
       message.success(`${guest.name || guest.vmid} ${action} 指令已下发`);
       setTimeout(loadPVE, 2000);
+    } catch (e) {
+      message.error(e?.response?.data?.error || '操作失败');
+    }
+  };
+
+  // ── 快照管理 ────────────────────────────────────────────────────────────
+  const loadSnapshots = async (target) => {
+    setSnapshotLoading(true);
+    try {
+      let resp;
+      if (target.type === 'pve') {
+        resp = await client.get()(`/hosts/${uuid}/pve/snapshots`, {
+          node: target.node, vmtype: target.vmtype, vmid: target.vmid,
+        });
+        setSnapshots(resp.snapshots || []);
+      } else {
+        resp = await client.get()(`/hosts/${uuid}/vsphere/vms/${target.vmName}/snapshots`);
+        setSnapshots(resp.snapshots || []);
+      }
+    } catch (e) {
+      setSnapshots([]);
+      message.error('加载快照失败');
+    } finally {
+      setSnapshotLoading(false);
+    }
+  };
+
+  const openSnapshots = (target) => {
+    setSnapshotTarget(target);
+    setSnapshotName('');
+    setSnapshots([]);
+    setSnapshotModal(true);
+    loadSnapshots(target);
+  };
+
+  const handleCreateSnapshot = async () => {
+    if (!snapshotName.trim()) { message.error('请输入快照名称'); return; }
+    try {
+      if (snapshotTarget.type === 'pve') {
+        await client.post()(`/hosts/${uuid}/pve/snapshots`, {
+          node: snapshotTarget.node, vmtype: snapshotTarget.vmtype,
+          vmid: snapshotTarget.vmid, name: snapshotName.trim(),
+        });
+      } else {
+        await client.post()(`/hosts/${uuid}/vsphere/vms/${snapshotTarget.vmName}/snapshots`, {
+          name: snapshotName.trim(),
+        });
+      }
+      message.success('快照已创建');
+      setSnapshotName('');
+      loadSnapshots(snapshotTarget);
+      if (snapshotTarget.type === 'pve') loadPVE(); else loadVSphere();
+    } catch (e) {
+      message.error(e?.response?.data?.error || '创建失败');
+    }
+  };
+
+  const handleSnapshotAction = async (snapName, action) => {
+    try {
+      if (snapshotTarget.type === 'pve') {
+        if (action === 'delete') {
+          await client.delete()(`/hosts/${uuid}/pve/snapshots`, {
+            node: snapshotTarget.node, vmtype: snapshotTarget.vmtype,
+            vmid: snapshotTarget.vmid, snap_name: snapName,
+          });
+        } else {
+          await client.post()(`/hosts/${uuid}/pve/snapshots/rollback`, {
+            node: snapshotTarget.node, vmtype: snapshotTarget.vmtype,
+            vmid: snapshotTarget.vmid, snap_name: snapName,
+          });
+        }
+      } else if (action === 'delete') {
+        await client.delete()(`/hosts/${uuid}/vsphere/vms/${snapshotTarget.vmName}/snapshots`, { snap_name: snapName });
+      } else {
+        await client.post()(`/hosts/${uuid}/vsphere/vms/${snapshotTarget.vmName}/snapshots/rollback`, { snap_name: snapName });
+      }
+      message.success(action === 'delete' ? '快照已删除' : '已回滚');
+      loadSnapshots(snapshotTarget);
     } catch (e) {
       message.error(e?.response?.data?.error || '操作失败');
     }
@@ -511,6 +594,151 @@ export default function HostDetail() {
         </div>
       ),
     },
+    {
+      key: 'vsphere',
+      label: 'vSphere',
+      children: (
+        <Spin spinning={vsphereLoading}>
+          <Space direction="vertical" style={{ width: '100%' }} size={16}>
+            <Button onClick={loadVSphere}>刷新</Button>
+            <div style={{ color: '#888', fontSize: 13 }}>虚拟机（共 {vsphereVMs.length} 台）</div>
+            {vsphereVMs.length === 0 ? (
+              <Typography.Text type="secondary">暂无虚拟机数据</Typography.Text>
+            ) : (
+              <Table
+                size="small"
+                dataSource={vsphereVMs}
+                rowKey="name"
+                pagination={false}
+                columns={[
+                  { title: '名称', dataIndex: 'name', key: 'name' },
+                  {
+                    title: '状态', dataIndex: 'power_state', key: 'power_state', width: 100,
+                    render: (v) => {
+                      const map = { poweredOn: ['green', '已开机'], poweredOff: ['default', '已关机'], suspended: ['orange', '已挂起'] };
+                      const m = map[v] || ['cyan', v || '-'];
+                      return <Tag color={m[0]}>{m[1]}</Tag>;
+                    },
+                  },
+                  { title: 'CPU', dataIndex: 'num_cpu', key: 'num_cpu', width: 70 },
+                  { title: '内存', dataIndex: 'memory_mb', key: 'memory_mb', width: 100, render: (v) => v ? `${(v / 1024).toFixed(1)} GB` : '-' },
+                  { title: 'IP', dataIndex: 'ip_address', key: 'ip_address', width: 140 },
+                  { title: 'Guest OS', dataIndex: 'guest_os', key: 'guest_os' },
+                  { title: '快照数', dataIndex: 'snapshot_count', key: 'snapshot_count', width: 80 },
+                  {
+                    title: '操作', key: 'action', width: 320,
+                    render: (_, r) => (
+                      <Space size={4}>
+                        {r.power_state !== 'poweredOn' && <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'on')}>开机</Button>}
+                        {r.power_state === 'poweredOn' && (
+                          <>
+                            <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'off')}>关机</Button>
+                            <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'reset')}>重启</Button>
+                            <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'suspend')}>挂起</Button>
+                          </>
+                        )}
+                        <Button type="link" size="small" onClick={() => openSnapshots({ type: 'vsphere', vmName: r.name })}>快照</Button>
+                      </Space>
+                    ),
+                  },
+                ]}
+              />
+            )}
+            <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>数据存储（共 {vsphereDatastores.length} 个）</div>
+            {vsphereDatastores.length === 0 ? (
+              <Typography.Text type="secondary">暂无数据存储数据</Typography.Text>
+            ) : (
+              <Table
+                size="small" dataSource={vsphereDatastores} rowKey="name" pagination={false}
+                columns={[
+                  { title: '名称', dataIndex: 'name', key: 'name' },
+                  { title: '类型', dataIndex: 'type', key: 'type', width: 100 },
+                  { title: '容量', dataIndex: 'capacity', key: 'capacity', width: 120, render: formatBytes },
+                  { title: '可用空间', dataIndex: 'free_space', key: 'free_space', width: 120, render: formatBytes },
+                  {
+                    title: '使用率', dataIndex: 'capacity', key: 'used_pct', width: 100,
+                    render: (v, r) => (!v || v === 0) ? '-' : `${((v - r.free_space) / v * 100).toFixed(1)}%`,
+                  },
+                  { title: '可访问', dataIndex: 'accessible', key: 'accessible', width: 80, render: (v) => v ? <Tag color="green">是</Tag> : <Tag color="red">否</Tag> },
+                ]}
+              />
+            )}
+          </Space>
+        </Spin>
+      ),
+    },
+    {
+      key: 'pve',
+      label: 'Proxmox VE',
+      children: (
+        <Spin spinning={pveLoading}>
+          <Space direction="vertical" style={{ width: '100%' }} size={16}>
+            <Button onClick={loadPVE}>刷新</Button>
+            <div style={{ color: '#888', fontSize: 13 }}>虚拟机 / 容器（共 {pveGuests.length} 个）</div>
+            {pveGuests.length === 0 ? (
+              <Typography.Text type="secondary">暂无虚拟机/容器数据</Typography.Text>
+            ) : (
+              <Table
+                size="small" dataSource={pveGuests} rowKey={(r) => `${r.node}-${r.guest_type}-${r.vmid}`} pagination={false}
+                columns={[
+                  { title: 'ID', dataIndex: 'vmid', key: 'vmid', width: 70 },
+                  { title: '名称', dataIndex: 'name', key: 'name' },
+                  { title: '类型', dataIndex: 'guest_type', key: 'guest_type', width: 90, render: (v) => <Tag color={v === 'qemu' ? 'geekblue' : 'purple'}>{v === 'qemu' ? 'VM' : 'LXC'}</Tag> },
+                  { title: '节点', dataIndex: 'node', key: 'node', width: 110 },
+                  {
+                    title: '状态', dataIndex: 'status', key: 'status', width: 90,
+                    render: (v) => {
+                      const map = { running: ['green', '运行中'], stopped: ['default', '已停止'], paused: ['orange', '已暂停'] };
+                      const m = map[v] || ['cyan', v || '-'];
+                      return <Tag color={m[0]}>{m[1]}</Tag>;
+                    },
+                  },
+                  { title: 'CPU', dataIndex: 'cpus', key: 'cpus', width: 70, render: (v) => v ? `${v}核` : '-' },
+                  { title: '内存', dataIndex: 'maxmem', key: 'maxmem', width: 100, render: formatBytes },
+                  { title: '磁盘', dataIndex: 'maxdisk', key: 'maxdisk', width: 100, render: formatBytes },
+                  {
+                    title: '操作', key: 'action', width: 280,
+                    render: (_, r) => (
+                      <Space size={4}>
+                        {r.status !== 'running' && <Button type="link" size="small" onClick={() => handlePVEPower(r, 'start')}>开机</Button>}
+                        {r.status === 'running' && (
+                          <>
+                            <Button type="link" size="small" onClick={() => handlePVEPower(r, 'stop')}>关机</Button>
+                            <Button type="link" size="small" onClick={() => handlePVEPower(r, 'reboot')}>重启</Button>
+                            {r.guest_type === 'qemu' && <Button type="link" size="small" onClick={() => handlePVEPower(r, 'suspend')}>挂起</Button>}
+                          </>
+                        )}
+                        <Button type="link" size="small" onClick={() => openSnapshots({ type: 'pve', node: r.node, vmid: r.vmid, vmtype: r.guest_type })}>快照</Button>
+                      </Space>
+                    ),
+                  },
+                ]}
+              />
+            )}
+            <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>数据存储（共 {pveStorages.length} 个）</div>
+            {pveStorages.length === 0 ? (
+              <Typography.Text type="secondary">暂无数据存储数据</Typography.Text>
+            ) : (
+              <Table
+                size="small" dataSource={pveStorages} rowKey={(r) => `${r.node}-${r.storage}`} pagination={false}
+                columns={[
+                  { title: '名称', dataIndex: 'storage', key: 'storage' },
+                  { title: '节点', dataIndex: 'node', key: 'node', width: 110 },
+                  { title: '类型', dataIndex: 'type', key: 'type', width: 100 },
+                  { title: '容量', dataIndex: 'total', key: 'total', width: 110, render: formatBytes },
+                  { title: '已用', dataIndex: 'used', key: 'used', width: 110, render: formatBytes },
+                  {
+                    title: '使用率', dataIndex: 'total', key: 'used_pct', width: 100,
+                    render: (v, r) => (!v || v === 0) ? '-' : `${(r.used / v * 100).toFixed(1)}%`,
+                  },
+                  { title: '状态', dataIndex: 'active', key: 'active', width: 80, render: (v) => v === 1 ? <Tag color="green">激活</Tag> : <Tag color="red">未激活</Tag> },
+                ]}
+              />
+            )}
+          </Space>
+        </Spin>
+      ),
+    },
   ];
 
   return (
@@ -544,6 +772,65 @@ export default function HostDetail() {
       </Card>
 
       <WebSSHTerminal open={sshOpen} host={host} onClose={() => setSshOpen(false)} />
+
+      <Modal
+        title="快照管理"
+        open={snapshotModal}
+        onCancel={() => setSnapshotModal(false)}
+        footer={null}
+        width={560}
+      >
+        <Space direction="vertical" style={{ width: '100%' }} size={12}>
+          <Space.Compact style={{ width: '100%' }}>
+            <Input
+              placeholder="新快照名称"
+              value={snapshotName}
+              onChange={(e) => setSnapshotName(e.target.value)}
+              onPressEnter={handleCreateSnapshot}
+            />
+            <Button type="primary" onClick={handleCreateSnapshot}>创建快照</Button>
+          </Space.Compact>
+
+          <Spin spinning={snapshotLoading}>
+            {snapshots.length === 0 ? (
+              <Text type="secondary">暂无快照</Text>
+            ) : (
+              <Table
+                size="small"
+                dataSource={snapshots}
+                rowKey="name"
+                pagination={false}
+                columns={[
+                  {
+                    title: '名称', dataIndex: 'name', key: 'name',
+                    render: (v, r) => <Space>{v}{(r.current === true || r.parent === 'current') && <Tag color="green">当前</Tag>}</Space>,
+                  },
+                  { title: '描述', dataIndex: 'description', key: 'description', ellipsis: true },
+                  {
+                    title: '创建时间', dataIndex: 'create_time', key: 'create_time', width: 160,
+                    render: (v, r) => r.snaptime ? dayjs(r.snaptime * 1000).format('YYYY-MM-DD HH:mm:ss') : (v || '-'),
+                  },
+                  {
+                    title: '操作', key: 'action', width: 150,
+                    render: (_, r) => (
+                      <Space size={4}>
+                        {!r.current && (
+                          <Popconfirm title="回滚到此快照？" onConfirm={() => handleSnapshotAction(r.name, 'rollback')}>
+                            <Button type="link" size="small">回滚</Button>
+                          </Popconfirm>
+                        )}
+                        <Popconfirm title="确认删除该快照？" onConfirm={() => handleSnapshotAction(r.name, 'delete')}>
+                          <Button type="link" danger size="small">删除</Button>
+                        </Popconfirm>
+                      </Space>
+                    ),
+                  },
+                ]}
+              />
+            )}
+          </Spin>
+        </Space>
+      </Modal>
 
       <Modal
         title="添加采集渠道"

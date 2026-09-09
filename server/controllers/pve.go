@@ -218,15 +218,10 @@ func PVESnapshotsHandler(w http.ResponseWriter, r *http.Request, host *models.Ho
 }
 
 // PVESnapshotActionHandler POST/DELETE /api/hosts/{uuid}/pve/snapshots
-// POST 创建 {node, vmtype, vmid, name, description}
-// DELETE 删除 {node, vmtype, vmid, snap_name}
+// POST 创建（body: {node, vmtype, vmid, name, description}）
+// DELETE 删除（query: node/vmtype/vmid/snap_name）
 func PVESnapshotActionHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
 	if !requirePVEAdmin(w, r, host.ID, tenantID) {
-		return
-	}
-	req, msg, ok := parsePVESnapshotReq(r)
-	if !ok {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": msg})
 		return
 	}
 
@@ -238,8 +233,19 @@ func PVESnapshotActionHandler(w http.ResponseWriter, r *http.Request, host *mode
 
 	switch r.Method {
 	case http.MethodPost:
-		if req.Name == "" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name 必填"})
+		var req struct {
+			Node      string `json:"node"`
+			GuestType string `json:"vmtype"`
+			VMID      int    `json:"vmid"`
+			Name      string `json:"name"`
+			Desc      string `json:"description"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "请求体解析失败"})
+			return
+		}
+		if req.Node == "" || req.VMID <= 0 || (req.GuestType != "qemu" && req.GuestType != "lxc") || req.Name == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "node, vmid, vmtype, name 均必填"})
 			return
 		}
 		if err := client.CreateSnapshot(r.Context(), req.Node, req.GuestType, req.VMID, req.Name, req.Desc); err != nil {
@@ -253,19 +259,23 @@ func PVESnapshotActionHandler(w http.ResponseWriter, r *http.Request, host *mode
 		writeJSON(w, http.StatusOK, map[string]interface{}{"created": true, "name": req.Name})
 
 	case http.MethodDelete:
-		if req.SnapName == "" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "snap_name 必填"})
+		node := r.URL.Query().Get("node")
+		guestType := r.URL.Query().Get("vmtype")
+		vmid, _ := strconv.Atoi(r.URL.Query().Get("vmid"))
+		snapName := r.URL.Query().Get("snap_name")
+		if node == "" || vmid <= 0 || snapName == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "node, vmid, snap_name 必填"})
 			return
 		}
-		if err := client.DeleteSnapshot(r.Context(), req.Node, req.GuestType, req.VMID, req.SnapName); err != nil {
+		if err := client.DeleteSnapshot(r.Context(), node, guestType, vmid, snapName); err != nil {
 			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 			return
 		}
 		db.DB.Create(&models.AuditLog{
 			TenantID: tenantID, UserID: userID, Action: "pve_delete_snapshot",
-			Resource: "snapshot:" + req.Node + "/" + strconv.Itoa(req.VMID) + ":" + req.SnapName, Status: 200,
+			Resource: "snapshot:" + node + "/" + strconv.Itoa(vmid) + ":" + snapName, Status: 200,
 		})
-		writeJSON(w, http.StatusOK, map[string]interface{}{"deleted": true, "name": req.SnapName})
+		writeJSON(w, http.StatusOK, map[string]interface{}{"deleted": true, "name": snapName})
 
 	default:
 		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})

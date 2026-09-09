@@ -189,15 +189,13 @@ func VSphereSnapshotCreateHandler(w http.ResponseWriter, r *http.Request, host *
 }
 
 // VSphereSnapshotDeleteHandler DELETE /api/hosts/{uuid}/vsphere/vms/{name}/snapshots
-// body: {"snap_name": "..."}
+// query: snap_name
 func VSphereSnapshotDeleteHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint, vmName string) {
 	if !requireVSphereAdmin(w, r, host.ID, tenantID) {
 		return
 	}
-	var req struct {
-		SnapName string `json:"snap_name"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.SnapName == "" {
+	snapName := r.URL.Query().Get("snap_name")
+	if snapName == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "snap_name 必填"})
 		return
 	}
@@ -209,15 +207,15 @@ func VSphereSnapshotDeleteHandler(w http.ResponseWriter, r *http.Request, host *
 	}
 	defer mgr.Close(r.Context())
 
-	if err := mgr.DeleteVMSnapshot(r.Context(), vmName, req.SnapName); err != nil {
+	if err := mgr.DeleteVMSnapshot(r.Context(), vmName, snapName); err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 		return
 	}
 	db.DB.Create(&models.AuditLog{
 		TenantID: tenantID, UserID: userID, Action: "vsphere_delete_snapshot",
-		Resource: "vm:" + vmName + ":snapshot:" + req.SnapName, Status: 200,
+		Resource: "vm:" + vmName + ":snapshot:" + snapName, Status: 200,
 	})
-	writeJSON(w, http.StatusOK, map[string]interface{}{"deleted": true, "vm": vmName, "name": req.SnapName})
+	writeJSON(w, http.StatusOK, map[string]interface{}{"deleted": true, "vm": vmName, "name": snapName})
 }
 
 // VSphereSnapshotRollbackHandler POST /api/hosts/{uuid}/vsphere/vms/{name}/snapshots/rollback
