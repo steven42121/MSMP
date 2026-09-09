@@ -221,8 +221,16 @@ func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
 
 	case subResource == "vsphere" && subAction == "vms" && r.Method == http.MethodGet:
 		VSphereVMsHandler(w, r, &host, tenantID, getUserID(r))
-	case subResource == "vsphere" && subAction == "vms" && len(parts) >= 6 && parts[5] == "power" && r.Method == http.MethodPost:
-		VSphereVMPowerHandler(w, r, &host, tenantID, getUserID(r), parts[4])
+	case subResource == "vsphere" && subAction == "vms" && len(parts) >= 5 && parts[4] == "power" && r.Method == http.MethodPost:
+		VSphereVMPowerHandler(w, r, &host, tenantID, getUserID(r), parts[3])
+	case subResource == "vsphere" && subAction == "vms" && len(parts) >= 5 && parts[4] == "snapshots" && r.Method == http.MethodGet:
+		VSphereSnapshotsHandler(w, r, &host, tenantID, getUserID(r), parts[3])
+	case subResource == "vsphere" && subAction == "vms" && len(parts) >= 6 && parts[4] == "snapshots" && parts[5] == "rollback" && r.Method == http.MethodPost:
+		VSphereSnapshotRollbackHandler(w, r, &host, tenantID, getUserID(r), parts[3])
+	case subResource == "vsphere" && subAction == "vms" && len(parts) >= 5 && parts[4] == "snapshots" && r.Method == http.MethodPost:
+		VSphereSnapshotCreateHandler(w, r, &host, tenantID, getUserID(r), parts[3])
+	case subResource == "vsphere" && subAction == "vms" && len(parts) >= 5 && parts[4] == "snapshots" && r.Method == http.MethodDelete:
+		VSphereSnapshotDeleteHandler(w, r, &host, tenantID, getUserID(r), parts[3])
 	case subResource == "vsphere" && subAction == "datastores" && r.Method == http.MethodGet:
 		VSphereDatastoresHandler(w, r, &host, tenantID, getUserID(r))
 
@@ -232,6 +240,12 @@ func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
 		PVEGuestPowerHandler(w, r, &host, tenantID, getUserID(r))
 	case subResource == "pve" && subAction == "storage" && r.Method == http.MethodGet:
 		PVEStorageHandler(w, r, &host, tenantID, getUserID(r))
+	case subResource == "pve" && subAction == "snapshots" && len(parts) >= 4 && parts[3] == "rollback" && r.Method == http.MethodPost:
+		PVESnapshotRollbackHandler(w, r, &host, tenantID, getUserID(r))
+	case subResource == "pve" && subAction == "snapshots" && r.Method == http.MethodGet:
+		PVESnapshotsHandler(w, r, &host, tenantID, getUserID(r))
+	case subResource == "pve" && subAction == "snapshots" && (r.Method == http.MethodPost || r.Method == http.MethodDelete):
+		PVESnapshotActionHandler(w, r, &host, tenantID, getUserID(r))
 
 	case subResource == "agent" && subAction == "upgrade" && r.Method == http.MethodPost:
 		AgentUpgradeHandler(w, r)

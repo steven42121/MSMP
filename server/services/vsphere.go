@@ -161,6 +161,100 @@ func countSnapshots(list []types.VirtualMachineSnapshotTree) int {
 	return n
 }
 
+// VMSnapshotInfo ESXi 虚拟机快照信息。
+type VMSnapshotInfo struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	CreateTime  string `json:"create_time"`
+	State       string `json:"state"`
+	Current     bool   `json:"current"`
+}
+
+// ListVMSnapshots 列出虚拟机的所有快照（递归树）。
+func (m *VSphereManager) ListVMSnapshots(ctx context.Context, vmName string) ([]VMSnapshotInfo, error) {
+	vm, err := m.findVM(ctx, vmName)
+	if err != nil {
+		return nil, err
+	}
+
+	var info mo.VirtualMachine
+	if err := vm.Properties(ctx, vm.Reference(), []string{"snapshot"}, &info); err != nil {
+		return nil, fmt.Errorf("读取快照信息失败: %w", err)
+	}
+	if info.Snapshot == nil {
+		return []VMSnapshotInfo{}, nil
+	}
+
+	result := make([]VMSnapshotInfo, 0)
+	flattenSnapshots(info.Snapshot.RootSnapshotList, info.Snapshot.CurrentSnapshot, &result)
+	return result, nil
+}
+
+// flattenSnapshots 递归展开快照树，标记当前快照。
+func flattenSnapshots(list []types.VirtualMachineSnapshotTree, currentRef *types.ManagedObjectReference, result *[]VMSnapshotInfo) {
+	for _, s := range list {
+		isCurrent := currentRef != nil && s.Snapshot == *currentRef
+		*result = append(*result, VMSnapshotInfo{
+			Name:        s.Name,
+			Description: s.Description,
+			CreateTime:  s.CreateTime.Format("2006-01-02 15:04:05"),
+			State:       string(s.State),
+			Current:     isCurrent,
+		})
+		if len(s.ChildSnapshotList) > 0 {
+			flattenSnapshots(s.ChildSnapshotList, currentRef, result)
+		}
+	}
+}
+
+// CreateVMSnapshot 创建虚拟机快照。
+func (m *VSphereManager) CreateVMSnapshot(ctx context.Context, vmName, name, description string) error {
+	vm, err := m.findVM(ctx, vmName)
+	if err != nil {
+		return err
+	}
+	task, err := vm.CreateSnapshot(ctx, name, description, false, false)
+	if err != nil {
+		return fmt.Errorf("创建快照失败: %w", err)
+	}
+	if err := task.Wait(ctx); err != nil {
+		return fmt.Errorf("创建快照未完成: %w", err)
+	}
+	return nil
+}
+
+// DeleteVMSnapshot 按名称删除虚拟机快照。
+func (m *VSphereManager) DeleteVMSnapshot(ctx context.Context, vmName, snapName string) error {
+	vm, err := m.findVM(ctx, vmName)
+	if err != nil {
+		return err
+	}
+	task, err := vm.RemoveSnapshot(ctx, snapName, true, nil)
+	if err != nil {
+		return fmt.Errorf("删除快照失败: %w", err)
+	}
+	if err := task.Wait(ctx); err != nil {
+		return fmt.Errorf("删除快照未完成: %w", err)
+	}
+	return nil
+}
+
+// RevertVMSnapshot 回滚虚拟机到指定快照。
+func (m *VSphereManager) RevertVMSnapshot(ctx context.Context, vmName, snapName string) error {
+	vm, err := m.findVM(ctx, vmName)
+	if err != nil {
+		return err
+	}
+	task, err := vm.RevertToSnapshot(ctx, snapName, false)
+	if err != nil {
+		return fmt.Errorf("回滚快照失败: %w", err)
+	}
+	if err := task.Wait(ctx); err != nil {
+		return fmt.Errorf("回滚快照未完成: %w", err)
+	}
+	return nil
+}
+
 // PowerVM 执行虚拟机电源操作。action: on/off/reset/suspend
 func (m *VSphereManager) PowerVM(ctx context.Context, vmName, action string) error {
 	vm, err := m.findVM(ctx, vmName)

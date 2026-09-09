@@ -385,3 +385,63 @@ func (c *PVEClient) ListStorage(ctx context.Context) ([]PVEStorage, error) {
 	}
 	return storages, nil
 }
+
+// PVESnapshotInfo 快照信息。
+type PVESnapshotInfo struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	SnapTime    int64  `json:"snaptime"`
+	VMState     int    `json:"vmstate"`
+	Parent      string `json:"parent"`
+}
+
+// ListSnapshots 列出虚拟机/容器的快照。
+func (c *PVEClient) ListSnapshots(ctx context.Context, node, guestType string, vmid int) ([]PVESnapshotInfo, error) {
+	guestType = strings.ToLower(guestType)
+	if guestType != "qemu" && guestType != "lxc" {
+		return nil, fmt.Errorf("无效的 guest 类型: %s", guestType)
+	}
+	path := fmt.Sprintf("/nodes/%s/%s/%d/snapshot", url.PathEscape(node), guestType, vmid)
+	var snaps []PVESnapshotInfo
+	if err := c.do(ctx, http.MethodGet, path, nil, &snaps); err != nil {
+		return nil, fmt.Errorf("列出快照失败: %w", err)
+	}
+	return snaps, nil
+}
+
+// CreateSnapshot 创建虚拟机/容器快照。
+func (c *PVEClient) CreateSnapshot(ctx context.Context, node, guestType string, vmid int, name, description string) error {
+	guestType = strings.ToLower(guestType)
+	if guestType != "qemu" && guestType != "lxc" {
+		return fmt.Errorf("无效的 guest 类型: %s", guestType)
+	}
+	path := fmt.Sprintf("/nodes/%s/%s/%d/snapshot", url.PathEscape(node), guestType, vmid)
+	body := url.Values{}
+	body.Set("snapname", name)
+	if description != "" {
+		body.Set("description", description)
+	}
+	return c.do(ctx, http.MethodPost, path, body, nil)
+}
+
+// DeleteSnapshot 删除虚拟机/容器快照。
+func (c *PVEClient) DeleteSnapshot(ctx context.Context, node, guestType string, vmid int, name string) error {
+	guestType = strings.ToLower(guestType)
+	if guestType != "qemu" && guestType != "lxc" {
+		return fmt.Errorf("无效的 guest 类型: %s", guestType)
+	}
+	path := fmt.Sprintf("/nodes/%s/%s/%d/snapshot/%s",
+		url.PathEscape(node), guestType, vmid, url.PathEscape(name))
+	return c.do(ctx, http.MethodDelete, path, nil, nil)
+}
+
+// RollbackSnapshot 回滚到指定快照。
+func (c *PVEClient) RollbackSnapshot(ctx context.Context, node, guestType string, vmid int, name string) error {
+	guestType = strings.ToLower(guestType)
+	if guestType != "qemu" && guestType != "lxc" {
+		return fmt.Errorf("无效的 guest 类型: %s", guestType)
+	}
+	path := fmt.Sprintf("/nodes/%s/%s/%d/snapshot/%s/rollback",
+		url.PathEscape(node), guestType, vmid, url.PathEscape(name))
+	return c.do(ctx, http.MethodPost, path, url.Values{}, nil)
+}
