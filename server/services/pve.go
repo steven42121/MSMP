@@ -445,3 +445,66 @@ func (c *PVEClient) RollbackSnapshot(ctx context.Context, node, guestType string
 		url.PathEscape(node), guestType, vmid, url.PathEscape(name))
 	return c.do(ctx, http.MethodPost, path, url.Values{}, nil)
 }
+
+// PVEBackupJob 备份任务定义及最近一次运行状态。
+type PVEBackupJob struct {
+	ID        string `json:"id"`
+	Node      string `json:"node"`
+	Storage   string `json:"storage"`
+	VMID      string `json:"vmid"`   // 逗号分隔的 vmid 列表
+	Type      string `json:"type"`   // qemu / lxc
+	Mode      string `json:"mode"`   // snapshot / stop / suspend
+	Compress  string `json:"compress"`
+	Enabled   int    `json:"enabled"`
+	Comment   string `json:"comment"`
+	StartTime int64  `json:"starttime"`
+	EndTime   int64  `json:"endtime"`
+	Duration  int64  `json:"duration"`
+	Status    string `json:"status"` // OK / ERROR / 空=未运行
+}
+
+// PVEBackupContent 数据存储中的备份文件。
+type PVEBackupContent struct {
+	VolID  string `json:"volid"`
+	Format string `json:"format"`
+	Size   uint64 `json:"size"`
+	CTime  int64  `json:"ctime"`
+	VMID   int    `json:"vmid"`
+}
+
+// ListBackupJobs 列出集群备份任务及最近运行状态（GET /cluster/backup）。
+func (c *PVEClient) ListBackupJobs(ctx context.Context) ([]PVEBackupJob, error) {
+	var jobs []PVEBackupJob
+	if err := c.do(ctx, http.MethodGet, "/cluster/backup", nil, &jobs); err != nil {
+		return nil, fmt.Errorf("列出备份任务失败: %w", err)
+	}
+	return jobs, nil
+}
+
+// ListBackupContent 列出节点数据存储中的备份文件（GET /nodes/{node}/storage/{storage}/content?content=backup）。
+func (c *PVEClient) ListBackupContent(ctx context.Context, node, storage string) ([]PVEBackupContent, error) {
+	q := url.Values{}
+	q.Set("content", "backup")
+	path := fmt.Sprintf("/nodes/%s/storage/%s/content?%s",
+		url.PathEscape(node), url.PathEscape(storage), q.Encode())
+
+	type contentItem struct {
+		VolID   string `json:"volid"`
+		Format  string `json:"format"`
+		Size    uint64 `json:"size"`
+		CTime   int64  `json:"ctime"`
+		VMID    int    `json:"vmid"`
+		Content string `json:"content"`
+	}
+	var items []contentItem
+	if err := c.do(ctx, http.MethodGet, path, nil, &items); err != nil {
+		return nil, fmt.Errorf("列出备份文件失败: %w", err)
+	}
+	result := make([]PVEBackupContent, 0, len(items))
+	for _, it := range items {
+		result = append(result, PVEBackupContent{
+			VolID: it.VolID, Format: it.Format, Size: it.Size, CTime: it.CTime, VMID: it.VMID,
+		})
+	}
+	return result, nil
+}

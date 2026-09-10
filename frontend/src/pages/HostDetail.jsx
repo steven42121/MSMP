@@ -43,6 +43,7 @@ export default function HostDetail() {
   const [vsphereLoading, setVSphereLoading] = useState(false);
   const [pveGuests, setPVEGuests] = useState([]);
   const [pveStorages, setPVEStorages] = useState([]);
+  const [pveBackups, setPVEBackups] = useState([]);
   const [pveLoading, setPVELoading] = useState(false);
   const [upgradeInfo, setUpgradeInfo] = useState(null);
   const [snapshotModal, setSnapshotModal] = useState(false);
@@ -204,12 +205,14 @@ export default function HostDetail() {
   const loadPVE = async () => {
     setPVELoading(true);
     try {
-      const [guestRes, stRes] = await Promise.all([
+      const [guestRes, stRes, backupRes] = await Promise.all([
         client.get()(`/hosts/${uuid}/pve/guests`),
         client.get()(`/hosts/${uuid}/pve/storage`),
+        client.get()(`/hosts/${uuid}/pve/backups`),
       ]);
       setPVEGuests(guestRes.guests || []);
       setPVEStorages(stRes.storages || []);
+      setPVEBackups(backupRes.jobs || []);
     } catch (e) {
       message.error('加载 Proxmox VE 数据失败');
     } finally {
@@ -732,6 +735,28 @@ export default function HostDetail() {
                     render: (v, r) => (!v || v === 0) ? '-' : `${(r.used / v * 100).toFixed(1)}%`,
                   },
                   { title: '状态', dataIndex: 'active', key: 'active', width: 80, render: (v) => v === 1 ? <Tag color="green">激活</Tag> : <Tag color="red">未激活</Tag> },
+                ]}
+              />
+            )}
+            <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>备份任务（共 {pveBackups.length} 个）</div>
+            {pveBackups.length === 0 ? (
+              <Typography.Text type="secondary">暂无备份任务</Typography.Text>
+            ) : (
+              <Table
+                size="small" dataSource={pveBackups} rowKey="id" pagination={false}
+                columns={[
+                  { title: '任务', dataIndex: 'id', key: 'id', render: (v, r) => `${v}${r.comment ? `（${r.comment}）` : ''}` },
+                  { title: '节点', dataIndex: 'node', key: 'node', width: 110 },
+                  { title: '存储', dataIndex: 'storage', key: 'storage', width: 110 },
+                  { title: 'VMID', dataIndex: 'vmid', key: 'vmid', width: 120, ellipsis: true },
+                  { title: '模式', dataIndex: 'mode', key: 'mode', width: 90 },
+                  { title: '启用', dataIndex: 'enabled', key: 'enabled', width: 70, render: (v) => v === 1 ? <Tag color="green">是</Tag> : <Tag color="default">否</Tag> },
+                  {
+                    title: '最近状态', dataIndex: 'status', key: 'status', width: 100,
+                    render: (v) => v === 'OK' ? <Tag color="green">成功</Tag> : v === 'ERROR' ? <Tag color="red">失败</Tag> : <Tag>未运行</Tag>,
+                  },
+                  { title: '耗时', dataIndex: 'duration', key: 'duration', width: 80, render: (v) => v ? `${Math.round(v)}s` : '-' },
+                  { title: '最近运行', dataIndex: 'starttime', key: 'starttime', width: 160, render: (v) => v ? dayjs(v * 1000).format('YYYY-MM-DD HH:mm:ss') : '-' },
                 ]}
               />
             )}

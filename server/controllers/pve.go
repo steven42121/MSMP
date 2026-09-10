@@ -282,6 +282,57 @@ func PVESnapshotActionHandler(w http.ResponseWriter, r *http.Request, host *mode
 	}
 }
 
+// PVEBackupsHandler GET /api/hosts/{uuid}/pve/backups
+func PVEBackupsHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
+	if !requirePVEAdmin(w, r, host.ID, tenantID) {
+		return
+	}
+	client, _, err := connectPVE(r, tenantID, host.ID)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+
+	jobs, err := client.ListBackupJobs(r.Context())
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"jobs":  jobs,
+		"count": len(jobs),
+	})
+}
+
+// PVEBackupContentHandler GET /api/hosts/{uuid}/pve/backups/content?node=&storage=
+func PVEBackupContentHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
+	if !requirePVEAdmin(w, r, host.ID, tenantID) {
+		return
+	}
+	node := r.URL.Query().Get("node")
+	storage := r.URL.Query().Get("storage")
+	if node == "" || storage == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "node 和 storage 必填"})
+		return
+	}
+
+	client, _, err := connectPVE(r, tenantID, host.ID)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+
+	files, err := client.ListBackupContent(r.Context(), node, storage)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"files": files,
+		"count": len(files),
+	})
+}
+
 // PVESnapshotRollbackHandler POST /api/hosts/{uuid}/pve/snapshots/rollback
 func PVESnapshotRollbackHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
 	if !requirePVEAdmin(w, r, host.ID, tenantID) {
