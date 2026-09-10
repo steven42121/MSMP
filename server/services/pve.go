@@ -555,3 +555,26 @@ func (c *PVEClient) GetGuestRuntime(ctx context.Context, node, guestType string,
 	}
 	return &rt, nil
 }
+
+// PVENetwork 节点网络配置（网桥/物理网卡/bond 等）。
+type PVENetwork struct {
+	Iface       string `json:"iface"`
+	Type        string `json:"type"`   // bridge / eth / bond / vlan / loopback / alias
+	Method      string `json:"method"` // static / dhcp / manual
+	Address     string `json:"address"`
+	Cidr        string `json:"cidr"`
+	Gateway     string `json:"gateway"`
+	BridgePorts string `json:"bridge_ports"`
+	Autostart   int    `json:"autostart"`
+	Active      int    `json:"active"`
+}
+
+// ListNetworks 列出节点网络配置（GET /nodes/{node}/network）。
+func (c *PVEClient) ListNetworks(ctx context.Context, node string) ([]PVENetwork, error) {
+	path := "/nodes/" + url.PathEscape(node) + "/network"
+	var nets []PVENetwork
+	if err := c.do(ctx, http.MethodGet, path, nil, &nets); err != nil {
+		return nil, fmt.Errorf("列出网络配置失败: %w", err)
+	}
+	return nets, nil
+}

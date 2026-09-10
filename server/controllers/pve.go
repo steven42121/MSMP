@@ -282,6 +282,47 @@ func PVESnapshotActionHandler(w http.ResponseWriter, r *http.Request, host *mode
 	}
 }
 
+// PVENetworksHandler GET /api/hosts/{uuid}/pve/networks
+// 遍历所有在线节点的网络配置。
+func PVENetworksHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
+	if !requirePVEAdmin(w, r, host.ID, tenantID) {
+		return
+	}
+	client, _, err := connectPVE(r, tenantID, host.ID)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+
+	nodes, err := client.Nodes(r.Context())
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+
+	type netEntry struct {
+		Node string `json:"node"`
+		services.PVENetwork
+	}
+	all := make([]netEntry, 0)
+	for _, node := range nodes {
+		if node.Status != "online" {
+			continue
+		}
+		nets, err := client.ListNetworks(r.Context(), node.Node)
+		if err != nil {
+			continue
+		}
+		for _, n := range nets {
+			all = append(all, netEntry{Node: node.Node, PVENetwork: n})
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"networks": all,
+		"count":    len(all),
+	})
+}
+
 // PVEGuestDetailHandler GET /api/hosts/{uuid}/pve/guest?node=&vmtype=&vmid=
 // 返回配置 + 实时资源，供详情弹窗展示（QEMU/LXC 通用）。
 func PVEGuestDetailHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {

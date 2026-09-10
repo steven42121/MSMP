@@ -231,6 +231,8 @@ func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
 		VSphereSnapshotCreateHandler(w, r, &host, tenantID, getUserID(r), parts[3])
 	case subResource == "vsphere" && subAction == "vms" && len(parts) >= 5 && parts[4] == "snapshots" && r.Method == http.MethodDelete:
 		VSphereSnapshotDeleteHandler(w, r, &host, tenantID, getUserID(r), parts[3])
+	case subResource == "vsphere" && subAction == "networks" && r.Method == http.MethodGet:
+		VSphereNetworksHandler(w, r, &host, tenantID, getUserID(r))
 	case subResource == "vsphere" && subAction == "datastores" && r.Method == http.MethodGet:
 		VSphereDatastoresHandler(w, r, &host, tenantID, getUserID(r))
 
@@ -253,6 +255,8 @@ func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
 		PVEBackupsHandler(w, r, &host, tenantID, getUserID(r))
 	case subResource == "pve" && subAction == "guest" && r.Method == http.MethodGet:
 		PVEGuestDetailHandler(w, r, &host, tenantID, getUserID(r))
+	case subResource == "pve" && subAction == "networks" && r.Method == http.MethodGet:
+		PVENetworksHandler(w, r, &host, tenantID, getUserID(r))
 
 	case subResource == "agent" && subAction == "upgrade" && r.Method == http.MethodPost:
 		AgentUpgradeHandler(w, r)

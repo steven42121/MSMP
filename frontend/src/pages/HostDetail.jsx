@@ -40,6 +40,8 @@ export default function HostDetail() {
   const [sshOpen, setSshOpen] = useState(false);
   const [vsphereVMs, setVSphereVMs] = useState([]);
   const [vsphereDatastores, setVSphereDatastores] = useState([]);
+  const [vsphereNetworks, setVSphereNetworks] = useState([]);
+  const [pveNetworks, setPVENetworks] = useState([]);
   const [vsphereLoading, setVSphereLoading] = useState(false);
   const [pveGuests, setPVEGuests] = useState([]);
   const [pveStorages, setPVEStorages] = useState([]);
@@ -182,12 +184,14 @@ export default function HostDetail() {
   const loadVSphere = async () => {
     setVSphereLoading(true);
     try {
-      const [vmsRes, dsRes] = await Promise.all([
+      const [vmsRes, dsRes, netRes] = await Promise.all([
         client.get()(`/hosts/${uuid}/vsphere/vms`),
         client.get()(`/hosts/${uuid}/vsphere/datastores`),
+        client.get()(`/hosts/${uuid}/vsphere/networks`),
       ]);
       setVSphereVMs(vmsRes.vms || []);
       setVSphereDatastores(dsRes.datastores || []);
+      setVSphereNetworks(netRes.networks || []);
     } catch (e) {
       message.error('加载 vSphere 数据失败');
     } finally {
@@ -208,14 +212,16 @@ export default function HostDetail() {
   const loadPVE = async () => {
     setPVELoading(true);
     try {
-      const [guestRes, stRes, backupRes] = await Promise.all([
+      const [guestRes, stRes, backupRes, netRes] = await Promise.all([
         client.get()(`/hosts/${uuid}/pve/guests`),
         client.get()(`/hosts/${uuid}/pve/storage`),
         client.get()(`/hosts/${uuid}/pve/backups`),
+        client.get()(`/hosts/${uuid}/pve/networks`),
       ]);
       setPVEGuests(guestRes.guests || []);
       setPVEStorages(stRes.storages || []);
       setPVEBackups(backupRes.jobs || []);
+      setPVENetworks(netRes.networks || []);
     } catch (e) {
       message.error('加载 Proxmox VE 数据失败');
     } finally {
@@ -685,6 +691,19 @@ export default function HostDetail() {
                 ]}
               />
             )}
+            <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>网络（共 {vsphereNetworks.length} 个）</div>
+            {vsphereNetworks.length === 0 ? (
+              <Typography.Text type="secondary">暂无网络数据</Typography.Text>
+            ) : (
+              <Table
+                size="small" dataSource={vsphereNetworks} rowKey="name" pagination={false}
+                columns={[
+                  { title: '名称', dataIndex: 'name', key: 'name' },
+                  { title: '类型', dataIndex: 'type', key: 'type', width: 160, render: (v) => <Tag color="geekblue">{v}</Tag> },
+                  { title: '摘要', dataIndex: 'summary', key: 'summary', ellipsis: true },
+                ]}
+              />
+            )}
           </Space>
         </Spin>
       ),
@@ -777,6 +796,24 @@ export default function HostDetail() {
                   },
                   { title: '耗时', dataIndex: 'duration', key: 'duration', width: 80, render: (v) => v ? `${Math.round(v)}s` : '-' },
                   { title: '最近运行', dataIndex: 'starttime', key: 'starttime', width: 160, render: (v) => v ? dayjs(v * 1000).format('YYYY-MM-DD HH:mm:ss') : '-' },
+                ]}
+              />
+            )}
+            <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>网络（共 {pveNetworks.length} 个）</div>
+            {pveNetworks.length === 0 ? (
+              <Typography.Text type="secondary">暂无网络配置</Typography.Text>
+            ) : (
+              <Table
+                size="small" dataSource={pveNetworks} rowKey={(r) => `${r.node}-${r.iface}`} pagination={false}
+                columns={[
+                  { title: '接口', dataIndex: 'iface', key: 'iface' },
+                  { title: '节点', dataIndex: 'node', key: 'node', width: 110 },
+                  { title: '类型', dataIndex: 'type', key: 'type', width: 100, render: (v) => <Tag color={v === 'bridge' ? 'blue' : v === 'bond' ? 'purple' : 'default'}>{v}</Tag> },
+                  { title: '地址', dataIndex: 'cidr', key: 'cidr', width: 160, render: (v) => v || '-' },
+                  { title: '网关', dataIndex: 'gateway', key: 'gateway', width: 140, render: (v) => v || '-' },
+                  { title: '桥接端口', dataIndex: 'bridge_ports', key: 'bridge_ports', width: 140, render: (v) => v || '-' },
+                  { title: '方式', dataIndex: 'method', key: 'method', width: 90 },
+                  { title: '状态', dataIndex: 'active', key: 'active', width: 80, render: (v) => v === 1 ? <Tag color="green">启用</Tag> : <Tag color="default">停用</Tag> },
                 ]}
               />
             )}

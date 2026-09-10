@@ -296,6 +296,39 @@ func (m *VSphereManager) findVM(ctx context.Context, name string) (*object.Virtu
 	return vm, nil
 }
 
+// NetworkInfo ESXi 网络（端口组 / 分布式端口组 / 不透明网络）。
+type NetworkInfo struct {
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+	Summary string `json:"summary"`
+}
+
+// ListNetworks 列出所有网络（端口组、分布式端口组等）。
+func (m *VSphereManager) ListNetworks(ctx context.Context) ([]NetworkInfo, error) {
+	finder := find.NewFinder(m.client.Client)
+	nets, err := finder.NetworkList(ctx, "...")
+	if err != nil {
+		return nil, fmt.Errorf("列出网络失败: %w", err)
+	}
+
+	result := make([]NetworkInfo, 0, len(nets))
+	for _, net := range nets {
+		ni := NetworkInfo{Name: net.GetInventoryPath()}
+		switch net.Reference().Type {
+		case "DistributedVirtualPortgroup":
+			ni.Type = "分布式端口组"
+		case "Network":
+			ni.Type = "标准端口组"
+		case "OpaqueNetwork":
+			ni.Type = "不透明网络"
+		default:
+			ni.Type = net.Reference().Type
+		}
+		result = append(result, ni)
+	}
+	return result, nil
+}
+
 // ListDatastores 列出所有数据存储。
 func (m *VSphereManager) ListDatastores(ctx context.Context) ([]DatastoreInfo, error) {
 	finder := find.NewFinder(m.client.Client)

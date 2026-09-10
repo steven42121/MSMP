@@ -131,6 +131,29 @@ func VSphereDatastoresHandler(w http.ResponseWriter, r *http.Request, host *mode
 	})
 }
 
+// VSphereNetworksHandler GET /api/hosts/{uuid}/vsphere/networks
+func VSphereNetworksHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
+	if !requireVSphereAdmin(w, r, host.ID, tenantID) {
+		return
+	}
+	mgr, err := services.ConnectVSphere(r.Context(), tenantID, host.ID)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+	defer mgr.Close(r.Context())
+
+	nets, err := mgr.ListNetworks(r.Context())
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"networks": nets,
+		"count":    len(nets),
+	})
+}
+
 // VSphereSnapshotsHandler GET /api/hosts/{uuid}/vsphere/vms/{name}/snapshots
 func VSphereSnapshotsHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint, vmName string) {
 	if !requireVSphereAdmin(w, r, host.ID, tenantID) {
