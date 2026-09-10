@@ -282,6 +282,42 @@ func PVESnapshotActionHandler(w http.ResponseWriter, r *http.Request, host *mode
 	}
 }
 
+// PVEGuestDetailHandler GET /api/hosts/{uuid}/pve/guest?node=&vmtype=&vmid=
+// 返回配置 + 实时资源，供详情弹窗展示（QEMU/LXC 通用）。
+func PVEGuestDetailHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
+	if !requirePVEAdmin(w, r, host.ID, tenantID) {
+		return
+	}
+	node := r.URL.Query().Get("node")
+	guestType := r.URL.Query().Get("vmtype")
+	vmid, _ := strconv.Atoi(r.URL.Query().Get("vmid"))
+	if node == "" || vmid <= 0 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "node 和 vmid 必填"})
+		return
+	}
+
+	client, _, err := connectPVE(r, tenantID, host.ID)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+
+	cfg, err := client.GetGuestConfig(r.Context(), node, guestType, vmid)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+	runtime, _ := client.GetGuestRuntime(r.Context(), node, guestType, vmid)
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"node":      node,
+		"vmtype":    guestType,
+		"vmid":      vmid,
+		"config":    cfg,
+		"runtime":   runtime,
+	})
+}
+
 // PVEBackupsHandler GET /api/hosts/{uuid}/pve/backups
 func PVEBackupsHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
 	if !requirePVEAdmin(w, r, host.ID, tenantID) {

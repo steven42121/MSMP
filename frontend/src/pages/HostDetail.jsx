@@ -49,6 +49,9 @@ export default function HostDetail() {
   const [snapshotModal, setSnapshotModal] = useState(false);
   const [snapshotTarget, setSnapshotTarget] = useState(null); // { type:'pve'|'vsphere', node, vmid, vmtype, vmName }
   const [snapshots, setSnapshots] = useState([]);
+  const [guestDetail, setGuestDetail] = useState(null); // { node, vmtype, vmid, config, runtime }
+  const [guestDetailOpen, setGuestDetailOpen] = useState(false);
+  const [guestDetailLoading, setGuestDetailLoading] = useState(false);
   const [snapshotLoading, setSnapshotLoading] = useState(false);
   const [snapshotName, setSnapshotName] = useState('');
 
@@ -310,6 +313,22 @@ export default function HostDetail() {
       loadSnapshots(snapshotTarget);
     } catch (e) {
       message.error(e?.response?.data?.error || '操作失败');
+    }
+  };
+
+  const openGuestDetail = async (guest) => {
+    setGuestDetailOpen(true);
+    setGuestDetailLoading(true);
+    setGuestDetail({ node: guest.node, vmtype: guest.guest_type, vmid: guest.vmid });
+    try {
+      const resp = await client.get()(`/hosts/${uuid}/pve/guest`, {
+        node: guest.node, vmtype: guest.guest_type, vmid: guest.vmid,
+      });
+      setGuestDetail(resp);
+    } catch (e) {
+      message.error('加载详情失败');
+    } finally {
+      setGuestDetailLoading(false);
     }
   };
 
@@ -700,7 +719,7 @@ export default function HostDetail() {
                   { title: '内存', dataIndex: 'maxmem', key: 'maxmem', width: 100, render: formatBytes },
                   { title: '磁盘', dataIndex: 'maxdisk', key: 'maxdisk', width: 100, render: formatBytes },
                   {
-                    title: '操作', key: 'action', width: 280,
+                    title: '操作', key: 'action', width: 320,
                     render: (_, r) => (
                       <Space size={4}>
                         {r.status !== 'running' && <Button type="link" size="small" onClick={() => handlePVEPower(r, 'start')}>开机</Button>}
@@ -712,6 +731,7 @@ export default function HostDetail() {
                           </>
                         )}
                         <Button type="link" size="small" onClick={() => openSnapshots({ type: 'pve', node: r.node, vmid: r.vmid, vmtype: r.guest_type })}>快照</Button>
+                        <Button type="link" size="small" onClick={() => openGuestDetail(r)}>详情</Button>
                       </Space>
                     ),
                   },
@@ -855,6 +875,48 @@ export default function HostDetail() {
             )}
           </Spin>
         </Space>
+      </Modal>
+
+      <Modal
+        title={`${guestDetail?.vmtype === 'lxc' ? 'LXC 容器' : '虚拟机'}详情`}
+        open={guestDetailOpen}
+        onCancel={() => setGuestDetailOpen(false)}
+        footer={null}
+        width={620}
+      >
+        <Spin spinning={guestDetailLoading}>
+          {guestDetail ? (
+            <Space direction="vertical" style={{ width: '100%' }} size={12}>
+              {guestDetail.runtime && (
+                <Space wrap size={16}>
+                  <Text>状态：<Tag color={guestDetail.runtime.status === 'running' ? 'green' : 'default'}>{guestDetail.runtime.status === 'running' ? '运行中' : guestDetail.runtime.status || '-'}</Tag></Text>
+                  <Text>CPU：{guestDetail.runtime.cpu != null ? (guestDetail.runtime.cpu * 100).toFixed(1) + '%' : '-'}</Text>
+                  <Text>内存：{guestDetail.runtime.mem != null ? `${formatBytes(guestDetail.runtime.mem)} / ${formatBytes(guestDetail.runtime.maxmem)}` : '-'}</Text>
+                </Space>
+              )}
+              {guestDetail.runtime && (
+                <Space wrap size={16}>
+                  <Text type="secondary">磁盘：{guestDetail.runtime.disk != null ? `${formatBytes(guestDetail.runtime.disk)} / ${formatBytes(guestDetail.runtime.maxdisk)}` : '-'}</Text>
+                  <Text type="secondary">入站：{formatBytes(guestDetail.runtime.netin)}</Text>
+                  <Text type="secondary">出站：{formatBytes(guestDetail.runtime.netout)}</Text>
+                  <Text type="secondary">运行时长：{guestDetail.runtime.uptime ? `${Math.floor(guestDetail.runtime.uptime / 86400)}天${Math.floor((guestDetail.runtime.uptime % 86400) / 3600)}时` : '-'}</Text>
+                </Space>
+              )}
+              <Table
+                size="small"
+                dataSource={Object.entries(guestDetail.config || {}).map(([key, value]) => ({ key, value: String(value ?? '') }))}
+                rowKey="key"
+                pagination={false}
+                columns={[
+                  { title: '配置项', dataIndex: 'key', key: 'key', width: 200 },
+                  { title: '值', dataIndex: 'value', key: 'value', ellipsis: true },
+                ]}
+              />
+            </Space>
+          ) : (
+            <Text type="secondary">暂无详情</Text>
+          )}
+        </Spin>
       </Modal>
 
       <Modal

@@ -508,3 +508,50 @@ func (c *PVEClient) ListBackupContent(ctx context.Context, node, storage string)
 	}
 	return result, nil
 }
+
+// GuestConfig 虚拟机/容器配置（GET /nodes/{node}/{type}/{vmid}/config 原始键值）。
+type GuestConfig map[string]interface{}
+
+// GuestRuntime 虚拟机/容器实时资源状态（GET /nodes/{node}/{type}/{vmid}/status/current）。
+type GuestRuntime struct {
+	CPU      float64 `json:"cpu"`
+	CPUs     int     `json:"cpus"`
+	Mem      uint64  `json:"mem"`
+	MaxMem   uint64  `json:"maxmem"`
+	Disk     uint64  `json:"disk"`
+	MaxDisk  uint64  `json:"maxdisk"`
+	NetIn    uint64  `json:"netin"`
+	NetOut   uint64  `json:"netout"`
+	Uptime   uint64  `json:"uptime"`
+	Status   string  `json:"status"`
+	Name     string  `json:"name"`
+	Template int     `json:"template"`
+}
+
+// GetGuestConfig 获取虚拟机/容器配置。
+func (c *PVEClient) GetGuestConfig(ctx context.Context, node, guestType string, vmid int) (GuestConfig, error) {
+	guestType = strings.ToLower(guestType)
+	if guestType != "qemu" && guestType != "lxc" {
+		return nil, fmt.Errorf("无效的 guest 类型: %s", guestType)
+	}
+	path := fmt.Sprintf("/nodes/%s/%s/%d/config", url.PathEscape(node), guestType, vmid)
+	var cfg GuestConfig
+	if err := c.do(ctx, http.MethodGet, path, nil, &cfg); err != nil {
+		return nil, fmt.Errorf("获取配置失败: %w", err)
+	}
+	return cfg, nil
+}
+
+// GetGuestRuntime 获取虚拟机/容器实时资源状态。
+func (c *PVEClient) GetGuestRuntime(ctx context.Context, node, guestType string, vmid int) (*GuestRuntime, error) {
+	guestType = strings.ToLower(guestType)
+	if guestType != "qemu" && guestType != "lxc" {
+		return nil, fmt.Errorf("无效的 guest 类型: %s", guestType)
+	}
+	path := fmt.Sprintf("/nodes/%s/%s/%d/status/current", url.PathEscape(node), guestType, vmid)
+	var rt GuestRuntime
+	if err := c.do(ctx, http.MethodGet, path, nil, &rt); err != nil {
+		return nil, fmt.Errorf("获取运行状态失败: %w", err)
+	}
+	return &rt, nil
+}

@@ -251,6 +251,8 @@ func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
 		PVEBackupContentHandler(w, r, &host, tenantID, getUserID(r))
 	case subResource == "pve" && subAction == "backups" && r.Method == http.MethodGet:
 		PVEBackupsHandler(w, r, &host, tenantID, getUserID(r))
+	case subResource == "pve" && subAction == "guest" && r.Method == http.MethodGet:
+		PVEGuestDetailHandler(w, r, &host, tenantID, getUserID(r))
 
 	case subResource == "agent" && subAction == "upgrade" && r.Method == http.MethodPost:
 		AgentUpgradeHandler(w, r)
