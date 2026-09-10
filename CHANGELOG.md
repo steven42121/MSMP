@@ -4,6 +4,38 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [v0.1.4] - 2026-09-10
+
+### 虚拟化深度管理
+- PVE + ESXi 快照管理（创建 / 恢复 / 删除，含审计）
+- PVE 备份（vzdump 任务状态 + 备份文件列表）
+- 虚拟机 / LXC 容器详情（配置 + 实时资源：CPU/内存/磁盘/网络/运行时长）
+- 网络视图（PVE 网桥/bond/vlan + ESXi 端口组/分布式端口组）
+- PVE 集群聚合视图（/cluster/resources：集群汇总 + 节点资源表）
+
+### 平台加固
+- SFTP 路径穿越修复（upload/download/mkdir/rename/delete 全路径校验）
+- WebSSH Origin 白名单 + admin 角色强制 + 并发写锁
+- Agent 端点认证收紧（heartbeat/assets/metrics 需 AgentToken）
+- 登录失败锁定 + 速率限制 + IP 白名单（CIDR 支持）
+- JWT claims 类型安全断言
+- 告警抑制防自锁（type=alert_suppressed）+ 升级精确 ID 匹配
+- PVE LoadAvg []string 类型修复 + ctx 传递 + TLS 校验可配置
+
+### 平台能力
+- Prometheus 格式 `/metrics` 自监控端点
+- 时序数据降采样与保留策略（7 天降采样至 5 分钟，90 天清理）
+- 可用性探测（HTTP/TCP/SSL）+ Cron 定时任务调度器
+- WebSSH 会话录制与回放
+- 进程/端口/软件包资产清单
+- Agent 自动升级（版本上报 + 服务端下发 + 自更新）
+
+### 工程化
+- 零停机更新工具（systemd unit + watchdog + update.sh + PM2 配置）
+- 优雅退出（Shutdown 超时 + Server 超时配置）
+- 构建版本注入（ldflags Version/BuildTime/Commit）
+- Metrics 空窗口回退（离线主机仍显示最后指标曲线）
+
 ## [v0.1.0] - 2026-09-06
 
 ### 新增
@@ -38,5 +70,5 @@
 - 时序数据降采样与保留策略（默认 7 天降采样至 5 分钟粒度，90 天自动清理）
 - 登录失败锁定（5 次失败锁定 10 分钟）+ IP 白名单（config.yaml 配置）
 
-[unreleased]: https://github.com/steven42121/MSMP/compare/v0.1.0...HEAD
+[v0.1.4]: https://github.com/steven42121/MSMP/releases/tag/v0.1.4
 [v0.1.0]: https://github.com/steven42121/MSMP/releases/tag/v0.1.0

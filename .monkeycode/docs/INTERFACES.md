@@ -521,3 +521,48 @@ retention:
   downsample_at_days: 7       # 超过此天数的原始数据降采样
   downsample_interval: 5      # 降采样粒度（分钟）
 ```
+
+---
+
+## 虚拟化管理（PVE / vSphere）
+
+虚拟化管理接口均需 admin 角色 + 对应渠道（pve/vsphere）已配置。
+
+### PVE 快照管理
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/hosts/{uuid}/pve/snapshots?node=&vmtype=&vmid=` | 列出快照 |
+| POST | `/api/hosts/{uuid}/pve/snapshots` | 创建快照 `{node, vmtype, vmid, name, description}` |
+| DELETE | `/api/hosts/{uuid}/pve/snapshots?node=&vmtype=&vmid=&snap_name=` | 删除快照 |
+| POST | `/api/hosts/{uuid}/pve/snapshots/rollback` | 回滚 `{node, vmtype, vmid, snap_name}` |
+
+### PVE 备份
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/hosts/{uuid}/pve/backups` | 备份任务 + 最近运行状态 |
+| GET | `/api/hosts/{uuid}/pve/backups/content?node=&storage=` | 备份文件列表 |
+
+### PVE 其他
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/hosts/{uuid}/pve/guest?node=&vmtype=&vmid=` | 虚拟机/容器详情（配置 + 实时资源） |
+| GET | `/api/hosts/{uuid}/pve/networks` | 节点网络配置（网桥/bond/vlan） |
+| GET | `/api/hosts/{uuid}/pve/cluster` | 集群聚合资源（节点/VM/容器/存储） |
+
+### vSphere 快照管理
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/hosts/{uuid}/vsphere/vms/{name}/snapshots` | 列出快照 |
+| POST | `/api/hosts/{uuid}/vsphere/vms/{name}/snapshots` | 创建 `{name, description}` |
+| DELETE | `/api/hosts/{uuid}/vsphere/vms/{name}/snapshots?snap_name=` | 删除快照 |
+| POST | `/api/hosts/{uuid}/vsphere/vms/{name}/snapshots/rollback` | 回滚 `{snap_name}` |
+
+### vSphere 网络
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/hosts/{uuid}/vsphere/networks` | 端口组 / 分布式端口组列表 |
