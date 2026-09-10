@@ -42,6 +42,8 @@ export default function HostDetail() {
   const [vsphereDatastores, setVSphereDatastores] = useState([]);
   const [vsphereNetworks, setVSphereNetworks] = useState([]);
   const [pveNetworks, setPVENetworks] = useState([]);
+  const [pveClusterNodes, setPVEClusterNodes] = useState([]);
+  const [pveClusterSummary, setPVEClusterSummary] = useState(null);
   const [vsphereLoading, setVSphereLoading] = useState(false);
   const [pveGuests, setPVEGuests] = useState([]);
   const [pveStorages, setPVEStorages] = useState([]);
@@ -212,16 +214,21 @@ export default function HostDetail() {
   const loadPVE = async () => {
     setPVELoading(true);
     try {
-      const [guestRes, stRes, backupRes, netRes] = await Promise.all([
+      const [guestRes, stRes, backupRes, netRes, clusterRes] = await Promise.all([
         client.get()(`/hosts/${uuid}/pve/guests`),
         client.get()(`/hosts/${uuid}/pve/storage`),
         client.get()(`/hosts/${uuid}/pve/backups`),
         client.get()(`/hosts/${uuid}/pve/networks`),
+        client.get()(`/hosts/${uuid}/pve/cluster`),
       ]);
       setPVEGuests(guestRes.guests || []);
       setPVEStorages(stRes.storages || []);
       setPVEBackups(backupRes.jobs || []);
       setPVENetworks(netRes.networks || []);
+      const res = clusterRes.resources || [];
+      setPVEClusterNodes(res.filter((r) => r.type === 'node'));
+      const cluster = res.find((r) => r.type === 'cluster');
+      setPVEClusterSummary(cluster || null);
     } catch (e) {
       message.error('加载 Proxmox VE 数据失败');
     } finally {
@@ -715,6 +722,30 @@ export default function HostDetail() {
         <Spin spinning={pveLoading}>
           <Space direction="vertical" style={{ width: '100%' }} size={16}>
             <Button onClick={loadPVE}>刷新</Button>
+            {pveClusterSummary && (
+              <Space wrap size={24} style={{ padding: '8px 4px' }}>
+                <Text>集群：<strong>{pveClusterSummary.name || '-'}</strong></Text>
+                <Text type="secondary">CPU：{pveClusterSummary.cpu != null ? (pveClusterSummary.cpu * 100).toFixed(1) : '-'}% / {pveClusterSummary.maxcpu || '-'} 核</Text>
+                <Text type="secondary">内存：{pveClusterSummary.maxmem ? `${((pveClusterSummary.mem / pveClusterSummary.maxmem) * 100).toFixed(1)}%` : '-'}</Text>
+                <Text type="secondary">磁盘：{pveClusterSummary.maxdisk ? `${((pveClusterSummary.disk / pveClusterSummary.maxdisk) * 100).toFixed(1)}%` : '-'}</Text>
+              </Space>
+            )}
+            {pveClusterNodes.length > 0 && (
+              <>
+                <div style={{ color: '#888', fontSize: 13 }}>集群节点（共 {pveClusterNodes.length} 个）</div>
+                <Table
+                  size="small" dataSource={pveClusterNodes} rowKey="id" pagination={false}
+                  columns={[
+                    { title: '节点', dataIndex: 'name', key: 'name' },
+                    { title: '状态', dataIndex: 'status', key: 'status', width: 90, render: (v) => <Tag color={v === 'online' ? 'green' : 'red'}>{v === 'online' ? '在线' : v}</Tag> },
+                    { title: 'CPU', key: 'cpu', width: 120, render: (_, r) => r.maxcpu ? `${((r.cpu * 100)).toFixed(1)}% / ${r.maxcpu}核` : '-' },
+                    { title: '内存', key: 'mem', width: 140, render: (_, r) => r.maxmem ? `${((r.mem / r.maxmem) * 100).toFixed(1)}%` : '-' },
+                    { title: '磁盘', key: 'disk', width: 140, render: (_, r) => r.maxdisk ? `${((r.disk / r.maxdisk) * 100).toFixed(1)}%` : '-' },
+                    { title: '运行时长', dataIndex: 'uptime', key: 'uptime', width: 120, render: (v) => v ? `${Math.floor(v / 86400)}天${Math.floor((v % 86400) / 3600)}时` : '-' },
+                  ]}
+                />
+              </>
+            )}
             <div style={{ color: '#888', fontSize: 13 }}>虚拟机 / 容器（共 {pveGuests.length} 个）</div>
             {pveGuests.length === 0 ? (
               <Typography.Text type="secondary">暂无虚拟机/容器数据</Typography.Text>

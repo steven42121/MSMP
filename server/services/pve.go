@@ -578,3 +578,29 @@ func (c *PVEClient) ListNetworks(ctx context.Context, node string) ([]PVENetwork
 	}
 	return nets, nil
 }
+
+// PVEClusterResource 集群聚合资源（节点/VM/容器/存储）。
+type PVEClusterResource struct {
+	Type    string  `json:"type"` // node / qemu / lxc / storage / cluster
+	ID      string  `json:"id"`
+	Name    string  `json:"name"`
+	Node    string  `json:"node"`
+	Status  string  `json:"status"`
+	CPU     float64 `json:"cpu"`
+	MaxCPU  int     `json:"maxcpu"`
+	Mem     uint64  `json:"mem"`
+	MaxMem  uint64  `json:"maxmem"`
+	Disk    uint64  `json:"disk"`
+	MaxDisk uint64  `json:"maxdisk"`
+	VMID    int     `json:"vmid"`
+	Uptime  uint64  `json:"uptime"`
+}
+
+// ClusterResources 获取集群聚合资源（GET /cluster/resources）。
+func (c *PVEClient) ClusterResources(ctx context.Context) ([]PVEClusterResource, error) {
+	var res []PVEClusterResource
+	if err := c.do(ctx, http.MethodGet, "/cluster/resources", nil, &res); err != nil {
+		return nil, fmt.Errorf("获取集群资源失败: %w", err)
+	}
+	return res, nil
+}

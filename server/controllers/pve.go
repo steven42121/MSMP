@@ -282,6 +282,29 @@ func PVESnapshotActionHandler(w http.ResponseWriter, r *http.Request, host *mode
 	}
 }
 
+// PVEClusterHandler GET /api/hosts/{uuid}/pve/cluster
+// 返回集群聚合资源（节点/VM/容器/存储）。
+func PVEClusterHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
+	if !requirePVEAdmin(w, r, host.ID, tenantID) {
+		return
+	}
+	client, _, err := connectPVE(r, tenantID, host.ID)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+
+	resources, err := client.ClusterResources(r.Context())
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"resources": resources,
+		"count":     len(resources),
+	})
+}
+
 // PVENetworksHandler GET /api/hosts/{uuid}/pve/networks
 // 遍历所有在线节点的网络配置。
 func PVENetworksHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {

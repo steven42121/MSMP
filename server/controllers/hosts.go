@@ -257,6 +257,8 @@ func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
 		PVEGuestDetailHandler(w, r, &host, tenantID, getUserID(r))
 	case subResource == "pve" && subAction == "networks" && r.Method == http.MethodGet:
 		PVENetworksHandler(w, r, &host, tenantID, getUserID(r))
+	case subResource == "pve" && subAction == "cluster" && r.Method == http.MethodGet:
+		PVEClusterHandler(w, r, &host, tenantID, getUserID(r))
 
 	case subResource == "agent" && subAction == "upgrade" && r.Method == http.MethodPost:
 		AgentUpgradeHandler(w, r)
