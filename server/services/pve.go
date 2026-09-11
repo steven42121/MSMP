@@ -276,6 +276,20 @@ func truncate(s string, n int) string {
 	return s[:n] + "..."
 }
 
+// normalizeGuestType 小写化并校验 guest 类型（qemu/lxc）。
+func normalizeGuestType(guestType string) (string, error) {
+	guestType = strings.ToLower(guestType)
+	if guestType != "qemu" && guestType != "lxc" {
+		return "", fmt.Errorf("无效的 guest 类型: %s", guestType)
+	}
+	return guestType, nil
+}
+
+// guestBasePath 构造 /nodes/{node}/{type}/{vmid} 基础路径。
+func guestBasePath(node, guestType string, vmid int) string {
+	return fmt.Sprintf("/nodes/%s/%s/%d", url.PathEscape(node), guestType, vmid)
+}
+
 // Version 获取 PVE 版本。
 func (c *PVEClient) Version(ctx context.Context) (*PVEVersionResponse, error) {
 	var v PVEVersionResponse
@@ -345,9 +359,9 @@ func (c *PVEClient) ListGuests(ctx context.Context) ([]PVEGuest, error) {
 // PowerGuest 对虚拟机/容器执行电源操作。
 // action 取值：start / stop / reboot / shutdown / reset / suspend / resume。
 func (c *PVEClient) PowerGuest(ctx context.Context, node, guestType string, vmid int, action string) error {
-	guestType = strings.ToLower(guestType)
-	if guestType != "qemu" && guestType != "lxc" {
-		return fmt.Errorf("无效的 guest 类型: %s", guestType)
+	guestType, err := normalizeGuestType(guestType)
+	if err != nil {
+		return err
 	}
 	if !map[string]bool{"start": true, "stop": true, "reboot": true, "shutdown": true, "reset": true, "suspend": true, "resume": true}[action] {
 		return fmt.Errorf("无效的电源操作: %s", action)
@@ -357,8 +371,7 @@ func (c *PVEClient) PowerGuest(ctx context.Context, node, guestType string, vmid
 		return fmt.Errorf("LXC 容器不支持 %s 操作", action)
 	}
 
-	path := fmt.Sprintf("/nodes/%s/%s/%d/status/%s",
-		url.PathEscape(node), guestType, vmid, url.PathEscape(action))
+	path := guestBasePath(node, guestType, vmid) + "/status/" + url.PathEscape(action)
 	return c.do(ctx, http.MethodPost, path, url.Values{}, nil)
 }
 
@@ -397,11 +410,11 @@ type PVESnapshotInfo struct {
 
 // ListSnapshots 列出虚拟机/容器的快照。
 func (c *PVEClient) ListSnapshots(ctx context.Context, node, guestType string, vmid int) ([]PVESnapshotInfo, error) {
-	guestType = strings.ToLower(guestType)
-	if guestType != "qemu" && guestType != "lxc" {
-		return nil, fmt.Errorf("无效的 guest 类型: %s", guestType)
+	guestType, err := normalizeGuestType(guestType)
+	if err != nil {
+		return nil, err
 	}
-	path := fmt.Sprintf("/nodes/%s/%s/%d/snapshot", url.PathEscape(node), guestType, vmid)
+	path := guestBasePath(node, guestType, vmid) + "/snapshot"
 	var snaps []PVESnapshotInfo
 	if err := c.do(ctx, http.MethodGet, path, nil, &snaps); err != nil {
 		return nil, fmt.Errorf("列出快照失败: %w", err)
@@ -411,11 +424,11 @@ func (c *PVEClient) ListSnapshots(ctx context.Context, node, guestType string, v
 
 // CreateSnapshot 创建虚拟机/容器快照。
 func (c *PVEClient) CreateSnapshot(ctx context.Context, node, guestType string, vmid int, name, description string) error {
-	guestType = strings.ToLower(guestType)
-	if guestType != "qemu" && guestType != "lxc" {
-		return fmt.Errorf("无效的 guest 类型: %s", guestType)
+	guestType, err := normalizeGuestType(guestType)
+	if err != nil {
+		return err
 	}
-	path := fmt.Sprintf("/nodes/%s/%s/%d/snapshot", url.PathEscape(node), guestType, vmid)
+	path := guestBasePath(node, guestType, vmid) + "/snapshot"
 	body := url.Values{}
 	body.Set("snapname", name)
 	if description != "" {
@@ -426,23 +439,21 @@ func (c *PVEClient) CreateSnapshot(ctx context.Context, node, guestType string, 
 
 // DeleteSnapshot 删除虚拟机/容器快照。
 func (c *PVEClient) DeleteSnapshot(ctx context.Context, node, guestType string, vmid int, name string) error {
-	guestType = strings.ToLower(guestType)
-	if guestType != "qemu" && guestType != "lxc" {
-		return fmt.Errorf("无效的 guest 类型: %s", guestType)
+	guestType, err := normalizeGuestType(guestType)
+	if err != nil {
+		return err
 	}
-	path := fmt.Sprintf("/nodes/%s/%s/%d/snapshot/%s",
-		url.PathEscape(node), guestType, vmid, url.PathEscape(name))
+	path := guestBasePath(node, guestType, vmid) + "/snapshot/" + url.PathEscape(name)
 	return c.do(ctx, http.MethodDelete, path, nil, nil)
 }
 
 // RollbackSnapshot 回滚到指定快照。
 func (c *PVEClient) RollbackSnapshot(ctx context.Context, node, guestType string, vmid int, name string) error {
-	guestType = strings.ToLower(guestType)
-	if guestType != "qemu" && guestType != "lxc" {
-		return fmt.Errorf("无效的 guest 类型: %s", guestType)
+	guestType, err := normalizeGuestType(guestType)
+	if err != nil {
+		return err
 	}
-	path := fmt.Sprintf("/nodes/%s/%s/%d/snapshot/%s/rollback",
-		url.PathEscape(node), guestType, vmid, url.PathEscape(name))
+	path := guestBasePath(node, guestType, vmid) + "/snapshot/" + url.PathEscape(name) + "/rollback"
 	return c.do(ctx, http.MethodPost, path, url.Values{}, nil)
 }
 
@@ -530,11 +541,11 @@ type GuestRuntime struct {
 
 // GetGuestConfig 获取虚拟机/容器配置。
 func (c *PVEClient) GetGuestConfig(ctx context.Context, node, guestType string, vmid int) (GuestConfig, error) {
-	guestType = strings.ToLower(guestType)
-	if guestType != "qemu" && guestType != "lxc" {
-		return nil, fmt.Errorf("无效的 guest 类型: %s", guestType)
+	guestType, err := normalizeGuestType(guestType)
+	if err != nil {
+		return nil, err
 	}
-	path := fmt.Sprintf("/nodes/%s/%s/%d/config", url.PathEscape(node), guestType, vmid)
+	path := guestBasePath(node, guestType, vmid) + "/config"
 	var cfg GuestConfig
 	if err := c.do(ctx, http.MethodGet, path, nil, &cfg); err != nil {
 		return nil, fmt.Errorf("获取配置失败: %w", err)
@@ -544,11 +555,11 @@ func (c *PVEClient) GetGuestConfig(ctx context.Context, node, guestType string, 
 
 // GetGuestRuntime 获取虚拟机/容器实时资源状态。
 func (c *PVEClient) GetGuestRuntime(ctx context.Context, node, guestType string, vmid int) (*GuestRuntime, error) {
-	guestType = strings.ToLower(guestType)
-	if guestType != "qemu" && guestType != "lxc" {
-		return nil, fmt.Errorf("无效的 guest 类型: %s", guestType)
+	guestType, err := normalizeGuestType(guestType)
+	if err != nil {
+		return nil, err
 	}
-	path := fmt.Sprintf("/nodes/%s/%s/%d/status/current", url.PathEscape(node), guestType, vmid)
+	path := guestBasePath(node, guestType, vmid) + "/status/current"
 	var rt GuestRuntime
 	if err := c.do(ctx, http.MethodGet, path, nil, &rt); err != nil {
 		return nil, fmt.Errorf("获取运行状态失败: %w", err)

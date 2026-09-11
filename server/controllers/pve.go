@@ -60,15 +60,24 @@ func (e httpErrorMessage) Error() string { return string(e) }
 
 func httpError(msg string) error { return httpErrorMessage(msg) }
 
-// PVEGuestsHandler GET /api/hosts/{uuid}/pve/guests
-func PVEGuestsHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
+// pveClient 校验权限并建立 PVE 连接，失败时已写响应并返回 false。
+func pveClient(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID uint) (*services.PVEClient, bool) {
 	if !requirePVEAdmin(w, r, host.ID, tenantID) {
-		return
+		return nil, false
 	}
-
 	client, _, err := connectPVE(r, tenantID, host.ID)
 	if err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return nil, false
+	}
+	return client, true
+}
+
+// PVEGuestsHandler GET /api/hosts/{uuid}/pve/guests
+func PVEGuestsHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
+
+	client, ok := pveClient(w, r, host, tenantID)
+	if !ok {
 		return
 	}
 
@@ -95,9 +104,6 @@ func PVEGuestsHandler(w http.ResponseWriter, r *http.Request, host *models.Host,
 // PVEGuestPowerHandler POST /api/hosts/{uuid}/pve/guests/power
 // body: {"node": "pve1", "vmid": 100, "vmtype": "qemu"|"lxc", "action": "start"|"stop"|...}
 func PVEGuestPowerHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
-	if !requirePVEAdmin(w, r, host.ID, tenantID) {
-		return
-	}
 
 	var req struct {
 		Node   string `json:"node"`
@@ -114,9 +120,8 @@ func PVEGuestPowerHandler(w http.ResponseWriter, r *http.Request, host *models.H
 		return
 	}
 
-	client, _, err := connectPVE(r, tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, ok := pveClient(w, r, host, tenantID)
+	if !ok {
 		return
 	}
 
@@ -144,13 +149,9 @@ func PVEGuestPowerHandler(w http.ResponseWriter, r *http.Request, host *models.H
 
 // PVEStorageHandler GET /api/hosts/{uuid}/pve/storage
 func PVEStorageHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
-	if !requirePVEAdmin(w, r, host.ID, tenantID) {
-		return
-	}
 
-	client, _, err := connectPVE(r, tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, ok := pveClient(w, r, host, tenantID)
+	if !ok {
 		return
 	}
 
@@ -189,9 +190,6 @@ func parsePVESnapshotReq(r *http.Request) (*pveSnapshotReq, string, bool) {
 
 // PVESnapshotsHandler GET /api/hosts/{uuid}/pve/snapshots?node=&vmtype=&vmid=
 func PVESnapshotsHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
-	if !requirePVEAdmin(w, r, host.ID, tenantID) {
-		return
-	}
 	node := r.URL.Query().Get("node")
 	guestType := r.URL.Query().Get("vmtype")
 	vmid, _ := strconv.Atoi(r.URL.Query().Get("vmid"))
@@ -200,9 +198,8 @@ func PVESnapshotsHandler(w http.ResponseWriter, r *http.Request, host *models.Ho
 		return
 	}
 
-	client, _, err := connectPVE(r, tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, ok := pveClient(w, r, host, tenantID)
+	if !ok {
 		return
 	}
 
@@ -221,13 +218,9 @@ func PVESnapshotsHandler(w http.ResponseWriter, r *http.Request, host *models.Ho
 // POST 创建（body: {node, vmtype, vmid, name, description}）
 // DELETE 删除（query: node/vmtype/vmid/snap_name）
 func PVESnapshotActionHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
-	if !requirePVEAdmin(w, r, host.ID, tenantID) {
-		return
-	}
 
-	client, _, err := connectPVE(r, tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, ok := pveClient(w, r, host, tenantID)
+	if !ok {
 		return
 	}
 
@@ -285,12 +278,8 @@ func PVESnapshotActionHandler(w http.ResponseWriter, r *http.Request, host *mode
 // PVEClusterHandler GET /api/hosts/{uuid}/pve/cluster
 // 返回集群聚合资源（节点/VM/容器/存储）。
 func PVEClusterHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
-	if !requirePVEAdmin(w, r, host.ID, tenantID) {
-		return
-	}
-	client, _, err := connectPVE(r, tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, ok := pveClient(w, r, host, tenantID)
+	if !ok {
 		return
 	}
 
@@ -308,12 +297,8 @@ func PVEClusterHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 // PVENetworksHandler GET /api/hosts/{uuid}/pve/networks
 // 遍历所有在线节点的网络配置。
 func PVENetworksHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
-	if !requirePVEAdmin(w, r, host.ID, tenantID) {
-		return
-	}
-	client, _, err := connectPVE(r, tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, ok := pveClient(w, r, host, tenantID)
+	if !ok {
 		return
 	}
 
@@ -349,9 +334,6 @@ func PVENetworksHandler(w http.ResponseWriter, r *http.Request, host *models.Hos
 // PVEGuestDetailHandler GET /api/hosts/{uuid}/pve/guest?node=&vmtype=&vmid=
 // 返回配置 + 实时资源，供详情弹窗展示（QEMU/LXC 通用）。
 func PVEGuestDetailHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
-	if !requirePVEAdmin(w, r, host.ID, tenantID) {
-		return
-	}
 	node := r.URL.Query().Get("node")
 	guestType := r.URL.Query().Get("vmtype")
 	vmid, _ := strconv.Atoi(r.URL.Query().Get("vmid"))
@@ -360,9 +342,8 @@ func PVEGuestDetailHandler(w http.ResponseWriter, r *http.Request, host *models.
 		return
 	}
 
-	client, _, err := connectPVE(r, tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, ok := pveClient(w, r, host, tenantID)
+	if !ok {
 		return
 	}
 
@@ -384,12 +365,8 @@ func PVEGuestDetailHandler(w http.ResponseWriter, r *http.Request, host *models.
 
 // PVEBackupsHandler GET /api/hosts/{uuid}/pve/backups
 func PVEBackupsHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
-	if !requirePVEAdmin(w, r, host.ID, tenantID) {
-		return
-	}
-	client, _, err := connectPVE(r, tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, ok := pveClient(w, r, host, tenantID)
+	if !ok {
 		return
 	}
 
@@ -406,9 +383,6 @@ func PVEBackupsHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 
 // PVEBackupContentHandler GET /api/hosts/{uuid}/pve/backups/content?node=&storage=
 func PVEBackupContentHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
-	if !requirePVEAdmin(w, r, host.ID, tenantID) {
-		return
-	}
 	node := r.URL.Query().Get("node")
 	storage := r.URL.Query().Get("storage")
 	if node == "" || storage == "" {
@@ -416,9 +390,8 @@ func PVEBackupContentHandler(w http.ResponseWriter, r *http.Request, host *model
 		return
 	}
 
-	client, _, err := connectPVE(r, tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, ok := pveClient(w, r, host, tenantID)
+	if !ok {
 		return
 	}
 
@@ -435,9 +408,6 @@ func PVEBackupContentHandler(w http.ResponseWriter, r *http.Request, host *model
 
 // PVESnapshotRollbackHandler POST /api/hosts/{uuid}/pve/snapshots/rollback
 func PVESnapshotRollbackHandler(w http.ResponseWriter, r *http.Request, host *models.Host, tenantID, userID uint) {
-	if !requirePVEAdmin(w, r, host.ID, tenantID) {
-		return
-	}
 	req, msg, ok := parsePVESnapshotReq(r)
 	if !ok {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": msg})
@@ -448,9 +418,8 @@ func PVESnapshotRollbackHandler(w http.ResponseWriter, r *http.Request, host *mo
 		return
 	}
 
-	client, _, err := connectPVE(r, tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, ok := pveClient(w, r, host, tenantID)
+	if !ok {
 		return
 	}
 	if err := client.RollbackSnapshot(r.Context(), req.Node, req.GuestType, req.VMID, req.SnapName); err != nil {
