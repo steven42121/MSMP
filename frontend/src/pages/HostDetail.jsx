@@ -23,6 +23,19 @@ function buildOption(title, data, field, unit) {
   };
 }
 
+function SectionTable({ title, count, unit = '个', empty, dataSource, rowKey, columns }) {
+  return (
+    <>
+      <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>{title}（共 {count} {unit}）</div>
+      {count === 0 ? (
+        <Typography.Text type="secondary">{empty}</Typography.Text>
+      ) : (
+        <Table size="small" dataSource={dataSource} rowKey={rowKey} pagination={false} columns={columns} />
+      )}
+    </>
+  );
+}
+
 export default function HostDetail() {
   const { uuid } = useParams();
   const navigate = useNavigate();
@@ -636,81 +649,66 @@ export default function HostDetail() {
         <Spin spinning={vsphereLoading}>
           <Space direction="vertical" style={{ width: '100%' }} size={16}>
             <Button onClick={loadVSphere}>刷新</Button>
-            <div style={{ color: '#888', fontSize: 13 }}>虚拟机（共 {vsphereVMs.length} 台）</div>
-            {vsphereVMs.length === 0 ? (
-              <Typography.Text type="secondary">暂无虚拟机数据</Typography.Text>
-            ) : (
-              <Table
-                size="small"
-                dataSource={vsphereVMs}
-                rowKey="name"
-                pagination={false}
-                columns={[
-                  { title: '名称', dataIndex: 'name', key: 'name' },
-                  {
-                    title: '状态', dataIndex: 'power_state', key: 'power_state', width: 100,
-                    render: (v) => {
-                      const map = { poweredOn: ['green', '已开机'], poweredOff: ['default', '已关机'], suspended: ['orange', '已挂起'] };
-                      const m = map[v] || ['cyan', v || '-'];
-                      return <Tag color={m[0]}>{m[1]}</Tag>;
-                    },
+            <SectionTable
+              title="虚拟机" unit="台" count={vsphereVMs.length} empty="暂无虚拟机数据"
+              dataSource={vsphereVMs} rowKey="name"
+              columns={[
+                { title: '名称', dataIndex: 'name', key: 'name' },
+                {
+                  title: '状态', dataIndex: 'power_state', key: 'power_state', width: 100,
+                  render: (v) => {
+                    const map = { poweredOn: ['green', '已开机'], poweredOff: ['default', '已关机'], suspended: ['orange', '已挂起'] };
+                    const m = map[v] || ['cyan', v || '-'];
+                    return <Tag color={m[0]}>{m[1]}</Tag>;
                   },
-                  { title: 'CPU', dataIndex: 'num_cpu', key: 'num_cpu', width: 70 },
-                  { title: '内存', dataIndex: 'memory_mb', key: 'memory_mb', width: 100, render: (v) => v ? `${(v / 1024).toFixed(1)} GB` : '-' },
-                  { title: 'IP', dataIndex: 'ip_address', key: 'ip_address', width: 140 },
-                  { title: 'Guest OS', dataIndex: 'guest_os', key: 'guest_os' },
-                  { title: '快照数', dataIndex: 'snapshot_count', key: 'snapshot_count', width: 80 },
-                  {
-                    title: '操作', key: 'action', width: 320,
-                    render: (_, r) => (
-                      <Space size={4}>
-                        {r.power_state !== 'poweredOn' && <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'on')}>开机</Button>}
-                        {r.power_state === 'poweredOn' && (
-                          <>
-                            <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'off')}>关机</Button>
-                            <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'reset')}>重启</Button>
-                            <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'suspend')}>挂起</Button>
-                          </>
-                        )}
-                        <Button type="link" size="small" onClick={() => openSnapshots({ type: 'vsphere', vmName: r.name })}>快照</Button>
-                      </Space>
-                    ),
-                  },
-                ]}
-              />
-            )}
-            <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>数据存储（共 {vsphereDatastores.length} 个）</div>
-            {vsphereDatastores.length === 0 ? (
-              <Typography.Text type="secondary">暂无数据存储数据</Typography.Text>
-            ) : (
-              <Table
-                size="small" dataSource={vsphereDatastores} rowKey="name" pagination={false}
-                columns={[
-                  { title: '名称', dataIndex: 'name', key: 'name' },
-                  { title: '类型', dataIndex: 'type', key: 'type', width: 100 },
-                  { title: '容量', dataIndex: 'capacity', key: 'capacity', width: 120, render: formatBytes },
-                  { title: '可用空间', dataIndex: 'free_space', key: 'free_space', width: 120, render: formatBytes },
-                  {
-                    title: '使用率', dataIndex: 'capacity', key: 'used_pct', width: 100,
-                    render: (v, r) => (!v || v === 0) ? '-' : `${((v - r.free_space) / v * 100).toFixed(1)}%`,
-                  },
-                  { title: '可访问', dataIndex: 'accessible', key: 'accessible', width: 80, render: (v) => v ? <Tag color="green">是</Tag> : <Tag color="red">否</Tag> },
-                ]}
-              />
-            )}
-            <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>网络（共 {vsphereNetworks.length} 个）</div>
-            {vsphereNetworks.length === 0 ? (
-              <Typography.Text type="secondary">暂无网络数据</Typography.Text>
-            ) : (
-              <Table
-                size="small" dataSource={vsphereNetworks} rowKey="name" pagination={false}
-                columns={[
-                  { title: '名称', dataIndex: 'name', key: 'name' },
-                  { title: '类型', dataIndex: 'type', key: 'type', width: 160, render: (v) => <Tag color="geekblue">{v}</Tag> },
-                  { title: '摘要', dataIndex: 'summary', key: 'summary', ellipsis: true },
-                ]}
-              />
-            )}
+                },
+                { title: 'CPU', dataIndex: 'num_cpu', key: 'num_cpu', width: 70 },
+                { title: '内存', dataIndex: 'memory_mb', key: 'memory_mb', width: 100, render: (v) => v ? `${(v / 1024).toFixed(1)} GB` : '-' },
+                { title: 'IP', dataIndex: 'ip_address', key: 'ip_address', width: 140 },
+                { title: 'Guest OS', dataIndex: 'guest_os', key: 'guest_os' },
+                { title: '快照数', dataIndex: 'snapshot_count', key: 'snapshot_count', width: 80 },
+                {
+                  title: '操作', key: 'action', width: 320,
+                  render: (_, r) => (
+                    <Space size={4}>
+                      {r.power_state !== 'poweredOn' && <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'on')}>开机</Button>}
+                      {r.power_state === 'poweredOn' && (
+                        <>
+                          <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'off')}>关机</Button>
+                          <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'reset')}>重启</Button>
+                          <Button type="link" size="small" onClick={() => handleVMPower(r.name, 'suspend')}>挂起</Button>
+                        </>
+                      )}
+                      <Button type="link" size="small" onClick={() => openSnapshots({ type: 'vsphere', vmName: r.name })}>快照</Button>
+                    </Space>
+                  ),
+                },
+              ]}
+            />
+            <SectionTable
+              title="数据存储" count={vsphereDatastores.length} empty="暂无数据存储数据"
+              dataSource={vsphereDatastores} rowKey="name"
+              columns={[
+                { title: '名称', dataIndex: 'name', key: 'name' },
+                { title: '类型', dataIndex: 'type', key: 'type', width: 100 },
+                { title: '容量', dataIndex: 'capacity', key: 'capacity', width: 120, render: formatBytes },
+                { title: '可用空间', dataIndex: 'free_space', key: 'free_space', width: 120, render: formatBytes },
+                {
+                  title: '使用率', dataIndex: 'capacity', key: 'used_pct', width: 100,
+                  render: (v, r) => (!v || v === 0) ? '-' : `${((v - r.free_space) / v * 100).toFixed(1)}%`,
+                },
+                { title: '可访问', dataIndex: 'accessible', key: 'accessible', width: 80, render: (v) => v ? <Tag color="green">是</Tag> : <Tag color="red">否</Tag> },
+              ]}
+            />
+            <SectionTable
+              title="网络" count={vsphereNetworks.length} empty="暂无网络数据"
+              dataSource={vsphereNetworks} rowKey="name"
+              columns={[
+                { title: '名称', dataIndex: 'name', key: 'name' },
+                { title: '类型', dataIndex: 'type', key: 'type', width: 160, render: (v) => <Tag color="geekblue">{v}</Tag> },
+                { title: '摘要', dataIndex: 'summary', key: 'summary', ellipsis: true },
+              ]}
+            />
           </Space>
         </Spin>
       ),
@@ -730,124 +728,104 @@ export default function HostDetail() {
                 <Text type="secondary">磁盘：{pveClusterSummary.maxdisk ? `${((pveClusterSummary.disk / pveClusterSummary.maxdisk) * 100).toFixed(1)}%` : '-'}</Text>
               </Space>
             )}
-            {pveClusterNodes.length > 0 && (
-              <>
-                <div style={{ color: '#888', fontSize: 13 }}>集群节点（共 {pveClusterNodes.length} 个）</div>
-                <Table
-                  size="small" dataSource={pveClusterNodes} rowKey="id" pagination={false}
-                  columns={[
-                    { title: '节点', dataIndex: 'name', key: 'name' },
-                    { title: '状态', dataIndex: 'status', key: 'status', width: 90, render: (v) => <Tag color={v === 'online' ? 'green' : 'red'}>{v === 'online' ? '在线' : v}</Tag> },
-                    { title: 'CPU', key: 'cpu', width: 120, render: (_, r) => r.maxcpu ? `${((r.cpu * 100)).toFixed(1)}% / ${r.maxcpu}核` : '-' },
-                    { title: '内存', key: 'mem', width: 140, render: (_, r) => r.maxmem ? `${((r.mem / r.maxmem) * 100).toFixed(1)}%` : '-' },
-                    { title: '磁盘', key: 'disk', width: 140, render: (_, r) => r.maxdisk ? `${((r.disk / r.maxdisk) * 100).toFixed(1)}%` : '-' },
-                    { title: '运行时长', dataIndex: 'uptime', key: 'uptime', width: 120, render: (v) => v ? `${Math.floor(v / 86400)}天${Math.floor((v % 86400) / 3600)}时` : '-' },
-                  ]}
-                />
-              </>
-            )}
-            <div style={{ color: '#888', fontSize: 13 }}>虚拟机 / 容器（共 {pveGuests.length} 个）</div>
-            {pveGuests.length === 0 ? (
-              <Typography.Text type="secondary">暂无虚拟机/容器数据</Typography.Text>
-            ) : (
-              <Table
-                size="small" dataSource={pveGuests} rowKey={(r) => `${r.node}-${r.guest_type}-${r.vmid}`} pagination={false}
-                columns={[
-                  { title: 'ID', dataIndex: 'vmid', key: 'vmid', width: 70 },
-                  { title: '名称', dataIndex: 'name', key: 'name' },
-                  { title: '类型', dataIndex: 'guest_type', key: 'guest_type', width: 90, render: (v) => <Tag color={v === 'qemu' ? 'geekblue' : 'purple'}>{v === 'qemu' ? 'VM' : 'LXC'}</Tag> },
-                  { title: '节点', dataIndex: 'node', key: 'node', width: 110 },
-                  {
-                    title: '状态', dataIndex: 'status', key: 'status', width: 90,
-                    render: (v) => {
-                      const map = { running: ['green', '运行中'], stopped: ['default', '已停止'], paused: ['orange', '已暂停'] };
-                      const m = map[v] || ['cyan', v || '-'];
-                      return <Tag color={m[0]}>{m[1]}</Tag>;
-                    },
+            <SectionTable
+              title="集群节点" count={pveClusterNodes.length} empty="暂无集群节点"
+              dataSource={pveClusterNodes} rowKey="id"
+              columns={[
+                { title: '节点', dataIndex: 'name', key: 'name' },
+                { title: '状态', dataIndex: 'status', key: 'status', width: 90, render: (v) => <Tag color={v === 'online' ? 'green' : 'red'}>{v === 'online' ? '在线' : v}</Tag> },
+                { title: 'CPU', key: 'cpu', width: 120, render: (_, r) => r.maxcpu ? `${((r.cpu * 100)).toFixed(1)}% / ${r.maxcpu}核` : '-' },
+                { title: '内存', key: 'mem', width: 140, render: (_, r) => r.maxmem ? `${((r.mem / r.maxmem) * 100).toFixed(1)}%` : '-' },
+                { title: '磁盘', key: 'disk', width: 140, render: (_, r) => r.maxdisk ? `${((r.disk / r.maxdisk) * 100).toFixed(1)}%` : '-' },
+                { title: '运行时长', dataIndex: 'uptime', key: 'uptime', width: 120, render: (v) => v ? `${Math.floor(v / 86400)}天${Math.floor((v % 86400) / 3600)}时` : '-' },
+              ]}
+            />
+            <SectionTable
+              title="虚拟机 / 容器" count={pveGuests.length} empty="暂无虚拟机/容器数据"
+              dataSource={pveGuests} rowKey={(r) => `${r.node}-${r.guest_type}-${r.vmid}`}
+              columns={[
+                { title: 'ID', dataIndex: 'vmid', key: 'vmid', width: 70 },
+                { title: '名称', dataIndex: 'name', key: 'name' },
+                { title: '类型', dataIndex: 'guest_type', key: 'guest_type', width: 90, render: (v) => <Tag color={v === 'qemu' ? 'geekblue' : 'purple'}>{v === 'qemu' ? 'VM' : 'LXC'}</Tag> },
+                { title: '节点', dataIndex: 'node', key: 'node', width: 110 },
+                {
+                  title: '状态', dataIndex: 'status', key: 'status', width: 90,
+                  render: (v) => {
+                    const map = { running: ['green', '运行中'], stopped: ['default', '已停止'], paused: ['orange', '已暂停'] };
+                    const m = map[v] || ['cyan', v || '-'];
+                    return <Tag color={m[0]}>{m[1]}</Tag>;
                   },
-                  { title: 'CPU', dataIndex: 'cpus', key: 'cpus', width: 70, render: (v) => v ? `${v}核` : '-' },
-                  { title: '内存', dataIndex: 'maxmem', key: 'maxmem', width: 100, render: formatBytes },
-                  { title: '磁盘', dataIndex: 'maxdisk', key: 'maxdisk', width: 100, render: formatBytes },
-                  {
-                    title: '操作', key: 'action', width: 320,
-                    render: (_, r) => (
-                      <Space size={4}>
-                        {r.status !== 'running' && <Button type="link" size="small" onClick={() => handlePVEPower(r, 'start')}>开机</Button>}
-                        {r.status === 'running' && (
-                          <>
-                            <Button type="link" size="small" onClick={() => handlePVEPower(r, 'stop')}>关机</Button>
-                            <Button type="link" size="small" onClick={() => handlePVEPower(r, 'reboot')}>重启</Button>
-                            {r.guest_type === 'qemu' && <Button type="link" size="small" onClick={() => handlePVEPower(r, 'suspend')}>挂起</Button>}
-                          </>
-                        )}
-                        <Button type="link" size="small" onClick={() => openSnapshots({ type: 'pve', node: r.node, vmid: r.vmid, vmtype: r.guest_type })}>快照</Button>
-                        <Button type="link" size="small" onClick={() => openGuestDetail(r)}>详情</Button>
-                      </Space>
-                    ),
-                  },
-                ]}
-              />
-            )}
-            <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>数据存储（共 {pveStorages.length} 个）</div>
-            {pveStorages.length === 0 ? (
-              <Typography.Text type="secondary">暂无数据存储数据</Typography.Text>
-            ) : (
-              <Table
-                size="small" dataSource={pveStorages} rowKey={(r) => `${r.node}-${r.storage}`} pagination={false}
-                columns={[
-                  { title: '名称', dataIndex: 'storage', key: 'storage' },
-                  { title: '节点', dataIndex: 'node', key: 'node', width: 110 },
-                  { title: '类型', dataIndex: 'type', key: 'type', width: 100 },
-                  { title: '容量', dataIndex: 'total', key: 'total', width: 110, render: formatBytes },
-                  { title: '已用', dataIndex: 'used', key: 'used', width: 110, render: formatBytes },
-                  {
-                    title: '使用率', dataIndex: 'total', key: 'used_pct', width: 100,
-                    render: (v, r) => (!v || v === 0) ? '-' : `${(r.used / v * 100).toFixed(1)}%`,
-                  },
-                  { title: '状态', dataIndex: 'active', key: 'active', width: 80, render: (v) => v === 1 ? <Tag color="green">激活</Tag> : <Tag color="red">未激活</Tag> },
-                ]}
-              />
-            )}
-            <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>备份任务（共 {pveBackups.length} 个）</div>
-            {pveBackups.length === 0 ? (
-              <Typography.Text type="secondary">暂无备份任务</Typography.Text>
-            ) : (
-              <Table
-                size="small" dataSource={pveBackups} rowKey="id" pagination={false}
-                columns={[
-                  { title: '任务', dataIndex: 'id', key: 'id', render: (v, r) => `${v}${r.comment ? `（${r.comment}）` : ''}` },
-                  { title: '节点', dataIndex: 'node', key: 'node', width: 110 },
-                  { title: '存储', dataIndex: 'storage', key: 'storage', width: 110 },
-                  { title: 'VMID', dataIndex: 'vmid', key: 'vmid', width: 120, ellipsis: true },
-                  { title: '模式', dataIndex: 'mode', key: 'mode', width: 90 },
-                  { title: '启用', dataIndex: 'enabled', key: 'enabled', width: 70, render: (v) => v === 1 ? <Tag color="green">是</Tag> : <Tag color="default">否</Tag> },
-                  {
-                    title: '最近状态', dataIndex: 'status', key: 'status', width: 100,
-                    render: (v) => v === 'OK' ? <Tag color="green">成功</Tag> : v === 'ERROR' ? <Tag color="red">失败</Tag> : <Tag>未运行</Tag>,
-                  },
-                  { title: '耗时', dataIndex: 'duration', key: 'duration', width: 80, render: (v) => v ? `${Math.round(v)}s` : '-' },
-                  { title: '最近运行', dataIndex: 'starttime', key: 'starttime', width: 160, render: (v) => v ? dayjs(v * 1000).format('YYYY-MM-DD HH:mm:ss') : '-' },
-                ]}
-              />
-            )}
-            <div style={{ color: '#888', fontSize: 13, marginTop: 8 }}>网络（共 {pveNetworks.length} 个）</div>
-            {pveNetworks.length === 0 ? (
-              <Typography.Text type="secondary">暂无网络配置</Typography.Text>
-            ) : (
-              <Table
-                size="small" dataSource={pveNetworks} rowKey={(r) => `${r.node}-${r.iface}`} pagination={false}
-                columns={[
-                  { title: '接口', dataIndex: 'iface', key: 'iface' },
-                  { title: '节点', dataIndex: 'node', key: 'node', width: 110 },
-                  { title: '类型', dataIndex: 'type', key: 'type', width: 100, render: (v) => <Tag color={v === 'bridge' ? 'blue' : v === 'bond' ? 'purple' : 'default'}>{v}</Tag> },
-                  { title: '地址', dataIndex: 'cidr', key: 'cidr', width: 160, render: (v) => v || '-' },
-                  { title: '网关', dataIndex: 'gateway', key: 'gateway', width: 140, render: (v) => v || '-' },
-                  { title: '桥接端口', dataIndex: 'bridge_ports', key: 'bridge_ports', width: 140, render: (v) => v || '-' },
-                  { title: '方式', dataIndex: 'method', key: 'method', width: 90 },
-                  { title: '状态', dataIndex: 'active', key: 'active', width: 80, render: (v) => v === 1 ? <Tag color="green">启用</Tag> : <Tag color="default">停用</Tag> },
-                ]}
-              />
-            )}
+                },
+                { title: 'CPU', dataIndex: 'cpus', key: 'cpus', width: 70, render: (v) => v ? `${v}核` : '-' },
+                { title: '内存', dataIndex: 'maxmem', key: 'maxmem', width: 100, render: formatBytes },
+                { title: '磁盘', dataIndex: 'maxdisk', key: 'maxdisk', width: 100, render: formatBytes },
+                {
+                  title: '操作', key: 'action', width: 320,
+                  render: (_, r) => (
+                    <Space size={4}>
+                      {r.status !== 'running' && <Button type="link" size="small" onClick={() => handlePVEPower(r, 'start')}>开机</Button>}
+                      {r.status === 'running' && (
+                        <>
+                          <Button type="link" size="small" onClick={() => handlePVEPower(r, 'stop')}>关机</Button>
+                          <Button type="link" size="small" onClick={() => handlePVEPower(r, 'reboot')}>重启</Button>
+                          {r.guest_type === 'qemu' && <Button type="link" size="small" onClick={() => handlePVEPower(r, 'suspend')}>挂起</Button>}
+                        </>
+                      )}
+                      <Button type="link" size="small" onClick={() => openSnapshots({ type: 'pve', node: r.node, vmid: r.vmid, vmtype: r.guest_type })}>快照</Button>
+                      <Button type="link" size="small" onClick={() => openGuestDetail(r)}>详情</Button>
+                    </Space>
+                  ),
+                },
+              ]}
+            />
+            <SectionTable
+              title="数据存储" count={pveStorages.length} empty="暂无数据存储数据"
+              dataSource={pveStorages} rowKey={(r) => `${r.node}-${r.storage}`}
+              columns={[
+                { title: '名称', dataIndex: 'storage', key: 'storage' },
+                { title: '节点', dataIndex: 'node', key: 'node', width: 110 },
+                { title: '类型', dataIndex: 'type', key: 'type', width: 100 },
+                { title: '容量', dataIndex: 'total', key: 'total', width: 110, render: formatBytes },
+                { title: '已用', dataIndex: 'used', key: 'used', width: 110, render: formatBytes },
+                {
+                  title: '使用率', dataIndex: 'total', key: 'used_pct', width: 100,
+                  render: (v, r) => (!v || v === 0) ? '-' : `${(r.used / v * 100).toFixed(1)}%`,
+                },
+                { title: '状态', dataIndex: 'active', key: 'active', width: 80, render: (v) => v === 1 ? <Tag color="green">激活</Tag> : <Tag color="red">未激活</Tag> },
+              ]}
+            />
+            <SectionTable
+              title="备份任务" count={pveBackups.length} empty="暂无备份任务"
+              dataSource={pveBackups} rowKey="id"
+              columns={[
+                { title: '任务', dataIndex: 'id', key: 'id', render: (v, r) => `${v}${r.comment ? `（${r.comment}）` : ''}` },
+                { title: '节点', dataIndex: 'node', key: 'node', width: 110 },
+                { title: '存储', dataIndex: 'storage', key: 'storage', width: 110 },
+                { title: 'VMID', dataIndex: 'vmid', key: 'vmid', width: 120, ellipsis: true },
+                { title: '模式', dataIndex: 'mode', key: 'mode', width: 90 },
+                { title: '启用', dataIndex: 'enabled', key: 'enabled', width: 70, render: (v) => v === 1 ? <Tag color="green">是</Tag> : <Tag color="default">否</Tag> },
+                {
+                  title: '最近状态', dataIndex: 'status', key: 'status', width: 100,
+                  render: (v) => v === 'OK' ? <Tag color="green">成功</Tag> : v === 'ERROR' ? <Tag color="red">失败</Tag> : <Tag>未运行</Tag>,
+                },
+                { title: '耗时', dataIndex: 'duration', key: 'duration', width: 80, render: (v) => v ? `${Math.round(v)}s` : '-' },
+                { title: '最近运行', dataIndex: 'starttime', key: 'starttime', width: 160, render: (v) => v ? dayjs(v * 1000).format('YYYY-MM-DD HH:mm:ss') : '-' },
+              ]}
+            />
+            <SectionTable
+              title="网络" count={pveNetworks.length} empty="暂无网络配置"
+              dataSource={pveNetworks} rowKey={(r) => `${r.node}-${r.iface}`}
+              columns={[
+                { title: '接口', dataIndex: 'iface', key: 'iface' },
+                { title: '节点', dataIndex: 'node', key: 'node', width: 110 },
+                { title: '类型', dataIndex: 'type', key: 'type', width: 100, render: (v) => <Tag color={v === 'bridge' ? 'blue' : v === 'bond' ? 'purple' : 'default'}>{v}</Tag> },
+                { title: '地址', dataIndex: 'cidr', key: 'cidr', width: 160, render: (v) => v || '-' },
+                { title: '网关', dataIndex: 'gateway', key: 'gateway', width: 140, render: (v) => v || '-' },
+                { title: '桥接端口', dataIndex: 'bridge_ports', key: 'bridge_ports', width: 140, render: (v) => v || '-' },
+                { title: '方式', dataIndex: 'method', key: 'method', width: 90 },
+                { title: '状态', dataIndex: 'active', key: 'active', width: 80, render: (v) => v === 1 ? <Tag color="green">启用</Tag> : <Tag color="default">停用</Tag> },
+              ]}
+            />
           </Space>
         </Spin>
       ),
