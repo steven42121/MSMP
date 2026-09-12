@@ -40,3 +40,14 @@ func AuditLogsHandler(w http.ResponseWriter, r *http.Request) {
 		"data": logs, "total": total, "page": page, "page_size": pageSize,
 	})
 }
+
+// auditLog 记录操作审计日志。
+func auditLog(tenantID, userID uint, action, resource string, status int) {
+	db.DB.Create(&models.AuditLog{
+		TenantID: tenantID,
+		UserID:   userID,
+		Action:   action,
+		Resource: resource,
+		Status:   status,
+	})
+}
