@@ -35,18 +35,18 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      # ── Server binaries ─────────────────────────────────────
+      # ── Server binaries（ldflags 注入版本号）─────────────────
       - name: Build server linux-amd64
         working-directory: server
-        run: GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o msmp-server-linux-amd64 .
+        run: GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }} -X main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.Commit=${GITHUB_SHA::8}" -o msmp-server-linux-amd64 .
 
       - name: Build server linux-arm64
         working-directory: server
-        run: GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o msmp-server-linux-arm64 .
+        run: GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }} -X main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.Commit=${GITHUB_SHA::8}" -o msmp-server-linux-arm64 .
 
       - name: Build server windows-amd64
         working-directory: server
-        run: GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o msmp-server-windows-amd64.exe .
+        run: GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X main.Version=${{ steps.version.outputs.VERSION }} -X main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X main.Commit=${GITHUB_SHA::8}" -o msmp-server-windows-amd64.exe .
 
       # ── Agent binaries ──────────────────────────────────────
       - name: Build agent linux-amd64
