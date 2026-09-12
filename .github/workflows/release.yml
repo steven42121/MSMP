@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      # ── Server ──────────────────────────────────────────────
+      # ── Server binaries ─────────────────────────────────────
       - name: Build server linux-amd64
         working-directory: server
         run: GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o msmp-server-linux-amd64 .
@@ -48,7 +48,7 @@ jobs:
         working-directory: server
         run: GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o msmp-server-windows-amd64.exe .
 
-      # ── Agent ───────────────────────────────────────────────
+      # ── Agent binaries ──────────────────────────────────────
       - name: Build agent linux-amd64
         working-directory: agent
         run: GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o msmp-agent-linux-amd64 .
@@ -70,39 +70,53 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      # ── Archive per platform ───────────────────────────────
-      - name: Package linux-amd64
+      # ── Server packages（管理系统：server + 前端 + 安装脚本）──
+      - name: Package server linux
         run: |
-          mkdir -p msmp-${{ steps.version.outputs.VERSION }}-linux-amd64
-          cp server/msmp-server-linux-amd64    msmp-${{ steps.version.outputs.VERSION }}-linux-amd64/
-          cp server/config.yaml               msmp-${{ steps.version.outputs.VERSION }}-linux-amd64/
-          cp agent/msmp-agent-linux-amd64     msmp-${{ steps.version.outputs.VERSION }}-linux-amd64/
-          cp -r frontend/dist msmp-${{ steps.version.outputs.VERSION }}-linux-amd64/frontend-dist
-          cp docker-compose.yml               msmp-${{ steps.version.outputs.VERSION }}-linux-amd64/
-          tar -czf msmp-${{ steps.version.outputs.VERSION }}-linux-amd64.tar.gz \
-            msmp-${{ steps.version.outputs.VERSION }}-linux-amd64
+          V=${{ steps.version.outputs.VERSION }}
+          for arch in amd64 arm64; do
+            pkg=msmp-server-${V}-linux-${arch}
+            mkdir -p ${pkg}/frontend-dist
+            cp server/msmp-server-linux-${arch} ${pkg}/msmp-server-linux-${arch}
+            cp server/config.yaml            ${pkg}/config.yaml
+            cp docker-compose.yml            ${pkg}/
+            cp scripts/install.sh            ${pkg}/install.sh
+            cp -r frontend/dist/.            ${pkg}/frontend-dist/
+            chmod +x ${pkg}/install.sh
+            tar -czf ${pkg}.tar.gz ${pkg}
+          done
 
-      - name: Package linux-arm64
+      - name: Package server windows
         run: |
-          mkdir -p msmp-${{ steps.version.outputs.VERSION }}-linux-arm64
-          cp server/msmp-server-linux-arm64    msmp-${{ steps.version.outputs.VERSION }}-linux-arm64/
-          cp server/config.yaml               msmp-${{ steps.version.outputs.VERSION }}-linux-arm64/
-          cp agent/msmp-agent-linux-arm64     msmp-${{ steps.version.outputs.VERSION }}-linux-arm64/
-          cp -r frontend/dist msmp-${{ steps.version.outputs.VERSION }}-linux-arm64/frontend-dist
-          cp docker-compose.yml               msmp-${{ steps.version.outputs.VERSION }}-linux-arm64/
-          tar -czf msmp-${{ steps.version.outputs.VERSION }}-linux-arm64.tar.gz \
-            msmp-${{ steps.version.outputs.VERSION }}-linux-arm64
+          V=${{ steps.version.outputs.VERSION }}
+          pkg=msmp-server-${V}-windows-amd64
+          mkdir -p ${pkg}/frontend-dist
+          cp server/msmp-server-windows-amd64.exe ${pkg}/
+          cp server/config.yaml                   ${pkg}/config.yaml
+          cp -r frontend/dist/.                   ${pkg}/frontend-dist/
+          zip -qr ${pkg}.zip ${pkg}
 
-      - name: Package windows-amd64
+      # ── Agent packages（被监控机只需下载 agent 独立包）────────
+      - name: Package agent linux
         run: |
-          mkdir -p msmp-${{ steps.version.outputs.VERSION }}-windows-amd64
-          cp server/msmp-server-windows-amd64.exe    msmp-${{ steps.version.outputs.VERSION }}-windows-amd64/
-          cp server/config.yaml                      msmp-${{ steps.version.outputs.VERSION }}-windows-amd64/
-          cp agent/msmp-agent-windows-amd64.exe     msmp-${{ steps.version.outputs.VERSION }}-windows-amd64/
-          cp -r frontend/dist msmp-${{ steps.version.outputs.VERSION }}-windows-amd64/frontend-dist
-          cp docker-compose.yml                      msmp-${{ steps.version.outputs.VERSION }}-windows-amd64/
-          tar -czf msmp-${{ steps.version.outputs.VERSION }}-windows-amd64.tar.gz \
-            msmp-${{ steps.version.outputs.VERSION }}-windows-amd64
+          V=${{ steps.version.outputs.VERSION }}
+          for arch in amd64 arm64; do
+            pkg=msmp-agent-${V}-linux-${arch}
+            mkdir -p ${pkg}
+            cp agent/msmp-agent-linux-${arch}  ${pkg}/
+            cp scripts/agent-install.sh        ${pkg}/agent-install.sh
+            chmod +x ${pkg}/agent-install.sh
+            tar -czf ${pkg}.tar.gz ${pkg}
+          done
+
+      - name: Package agent windows
+        run: |
+          V=${{ steps.version.outputs.VERSION }}
+          pkg=msmp-agent-${V}-windows-amd64
+          mkdir -p ${pkg}
+          cp agent/msmp-agent-windows-amd64.exe ${pkg}/
+          cp scripts/WINDOWS-AGENT.md           ${pkg}/INSTALL.md
+          zip -qr ${pkg}.zip ${pkg}
 
       # ── GitHub Release ─────────────────────────────────────
       - name: Create Release
@@ -112,6 +126,7 @@ jobs:
           name: ${{ steps.version.outputs.VERSION }}
           generate_release_notes: true
           files: |
-            msmp-*-linux-amd64.tar.gz
-            msmp-*-linux-arm64.tar.gz
-            msmp-*-windows-amd64.tar.gz
+            msmp-server-*-linux-*.tar.gz
+            msmp-server-*-windows-amd64.zip
+            msmp-agent-*-linux-*.tar.gz
+            msmp-agent-*-windows-amd64.zip
