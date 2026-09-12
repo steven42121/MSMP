@@ -12,6 +12,8 @@ import (
 
 	"MSMP/server/models"
 
+	"golang.org/x/crypto/ssh"
+
 	"github.com/pkg/sftp"
 )
 
@@ -23,6 +25,22 @@ type FileInfo struct {
 	IsDir   bool   `json:"is_dir"`
 	Mode    string `json:"mode"`
 	ModTime string `json:"mod_time"`
+}
+
+// dialSFTP 建立 SSH + SFTP 连接；失败时已写响应，返回 false。调用方需 defer 关闭两个连接。
+func dialSFTP(w http.ResponseWriter, tenantID, hostID uint) (*ssh.Client, *sftp.Client, bool) {
+	sshClient, err := dialHostSSH(tenantID, hostID)
+	if err != nil {
+		writeUpstreamErr(w, err)
+		return nil, nil, false
+	}
+	sftpClient, err := sftp.NewClient(sshClient)
+	if err != nil {
+		sshClient.Close()
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": fmt.Sprintf("SFTP 连接失败: %v", err)})
+		return nil, nil, false
+	}
+	return sshClient, sftpClient, true
 }
 
 // FileListHandler GET /api/hosts/{uuid}/files?path=/xxx
@@ -42,18 +60,11 @@ func FileListHandler(w http.ResponseWriter, r *http.Request, host *models.Host, 
 	}
 	dirPath = path.Clean(dirPath)
 
-	client, err := dialHostSSH(tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, sftpClient, ok := dialSFTP(w, tenantID, host.ID)
+	if !ok {
 		return
 	}
 	defer client.Close()
-
-	sftpClient, err := sftp.NewClient(client)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": fmt.Sprintf("SFTP 连接失败: %v", err)})
-		return
-	}
 	defer sftpClient.Close()
 
 	entries, err := sftpClient.ReadDir(dirPath)
@@ -107,18 +118,11 @@ func FileDownloadHandler(w http.ResponseWriter, r *http.Request, host *models.Ho
 	}
 	filePath = path.Clean(filePath)
 
-	client, err := dialHostSSH(tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, sftpClient, ok := dialSFTP(w, tenantID, host.ID)
+	if !ok {
 		return
 	}
 	defer client.Close()
-
-	sftpClient, err := sftp.NewClient(client)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": fmt.Sprintf("SFTP 连接失败: %v", err)})
-		return
-	}
 	defer sftpClient.Close()
 
 	stat, err := sftpClient.Stat(filePath)
@@ -177,18 +181,11 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 		return
 	}
 
-	client, err := dialHostSSH(tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, sftpClient, ok := dialSFTP(w, tenantID, host.ID)
+	if !ok {
 		return
 	}
 	defer client.Close()
-
-	sftpClient, err := sftp.NewClient(client)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": fmt.Sprintf("SFTP 连接失败: %v", err)})
-		return
-	}
 	defer sftpClient.Close()
 
 	dst, err := sftpClient.Create(targetPath)
@@ -233,18 +230,11 @@ func FileMkdirHandler(w http.ResponseWriter, r *http.Request, host *models.Host,
 	}
 	req.Path = path.Clean(req.Path)
 
-	client, err := dialHostSSH(tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, sftpClient, ok := dialSFTP(w, tenantID, host.ID)
+	if !ok {
 		return
 	}
 	defer client.Close()
-
-	sftpClient, err := sftp.NewClient(client)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": fmt.Sprintf("SFTP 连接失败: %v", err)})
-		return
-	}
 	defer sftpClient.Close()
 
 	if err := sftpClient.MkdirAll(req.Path); err != nil {
@@ -275,18 +265,11 @@ func FileDeleteHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 	}
 	targetPath = path.Clean(targetPath)
 
-	client, err := dialHostSSH(tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, sftpClient, ok := dialSFTP(w, tenantID, host.ID)
+	if !ok {
 		return
 	}
 	defer client.Close()
-
-	sftpClient, err := sftp.NewClient(client)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": fmt.Sprintf("SFTP 连接失败: %v", err)})
-		return
-	}
 	defer sftpClient.Close()
 
 	stat, err := sftpClient.Stat(targetPath)
@@ -335,18 +318,11 @@ func FileRenameHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 	req.OldPath = path.Clean(req.OldPath)
 	req.NewPath = path.Clean(req.NewPath)
 
-	client, err := dialHostSSH(tenantID, host.ID)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+	client, sftpClient, ok := dialSFTP(w, tenantID, host.ID)
+	if !ok {
 		return
 	}
 	defer client.Close()
-
-	sftpClient, err := sftp.NewClient(client)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": fmt.Sprintf("SFTP 连接失败: %v", err)})
-		return
-	}
 	defer sftpClient.Close()
 
 	if err := sftpClient.Rename(req.OldPath, req.NewPath); err != nil {

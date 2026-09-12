@@ -67,7 +67,7 @@ func pveClient(w http.ResponseWriter, r *http.Request, host *models.Host, tenant
 	}
 	client, _, err := connectPVE(r, tenantID, host.ID)
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		writeUpstreamErr(w, err)
 		return nil, false
 	}
 	return client, true
@@ -83,7 +83,7 @@ func PVEGuestsHandler(w http.ResponseWriter, r *http.Request, host *models.Host,
 
 	guests, err := client.ListGuests(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		writeUpstreamErr(w, err)
 		return
 	}
 
@@ -120,7 +120,7 @@ func PVEGuestPowerHandler(w http.ResponseWriter, r *http.Request, host *models.H
 	}
 
 	if err := client.PowerGuest(r.Context(), req.Node, req.GuestType, req.VMID, req.Action); err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		writeUpstreamErr(w, err)
 		return
 	}
 
@@ -145,7 +145,7 @@ func PVEStorageHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 
 	storages, err := client.ListStorage(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		writeUpstreamErr(w, err)
 		return
 	}
 
@@ -193,7 +193,7 @@ func PVESnapshotsHandler(w http.ResponseWriter, r *http.Request, host *models.Ho
 
 	snaps, err := client.ListSnapshots(r.Context(), node, guestType, vmid)
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		writeUpstreamErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{
@@ -230,7 +230,7 @@ func PVESnapshotActionHandler(w http.ResponseWriter, r *http.Request, host *mode
 			return
 		}
 		if err := client.CreateSnapshot(r.Context(), req.Node, req.GuestType, req.VMID, req.Name, req.Desc); err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+			writeUpstreamErr(w, err)
 			return
 		}
 		auditLog(tenantID, userID, "pve_create_snapshot", "snapshot:"+req.Node+"/"+strconv.Itoa(req.VMID)+":"+req.Name, 200)
@@ -246,7 +246,7 @@ func PVESnapshotActionHandler(w http.ResponseWriter, r *http.Request, host *mode
 			return
 		}
 		if err := client.DeleteSnapshot(r.Context(), node, guestType, vmid, snapName); err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+			writeUpstreamErr(w, err)
 			return
 		}
 		auditLog(tenantID, userID, "pve_delete_snapshot", "snapshot:"+node+"/"+strconv.Itoa(vmid)+":"+snapName, 200)
@@ -267,7 +267,7 @@ func PVEClusterHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 
 	resources, err := client.ClusterResources(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		writeUpstreamErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{
@@ -286,7 +286,7 @@ func PVENetworksHandler(w http.ResponseWriter, r *http.Request, host *models.Hos
 
 	nodes, err := client.Nodes(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		writeUpstreamErr(w, err)
 		return
 	}
 
@@ -331,7 +331,7 @@ func PVEGuestDetailHandler(w http.ResponseWriter, r *http.Request, host *models.
 
 	cfg, err := client.GetGuestConfig(r.Context(), node, guestType, vmid)
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		writeUpstreamErr(w, err)
 		return
 	}
 	runtime, _ := client.GetGuestRuntime(r.Context(), node, guestType, vmid)
@@ -354,7 +354,7 @@ func PVEBackupsHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 
 	jobs, err := client.ListBackupJobs(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		writeUpstreamErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{
@@ -379,7 +379,7 @@ func PVEBackupContentHandler(w http.ResponseWriter, r *http.Request, host *model
 
 	files, err := client.ListBackupContent(r.Context(), node, storage)
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		writeUpstreamErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{
@@ -405,7 +405,7 @@ func PVESnapshotRollbackHandler(w http.ResponseWriter, r *http.Request, host *mo
 		return
 	}
 	if err := client.RollbackSnapshot(r.Context(), req.Node, req.GuestType, req.VMID, req.SnapName); err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		writeUpstreamErr(w, err)
 		return
 	}
 

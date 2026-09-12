@@ -26,14 +26,14 @@ func vsphereManager(w http.ResponseWriter, r *http.Request, host *models.Host, t
 	}
 	mgr, err := services.ConnectVSphere(r.Context(), tenantID, host.ID)
 	if err != nil {
-		writeVSphereErr(w, err)
+		writeUpstreamErr(w, err)
 		return nil, false
 	}
 	return mgr, true
 }
 
-// writeVSphereErr 统一 vSphere 上游错误响应。
-func writeVSphereErr(w http.ResponseWriter, err error) {
+// writeUpstreamErr 统一上游服务（vSphere/PVE 等）错误响应。
+func writeUpstreamErr(w http.ResponseWriter, err error) {
 	writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 }
 
@@ -47,7 +47,7 @@ func VSphereVMsHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 
 	vms, err := mgr.ListVMs(r.Context())
 	if err != nil {
-		writeVSphereErr(w, err)
+		writeUpstreamErr(w, err)
 		return
 	}
 
@@ -81,7 +81,7 @@ func VSphereVMPowerHandler(w http.ResponseWriter, r *http.Request, host *models.
 	defer mgr.Close(r.Context())
 
 	if err := mgr.PowerVM(r.Context(), vmName, req.Action); err != nil {
-		writeVSphereErr(w, err)
+		writeUpstreamErr(w, err)
 		return
 	}
 
@@ -104,7 +104,7 @@ func VSphereDatastoresHandler(w http.ResponseWriter, r *http.Request, host *mode
 
 	dss, err := mgr.ListDatastores(r.Context())
 	if err != nil {
-		writeVSphereErr(w, err)
+		writeUpstreamErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{
@@ -123,7 +123,7 @@ func VSphereNetworksHandler(w http.ResponseWriter, r *http.Request, host *models
 
 	nets, err := mgr.ListNetworks(r.Context())
 	if err != nil {
-		writeVSphereErr(w, err)
+		writeUpstreamErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{
@@ -142,7 +142,7 @@ func VSphereSnapshotsHandler(w http.ResponseWriter, r *http.Request, host *model
 
 	snaps, err := mgr.ListVMSnapshots(r.Context(), vmName)
 	if err != nil {
-		writeVSphereErr(w, err)
+		writeUpstreamErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{
@@ -171,7 +171,7 @@ func VSphereSnapshotCreateHandler(w http.ResponseWriter, r *http.Request, host *
 	defer mgr.Close(r.Context())
 
 	if err := mgr.CreateVMSnapshot(r.Context(), vmName, req.Name, req.Description); err != nil {
-		writeVSphereErr(w, err)
+		writeUpstreamErr(w, err)
 		return
 	}
 	auditLog(tenantID, userID, "vsphere_create_snapshot", "vm:"+vmName+":snapshot:"+req.Name, 200)
@@ -194,7 +194,7 @@ func VSphereSnapshotDeleteHandler(w http.ResponseWriter, r *http.Request, host *
 	defer mgr.Close(r.Context())
 
 	if err := mgr.DeleteVMSnapshot(r.Context(), vmName, snapName); err != nil {
-		writeVSphereErr(w, err)
+		writeUpstreamErr(w, err)
 		return
 	}
 	auditLog(tenantID, userID, "vsphere_delete_snapshot", "vm:"+vmName+":snapshot:"+snapName, 200)
@@ -218,7 +218,7 @@ func VSphereSnapshotRollbackHandler(w http.ResponseWriter, r *http.Request, host
 	defer mgr.Close(r.Context())
 
 	if err := mgr.RevertVMSnapshot(r.Context(), vmName, req.SnapName); err != nil {
-		writeVSphereErr(w, err)
+		writeUpstreamErr(w, err)
 		return
 	}
 	auditLog(tenantID, userID, "vsphere_rollback_snapshot", "vm:"+vmName+":snapshot:"+req.SnapName, 200)
