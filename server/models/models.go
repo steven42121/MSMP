@@ -314,16 +314,17 @@ type HostProcess struct {
 
 // HostPort 主机监听端口清单。
 type HostPort struct {
-	ID        uint      `gorm:"primaryKey" json:"id"`
-	TenantID  uint      `gorm:"index;not null" json:"tenant_id"`
-	HostID    uint      `gorm:"index:idx_hp_port_host_ts,priority:1;not null" json:"host_id"`
-	Family    string    `gorm:"size:8" json:"family"`     // inet, inet6
-	Type      string    `gorm:"size:8" json:"type"`       // tcp, udp
-	LocalAddr string    `gorm:"size:64" json:"local_addr"`
-	LocalPort int       `json:"local_port"`
-	State     string    `gorm:"size:16" json:"state"`
-	PID       int       `json:"pid,omitempty"`
+	ID         uint      `gorm:"primaryKey" json:"id"`
+	TenantID   uint      `gorm:"index;not null" json:"tenant_id"`
+	HostID     uint      `gorm:"index:idx_hp_port_host_ts,priority:1;not null" json:"host_id"`
+	Family     string    `gorm:"size:8" json:"family"`     // inet, inet6
+	Type       string    `gorm:"size:8" json:"type"`       // tcp, udp
+	LocalAddr  string    `gorm:"size:64" json:"local_addr"`
+	LocalPort  int       `json:"local_port"`
+	State      string    `gorm:"size:16" json:"state"`
+	PID        int       `json:"pid,omitempty"`
 	CollectedAt time.Time `gorm:"index:idx_hp_port_host_ts,priority:2;not null" json:"collected_at"`
+	Service    string    `gorm:"-" json:"service"` // 由端口号动态识别的服务名，不落库
 }
 
 // HostPackage 主机已安装软件包清单。

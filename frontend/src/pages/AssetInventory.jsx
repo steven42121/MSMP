@@ -64,9 +64,9 @@ export default function AssetInventory() {
 
   const portColumns = [
     { title: '协议', dataIndex: 'type', key: 'type', width: 70, render: (v) => <Tag color={v === 'tcp' ? 'blue' : 'cyan'}>{v.toUpperCase()}</Tag> },
-    { title: '地址族', dataIndex: 'family', key: 'family', width: 80, render: (v) => <Tag>{v}</Tag> },
-    { title: '本地地址', dataIndex: 'local_addr', key: 'local_addr', width: 160 },
     { title: '端口', dataIndex: 'local_port', key: 'local_port', width: 80, render: (v) => <Text code>{v}</Text> },
+    { title: '服务', dataIndex: 'service', key: 'service', width: 120, render: (v) => v ? <Tag color="geekblue">{v}</Tag> : '-' },
+    { title: '本地地址', dataIndex: 'local_addr', key: 'local_addr', width: 150 },
     { title: '状态', dataIndex: 'state', key: 'state', width: 100, render: (v) => v === 'LISTEN' ? <Tag color="green">监听</Tag> : <Tag>{v || '-'}</Tag> },
     { title: 'PID', dataIndex: 'pid', key: 'pid', width: 80, render: (v) => v > 0 ? v : '-' },
     { title: '采集时间', dataIndex: 'collected_at', key: 'collected_at', width: 160, render: (t) => dayjs(t).format('MM-DD HH:mm:ss') },

@@ -8,6 +8,7 @@ import (
 
 	"MSMP/server/db"
 	"MSMP/server/models"
+	"MSMP/server/services"
 )
 
 // HostProcessesHandler GET /api/hosts/{uuid}/assets/processes
@@ -84,6 +85,11 @@ func HostPortsHandler(w http.ResponseWriter, r *http.Request) {
 		Order("local_port ASC").
 		Limit(limit).
 		Find(&ports)
+
+	// 自动识别每个端口对应的服务名
+	for i := range ports {
+		ports[i].Service = services.DetectPortService(ports[i].LocalPort)
+	}
 
 	var total int64
 	db.DB.Model(&models.HostPort{}).Where("host_id = ?", host.ID).Count(&total)
