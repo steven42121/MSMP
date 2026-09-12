@@ -4,6 +4,16 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### 发布产物重构
+- Release 资产拆分为独立的 server 包与 agent 包（此前为混合全家桶，agent 无法单独分发）
+- Server 包：linux amd64/arm64 为 tar.gz（含 install.sh systemd 安装脚本、frontend-dist、config.yaml、docker-compose.yml）；windows amd64 改为 zip
+- Agent 包：linux amd64/arm64 为 tar.gz（含 agent-install.sh，自动生成 /etc/msmp-agent.env + systemd 服务）；windows amd64 为 zip（含 INSTALL.md 服务注册指南）
+- Agent 独立包体积约 5.4MB（此前需下载约 20MB 的混合包）
+- Release 构建注入版本号（Version/BuildTime/Commit，此前发布二进制版本显示为 dev）
+- 新增 scripts/install.sh、scripts/agent-install.sh、scripts/WINDOWS-AGENT.md
+
 ## [v0.1.4] - 2026-09-10
 
 ### 虚拟化深度管理
