@@ -192,7 +192,7 @@ func HostDetailHandler(w http.ResponseWriter, r *http.Request) {
 			Order("created_at DESC").Limit(100).Find(&events)
 		writeJSON(w, http.StatusOK, events)
 
-	case subResource == "assets" && r.Method == http.MethodGet:
+	case subResource == "assets" && subAction == "" && r.Method == http.MethodGet:
 		var snapshots []models.AssetSnapshot
 		db.DB.Where("host_id = ?", host.ID).
 			Order("created_at DESC").Limit(10).Find(&snapshots)
