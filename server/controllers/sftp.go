@@ -10,7 +10,6 @@ import (
 	"sort"
 	"time"
 
-	"MSMP/server/db"
 	"MSMP/server/models"
 
 	"github.com/pkg/sftp"
@@ -145,13 +144,7 @@ func FileDownloadHandler(w http.ResponseWriter, r *http.Request, host *models.Ho
 
 	io.Copy(w, f)
 
-	db.DB.Create(&models.AuditLog{
-		TenantID: tenantID,
-		UserID:   userID,
-		Action:   "file_download",
-		Resource: fmt.Sprintf("host:%d:%s", host.ID, filePath),
-		Status:   200,
-	})
+	auditLog(tenantID, userID, "file_download", fmt.Sprintf("host:%d:%s", host.ID, filePath), 200)
 }
 
 // FileUploadHandler POST /api/hosts/{uuid}/files/upload (multipart: file, path)
@@ -211,13 +204,7 @@ func FileUploadHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 		return
 	}
 
-	db.DB.Create(&models.AuditLog{
-		TenantID: tenantID,
-		UserID:   userID,
-		Action:   "file_upload",
-		Resource: fmt.Sprintf("host:%d:%s", host.ID, targetPath),
-		Status:   200,
-	})
+	auditLog(tenantID, userID, "file_upload", fmt.Sprintf("host:%d:%s", host.ID, targetPath), 200)
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"uploaded": true,
@@ -265,13 +252,7 @@ func FileMkdirHandler(w http.ResponseWriter, r *http.Request, host *models.Host,
 		return
 	}
 
-	db.DB.Create(&models.AuditLog{
-		TenantID: tenantID,
-		UserID:   userID,
-		Action:   "file_mkdir",
-		Resource: fmt.Sprintf("host:%d:%s", host.ID, req.Path),
-		Status:   200,
-	})
+	auditLog(tenantID, userID, "file_mkdir", fmt.Sprintf("host:%d:%s", host.ID, req.Path), 200)
 	log.Printf("[SFTP] user=%d tenant=%d host=%d mkdir %s", userID, tenantID, host.ID, req.Path)
 	writeJSON(w, http.StatusOK, map[string]interface{}{"created": true, "path": req.Path})
 }
@@ -326,13 +307,7 @@ func FileDeleteHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 		}
 	}
 
-	db.DB.Create(&models.AuditLog{
-		TenantID: tenantID,
-		UserID:   userID,
-		Action:   "file_delete",
-		Resource: fmt.Sprintf("host:%d:%s", host.ID, targetPath),
-		Status:   200,
-	})
+	auditLog(tenantID, userID, "file_delete", fmt.Sprintf("host:%d:%s", host.ID, targetPath), 200)
 
 	log.Printf("[SFTP] user=%d tenant=%d host=%d deleted %s", userID, tenantID, host.ID, targetPath)
 	writeJSON(w, http.StatusOK, map[string]interface{}{"deleted": true, "path": targetPath, "time": time.Now().Unix()})
@@ -379,13 +354,7 @@ func FileRenameHandler(w http.ResponseWriter, r *http.Request, host *models.Host
 		return
 	}
 
-	db.DB.Create(&models.AuditLog{
-		TenantID: tenantID,
-		UserID:   userID,
-		Action:   "file_rename",
-		Resource: fmt.Sprintf("host:%d:%s->%s", host.ID, req.OldPath, req.NewPath),
-		Status:   200,
-	})
+	auditLog(tenantID, userID, "file_rename", fmt.Sprintf("host:%d:%s->%s", host.ID, req.OldPath, req.NewPath), 200)
 	log.Printf("[SFTP] user=%d tenant=%d host=%d rename %s -> %s", userID, tenantID, host.ID, req.OldPath, req.NewPath)
 	writeJSON(w, http.StatusOK, map[string]interface{}{"renamed": true, "old_path": req.OldPath, "new_path": req.NewPath})
 }

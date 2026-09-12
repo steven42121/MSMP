@@ -146,13 +146,7 @@ func WebSSHHandler(w http.ResponseWriter, r *http.Request, host *models.Host, te
 
 	// 审计日志 + 会话录制
 	sessionID := getRecorder().StartRecording(userID, host.ID, host.Hostname)
-	db.DB.Create(&models.AuditLog{
-		TenantID: tenantID,
-		UserID:   userID,
-		Action:   "webssh_connect",
-		Resource: fmt.Sprintf("host:%d session:%s", host.ID, sessionID),
-		Status:   200,
-	})
+	auditLog(tenantID, userID, "webssh_connect", fmt.Sprintf("host:%d session:%s", host.ID, sessionID), 200)
 	log.Printf("[WebSSH] user=%d tenant=%d host=%d (%s) session=%s connected",
 		userID, tenantID, host.ID, host.Hostname, sessionID)
 

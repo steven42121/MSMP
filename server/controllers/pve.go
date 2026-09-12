@@ -87,13 +87,7 @@ func PVEGuestsHandler(w http.ResponseWriter, r *http.Request, host *models.Host,
 		return
 	}
 
-	db.DB.Create(&models.AuditLog{
-		TenantID: tenantID,
-		UserID:   userID,
-		Action:   "pve_list_guests",
-		Resource: "host:" + host.Hostname,
-		Status:   200,
-	})
+	auditLog(tenantID, userID, "pve_list_guests", "host:"+host.Hostname, 200)
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"guests": guests,
@@ -130,13 +124,7 @@ func PVEGuestPowerHandler(w http.ResponseWriter, r *http.Request, host *models.H
 		return
 	}
 
-	db.DB.Create(&models.AuditLog{
-		TenantID: tenantID,
-		UserID:   userID,
-		Action:   "pve_power_guest",
-		Resource: "guest:" + req.GuestType + ":" + req.Node + "/" + strconv.Itoa(req.VMID) + ":" + req.Action,
-		Status:   200,
-	})
+	auditLog(tenantID, userID, "pve_power_guest", "guest:"+req.GuestType+":"+req.Node+"/"+strconv.Itoa(req.VMID)+":"+req.Action, 200)
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"node":   req.Node,
@@ -245,10 +233,7 @@ func PVESnapshotActionHandler(w http.ResponseWriter, r *http.Request, host *mode
 			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 			return
 		}
-		db.DB.Create(&models.AuditLog{
-			TenantID: tenantID, UserID: userID, Action: "pve_create_snapshot",
-			Resource: "snapshot:" + req.Node + "/" + strconv.Itoa(req.VMID) + ":" + req.Name, Status: 200,
-		})
+		auditLog(tenantID, userID, "pve_create_snapshot", "snapshot:"+req.Node+"/"+strconv.Itoa(req.VMID)+":"+req.Name, 200)
 		writeJSON(w, http.StatusOK, map[string]interface{}{"created": true, "name": req.Name})
 
 	case http.MethodDelete:
@@ -264,10 +249,7 @@ func PVESnapshotActionHandler(w http.ResponseWriter, r *http.Request, host *mode
 			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 			return
 		}
-		db.DB.Create(&models.AuditLog{
-			TenantID: tenantID, UserID: userID, Action: "pve_delete_snapshot",
-			Resource: "snapshot:" + node + "/" + strconv.Itoa(vmid) + ":" + snapName, Status: 200,
-		})
+		auditLog(tenantID, userID, "pve_delete_snapshot", "snapshot:"+node+"/"+strconv.Itoa(vmid)+":"+snapName, 200)
 		writeJSON(w, http.StatusOK, map[string]interface{}{"deleted": true, "name": snapName})
 
 	default:
@@ -427,9 +409,6 @@ func PVESnapshotRollbackHandler(w http.ResponseWriter, r *http.Request, host *mo
 		return
 	}
 
-	db.DB.Create(&models.AuditLog{
-		TenantID: tenantID, UserID: userID, Action: "pve_rollback_snapshot",
-		Resource: "snapshot:" + req.Node + "/" + strconv.Itoa(req.VMID) + ":" + req.SnapName, Status: 200,
-	})
+	auditLog(tenantID, userID, "pve_rollback_snapshot", "snapshot:"+req.Node+"/"+strconv.Itoa(req.VMID)+":"+req.SnapName, 200)
 	writeJSON(w, http.StatusOK, map[string]interface{}{"rolled_back": true, "name": req.SnapName})
 }
