@@ -12,10 +12,11 @@ import (
 
 // ClusterRouter 实现 Agent 对多个后端节点的轮询 + 故障转移。
 type ClusterRouter struct {
-	nodes      []string
-	index      int
-	failCount  map[int]int
-	successCnt map[int]int
+	nodes         []string
+	index         int
+	failCount     map[int]int
+	successCnt    map[int]int
+	disabledUntil map[int]time.Time
 }
 
 func NewClusterRouter(serverURLs string) *ClusterRouter {
@@ -36,9 +37,10 @@ func NewClusterRouter(serverURLs string) *ClusterRouter {
 		nodes = append(nodes, "http://localhost:8080")
 	}
 	r := &ClusterRouter{
-		nodes:      nodes,
-		failCount:  make(map[int]int),
-		successCnt: make(map[int]int),
+		nodes:         nodes,
+		failCount:     make(map[int]int),
+		successCnt:    make(map[int]int),
+		disabledUntil: make(map[int]time.Time),
 	}
 	log.Printf("[agent] cluster router initialized: %d node(s): %v", len(nodes), nodes)
 	return r
@@ -48,15 +50,26 @@ func NewClusterRouter(serverURLs string) *ClusterRouter {
 // 连续失败 3 次的节点暂时跳过，60 秒后重试。
 func (r *ClusterRouter) NextNode() string {
 	now := time.Now()
+	var fallback = -1
 	for i := 0; i < len(r.nodes); i++ {
 		idx := (r.index + i) % len(r.nodes)
-		if r.failCount[idx] < 3 && (r.nodes[idx]+":skip") == r.nodes[idx] || now.After(time.Unix(0, 0).Add(time.Duration(0))) {
+		if r.failCount[idx] < 3 {
 			r.index = (idx + 1) % len(r.nodes)
 			return r.nodes[idx]
 		}
+		if until, ok := r.disabledUntil[idx]; ok && now.After(until) {
+			// 熔断窗口已过，重置并复用该节点
+			r.failCount[idx] = 0
+			r.index = (idx + 1) % len(r.nodes)
+			return r.nodes[idx]
+		}
+		if fallback < 0 {
+			fallback = idx
+		}
 	}
-	r.index = (r.index + 1) % len(r.nodes)
-	return r.nodes[r.index]
+	// 所有节点均在熔断中：返回第一个节点兜底（请求可能失败，但不会饿死）
+	r.index = (fallback + 1) % len(r.nodes)
+	return r.nodes[fallback]
 }
 
 // RecordSuccess 标记当前节点上报成功。
@@ -74,6 +87,10 @@ func (r *ClusterRouter) RecordFailure() {
 	if idx >= 0 && idx < len(r.nodes) {
 		r.failCount[idx]++
 		log.Printf("[agent] node %s failed (%d/3)", r.nodes[idx], r.failCount[idx])
+		if r.failCount[idx] >= 3 {
+			r.disabledUntil[idx] = time.Now().Add(60 * time.Second)
+			log.Printf("[agent] node %s circuit-breaked for 60s", r.nodes[idx])
+		}
 	}
 }
 

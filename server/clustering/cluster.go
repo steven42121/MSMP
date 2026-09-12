@@ -1,6 +1,7 @@
 package clustering
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -231,7 +232,11 @@ func (c *ClusterState) sendHeartbeats() {
 
 func (c *ClusterState) pingNode(target string) {
 	url := strings.TrimRight(target, "/") + "/api/cluster/ping"
-	req, err := http.NewRequest("POST", url, nil)
+	payload, _ := json.Marshal(map[string]string{
+		"node_id": c.myNodeID,
+		"address": c.myAddress,
+	})
+	req, err := http.NewRequest("POST", url, bytes.NewReader(payload))
 	if err != nil {
 		return
 	}

@@ -171,14 +171,30 @@ func Register(serverURL string, info RegisterData) error {
 	return nil
 }
 
-func Heartbeat(serverURL string, data HeartbeatData) (*HeartbeatResponse, error) {
+// doAgentPost 发送带 AgentToken 认证的 JSON POST 请求。
+func doAgentPost(serverURL, path, agentToken string, body []byte) (*http.Response, error) {
+	req, err := http.NewRequest("POST", serverURL+path, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	if agentToken != "" {
+		req.Header.Set("Authorization", "Bearer "+agentToken)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{Timeout: 15 * time.Second}
+	return client.Do(req)
+}
+
+func Heartbeat(serverURL, agentToken string, data HeartbeatData) (*HeartbeatResponse, error) {
 	body, _ := json.Marshal(data)
-	resp, err := http.Post(serverURL+"/api/agents/heartbeat", "application/json", bytes.NewBuffer(body))
+	resp, err := doAgentPost(serverURL, "/api/agents/heartbeat", agentToken, body)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("heartbeat status %d", resp.StatusCode)
+	}
 	var hbResp HeartbeatResponse
 	if err := json.NewDecoder(resp.Body).Decode(&hbResp); err != nil {
 		return nil, err
@@ -273,23 +289,29 @@ func SelfUpdate(downloadURL string) error {
 	return nil
 }
 
-func ReportAssets(serverURL string, info AgentInfo) error {
+func ReportAssets(serverURL, agentToken string, info AgentInfo) error {
 	data, _ := json.Marshal(info)
-	resp, err := http.Post(serverURL+"/api/agents/assets", "application/json", bytes.NewBuffer(data))
+	resp, err := doAgentPost(serverURL, "/api/agents/assets", agentToken, data)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("asset report status %d", resp.StatusCode)
+	}
 	return nil
 }
 
-func ReportMetrics(serverURL string, data MetricData) error {
+func ReportMetrics(serverURL, agentToken string, data MetricData) error {
 	body, _ := json.Marshal(data)
-	resp, err := http.Post(serverURL+"/api/agents/metrics", "application/json", bytes.NewBuffer(body))
+	resp, err := doAgentPost(serverURL, "/api/agents/metrics", agentToken, body)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("metrics report status %d", resp.StatusCode)
+	}
 	return nil
 }
 
@@ -314,7 +336,7 @@ func MainLoop(router *ClusterRouter, uuid, agentToken string) {
 		log.Printf("Register error: %v", err)
 	}
 
-	if err := ReportAssets(firstURL, assetInfo); err != nil {
+	if err := ReportAssets(firstURL, agentToken, assetInfo); err != nil {
 		log.Printf("Asset report error: %v", err)
 	}
 
@@ -332,7 +354,7 @@ func MainLoop(router *ClusterRouter, uuid, agentToken string) {
 			AgentVersion: AgentVersion,
 			IP:           ip,
 		}
-		hbResp, err := Heartbeat(url, hbData)
+		hbResp, err := Heartbeat(url, agentToken, hbData)
 		if err != nil {
 			log.Printf("Heartbeat error: %v", err)
 			router.RecordFailure()
@@ -350,7 +372,7 @@ func MainLoop(router *ClusterRouter, uuid, agentToken string) {
 		if now.Sub(lastAssetsReport) >= 5*time.Minute {
 			newAsset := CollectAssetInfoFull()
 			newAsset.AgentVersion = AgentVersion
-			if err := ReportAssets(url, newAsset); err != nil {
+			if err := ReportAssets(url, agentToken, newAsset); err != nil {
 				log.Printf("Asset report error: %v", err)
 				router.RecordFailure()
 			} else {
@@ -363,7 +385,7 @@ func MainLoop(router *ClusterRouter, uuid, agentToken string) {
 		if now.Sub(lastMetricsReport) >= 60*time.Second {
 			metrics := CollectMetrics()
 			metrics.UUID = uuid
-			if err := ReportMetrics(url, metrics); err != nil {
+			if err := ReportMetrics(url, agentToken, metrics); err != nil {
 				log.Printf("Metrics report error: %v", err)
 				router.RecordFailure()
 			} else {
