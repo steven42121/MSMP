@@ -108,12 +108,17 @@ POST /api/auth/refresh（需有效 Authorization）
 }
 ```
 
-`type` 可选值：`ssh`、`wac`、`baota`
+`type` 可选值：`ssh`、`wac`、`baota`、`1panel`、`prometheus`、`snmp`、`winrm`、`vsphere`、`pve`
 
 `auth_mode` 按 type 可选值：
 - SSH：`password`、`private_key`、`generated_key`
 - WAC：`gateway`
 - 宝塔：`api_key`、`gateway`
+- 1Panel：`api_key`
+- Prometheus：`none`、`basic`、`bearer`
+- SNMP：`community`、`v3`
+- WinRM：`basic`、`ntlm`
+- vSphere / PVE：`password`
 
 ### 探测响应
 
@@ -566,3 +571,44 @@ retention:
 | Method | Path | 说明 |
 |--------|------|------|
 | GET | `/api/hosts/{uuid}/vsphere/networks` | 端口组 / 分布式端口组列表 |
+
+## 插件管理
+
+统一插件框架，将通知（notifier）、采集（collector）、探测（probe）三类能力纳入插件视图。**权限**: 全部需 `admin` 角色。
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET | `/api/plugins` | 列出全部内置插件元数据（含配置项 schema） |
+| GET | `/api/plugins/instances` | 当前租户的通知插件实例列表（敏感项掩码） |
+| POST | `/api/plugins/instances` | 创建通知实例 `{plugin_id, name, config, enabled?}` |
+| PUT | `/api/plugins/instances/{id}` | 更新实例 `{name?, config?, enabled?}` |
+| DELETE | `/api/plugins/instances/{id}` | 软删除实例 |
+| POST | `/api/plugins/instances/{id}/test` | 发送测试通知，返回 `{ok, error?}` |
+
+### 内置通知插件
+
+| plugin_id | 渠道 | 关键配置 |
+|-----------|------|----------|
+| `notify-webhook` | 通用 Webhook | `url`* |
+| `notify-dingtalk` | 钉钉群机器人 | `access_token`*、`secret`*、`keyword` |
+| `notify-feishu` | 飞书群机器人 | `webhook_url`*、`secret`* |
+| `notify-wecom` | 企业微信群机器人 | `webhook_key`* |
+| `notify-smtp` | 邮件 SMTP | `host`、`port`、`username`、`password`*、`from`、`to` |
+| `notify-slack` | Slack Incoming Webhook | `webhook_url`* |
+
+带 `*` 字段为敏感项：落库加密（AES-GCM），响应掩码返回 `******`。编辑时敏感字段传掩码值即保留原值。
+
+### 通知插件实例请求体示例
+
+```json
+{
+  "plugin_id": "notify-dingtalk",
+  "name": "运维告警群",
+  "config": {
+    "access_token": "xxx",
+    "secret": "SECxxx",
+    "keyword": "告警"
+  },
+  "enabled": true
+}
+```
