@@ -6,6 +6,19 @@
 
 ## [Unreleased]
 
+### 插件框架
+- 通用插件框架：统一 PluginMeta / 分类型接口 / 注册中心，采集（9 种）、探测（3 种）纳管为插件元数据
+- 通知渠道插件：Webhook / 钉钉 / 飞书 / 企业微信 / 邮件 SMTP / Slack，可配置启用与测试
+- 插件实例配置与启停（租户隔离），敏感字段（密钥/令牌）加密落库、响应掩码返回
+- 告警分发升级：事件分发到全部启用通知实例，单渠道失败不阻断，无实例时回退既有 Webhook
+- 插件管理页 + 动态配置表单（基于插件元数据渲染）
+- 新增 1Panel 采集渠道（API Key HMAC-SHA256 认证）
+
+### 多节点管道修复
+- Agent 上报补发 Authorization 头（修复 v0.1.4 认证收紧后主机心跳 401 静默失败、全主机离线）
+- Agent 熔断逻辑修复（连续 3 次失败熔断 60s，此前判断条件恒真未生效）
+- 集群心跳修复（发送 node_id/address，地址解析改用 net.SplitHostPort）
+
 ### 发布产物重构
 - Release 资产拆分为独立的 server 包与 agent 包（此前为混合全家桶，agent 无法单独分发）
 - Server 包：linux amd64/arm64 为 tar.gz（含 install.sh systemd 安装脚本、frontend-dist、config.yaml、docker-compose.yml）；windows amd64 改为 zip
