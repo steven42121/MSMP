@@ -215,3 +215,19 @@ curl -s http://localhost:8080/api/alert-escalations -H "Authorization: Bearer $T
   - 管道层已完成：agent ClusterRouter（轮询+熔断）、前端 ClusterClient（轮询+故障转移）、server clustering 包（节点心跳+字典序 leader 选举，follower 跳过 CollectorScheduler）
   - 数据层空白：每节点独立 SQLite，无同步/复制；agent 轮询上报会致数据分裂；JWT secret 不共享则 token 跨节点失效
   - 多节点真正可用前必须先做数据层方案决策（共享 PG / 数据复制 / 单主写入）
+
+## 2026-09-13 多节点数据层切换
+### 用户决策
+- Date: 2026-09-13
+- Context: 多节点盘点后发现数据层空白（SQLite 单机库导致 agent 轮询上报数据分裂）
+- Instructions:
+  - 切换到 PostgreSQL 共享库（gorm 已有 postgres 驱动，go.mod 含 gorm.io/driver/postgres）
+  - config.yaml db.driver 改为 postgres，配置 DSN（host=127.0.0.1 user=msmp password=msmp123 dbname=msmp）
+  - 迁移脚本：migrate_sqlite_to_pg.py（动态列对齐）+ migrate_bool_fix.py（boolean 类型转换）
+  - 多节点真正可用前提：各节点共用同一 PG，JWT secret 统一配置
+
+### 虚拟化环境现状
+- Category: Environment Configuration
+- Instructions:
+  - 无真实 PVE/ESXi 环境，VM 创建/克隆/迁移、noVNC/WebMKS 控制台两项刻意留待有环境时实现
+  - pve-test 主机（status=pending）为占位符，无实际接入
