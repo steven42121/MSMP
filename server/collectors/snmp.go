@@ -27,7 +27,7 @@ var (
 	oidNetIfOutOctets  = ".1.3.6.1.2.1.2.2.1.16"
 )
 
-func (s *SNMPChannel) connect(ctx context.Context, b *models.ChannelBinding) (*gosnmp.GoSNMP, error) {
+func (s *SNMPChannel) connect(ctx context.Context, b *models.ChannelBinding, secret string) (*gosnmp.GoSNMP, error) {
 	host, port := parseHostPort(b.Address)
 	portNum := 161
 	if p, err := strconv.Atoi(port); err == nil && p > 0 {
@@ -47,7 +47,7 @@ func (s *SNMPChannel) connect(ctx context.Context, b *models.ChannelBinding) (*g
 	case "v3":
 		g.Version = gosnmp.Version3
 		g.SecurityModel = gosnmp.UserSecurityModel
-		fields := strings.Fields(b.Credential)
+		fields := strings.Fields(secret)
 		sp := &gosnmp.UsmSecurityParameters{}
 		if len(fields) >= 1 {
 			sp.UserName = fields[0]
@@ -71,7 +71,11 @@ func (s *SNMPChannel) connect(ctx context.Context, b *models.ChannelBinding) (*g
 }
 
 func (s *SNMPChannel) Probe(ctx context.Context, b *models.ChannelBinding, cred CredentialProvider) (ProbeResult, error) {
-	g, err := s.connect(ctx, b)
+	secret, err := cred.Decrypt(b.Credential)
+	if err != nil {
+		return ProbeResult{Err: StatusAuthFailed}, err
+	}
+	g, err := s.connect(ctx, b, secret)
 	if err != nil {
 		return ProbeResult{Err: classifySnmpErr(err)}, err
 	}
@@ -88,7 +92,11 @@ func (s *SNMPChannel) Probe(ctx context.Context, b *models.ChannelBinding, cred 
 
 func (s *SNMPChannel) Collect(ctx context.Context, b *models.ChannelBinding, cred CredentialProvider) (CollectResult, error) {
 	start := time.Now()
-	g, err := s.connect(ctx, b)
+	secret, err := cred.Decrypt(b.Credential)
+	if err != nil {
+		return CollectResult{}, err
+	}
+	g, err := s.connect(ctx, b, secret)
 	if err != nil {
 		return CollectResult{}, err
 	}

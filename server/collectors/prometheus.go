@@ -28,7 +28,7 @@ func (p *PrometheusChannel) client() *http.Client {
 	return &http.Client{Timeout: promTimeout}
 }
 
-func (p *PrometheusChannel) scrape(ctx context.Context, b *models.ChannelBinding) ([]byte, error) {
+func (p *PrometheusChannel) scrape(ctx context.Context, b *models.ChannelBinding, secret string) ([]byte, error) {
 	addr := strings.TrimRight(b.Address, "/")
 	if !strings.HasPrefix(addr, "http") {
 		addr = "http://" + addr
@@ -40,9 +40,9 @@ func (p *PrometheusChannel) scrape(ctx context.Context, b *models.ChannelBinding
 	}
 	switch b.AuthMode {
 	case "basic":
-		req.SetBasicAuth(b.Username, b.Credential)
+		req.SetBasicAuth(b.Username, secret)
 	case "bearer":
-		req.Header.Set("Authorization", "Bearer "+b.Credential)
+		req.Header.Set("Authorization", "Bearer "+secret)
 	}
 	resp, err := p.client().Do(req)
 	if err != nil {
@@ -154,8 +154,19 @@ func parsePromCPU(body []byte) float64 {
 	return used
 }
 
+func prometheusSecret(b *models.ChannelBinding, cred CredentialProvider) (string, error) {
+	if b.AuthMode == "basic" || b.AuthMode == "bearer" {
+		return cred.Decrypt(b.Credential)
+	}
+	return "", nil
+}
+
 func (p *PrometheusChannel) Probe(ctx context.Context, b *models.ChannelBinding, cred CredentialProvider) (ProbeResult, error) {
-	body, err := p.scrape(ctx, b)
+	secret, err := prometheusSecret(b, cred)
+	if err != nil {
+		return ProbeResult{Err: StatusAuthFailed}, err
+	}
+	body, err := p.scrape(ctx, b, secret)
 	if err != nil {
 		return ProbeResult{Err: classifyPromErr(err)}, err
 	}
@@ -170,7 +181,11 @@ func (p *PrometheusChannel) Probe(ctx context.Context, b *models.ChannelBinding,
 
 func (p *PrometheusChannel) Collect(ctx context.Context, b *models.ChannelBinding, cred CredentialProvider) (CollectResult, error) {
 	start := time.Now()
-	body, err := p.scrape(ctx, b)
+	secret, err := prometheusSecret(b, cred)
+	if err != nil {
+		return CollectResult{}, err
+	}
+	body, err := p.scrape(ctx, b, secret)
 	if err != nil {
 		return CollectResult{}, err
 	}
