@@ -582,7 +582,7 @@ export default function HostDetail() {
               dataSource={channels}
               pagination={false}
               columns={[
-                { title: '类型', dataIndex: 'type', key: 'type', width: 130, render: (v) => <Tag color={v === 'ssh' ? 'blue' : v === 'wac' ? 'purple' : v === 'baota' ? 'green' : v === 'prometheus' ? 'cyan' : v === 'snmp' ? 'orange' : v === 'vsphere' ? 'pink' : v === 'pve' ? 'orange' : 'magenta'}>{v}</Tag> },
+                { title: '类型', dataIndex: 'type', key: 'type', width: 130, render: (v) => <Tag color={v === 'ssh' ? 'blue' : v === 'wac' ? 'purple' : v === 'baota' ? 'green' : v === 'prometheus' ? 'cyan' : v === 'snmp' ? 'orange' : v === 'vsphere' ? 'pink' : v === 'pve' ? 'orange' : v === '1panel' ? 'green' : 'magenta'}>{v}</Tag> },
                 { title: '地址', dataIndex: 'address', key: 'address' },
                 { title: '接入方式', dataIndex: 'auth_mode', key: 'auth_mode', width: 120 },
                 { title: '优先级', dataIndex: 'priority', key: 'priority', width: 80 },
@@ -986,6 +986,7 @@ options={[
                  { value: 'winrm', label: 'WinRM（Windows 远程管理）' },
                  { value: 'vsphere', label: 'vSphere / ESXi（ VMware 虚拟化管理）' },
                  { value: 'pve', label: 'Proxmox VE（开源虚拟化平台）' },
+                 { value: '1panel', label: '1Panel（Linux 运维面板）' },
                ]}
             />
           </Form.Item>
@@ -1044,11 +1045,15 @@ options={[
                <Form.Item name="auth_mode" label="认证方式" rules={[{ required: true }]}>
                  <Select options={[{ value: 'password', label: '用户名 + 密码' }]} disabled />
                </Form.Item>
-             ) : f.getFieldValue('type') === 'pve' ? (
-               <Form.Item name="auth_mode" label="认证方式" rules={[{ required: true }]}>
-                 <Select options={[{ value: 'password', label: '用户名 + 密码（如 root@pam）' }]} disabled />
-               </Form.Item>
-             ) : (
+) : f.getFieldValue('type') === 'pve' ? (
+                <Form.Item name="auth_mode" label="认证方式" rules={[{ required: true }]}>
+                  <Select options={[{ value: 'password', label: '用户名 + 密码（如 root@pam）' }]} disabled />
+                </Form.Item>
+              ) : f.getFieldValue('type') === '1panel' ? (
+                <Form.Item name="auth_mode" label="认证方式" initialValue="api_key" rules={[{ required: true }]}>
+                  <Select options={[{ value: 'api_key', label: 'API Key（面板生成）' }]} disabled />
+                </Form.Item>
+              ) : (
               <Form.Item name="auth_mode" label="接入方式" rules={[{ required: true }]}>
                 <Select options={[{ value: 'gateway', label: '网关凭据直连' }]} />
               </Form.Item>

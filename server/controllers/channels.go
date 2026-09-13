@@ -19,10 +19,10 @@ import (
 )
 
 var (
-	credService   *services.CredentialService
-	credOnce      sync.Once
-	credInitErr   error
-	channelReg    = collectors.NewRegistry()
+	credService *services.CredentialService
+	credOnce    sync.Once
+	credInitErr error
+	channelReg  = collectors.NewRegistry()
 )
 
 func initCollectors() {
@@ -35,6 +35,7 @@ func initCollectors() {
 		channelReg.Register(&collectors.WinRMChannel{})
 		channelReg.Register(&collectors.VSphereChannel{})
 		channelReg.Register(&collectors.PVEChannel{})
+		channelReg.Register(&collectors.OnePanelChannel{})
 		if config.C != nil && config.C.Security.CredentialKey != "" {
 			credService, credInitErr = services.NewCredentialService(config.C)
 		}
@@ -84,7 +85,7 @@ func ChannelsCreateHandler(w http.ResponseWriter, r *http.Request, host models.H
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "type, address, auth_mode are required"})
 		return
 	}
-	if req.Type != "ssh" && req.Type != "wac" && req.Type != "baota" && req.Type != "prometheus" && req.Type != "snmp" && req.Type != "winrm" && req.Type != "vsphere" && req.Type != "pve" {
+	if req.Type != "ssh" && req.Type != "wac" && req.Type != "baota" && req.Type != "prometheus" && req.Type != "snmp" && req.Type != "winrm" && req.Type != "vsphere" && req.Type != "pve" && req.Type != "1panel" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unsupported channel type"})
 		return
 	}
@@ -187,8 +188,8 @@ func ChannelDetailHandler(w http.ResponseWriter, r *http.Request) {
 
 	case r.Method == http.MethodPut:
 		var req struct {
-			Priority *int   `json:"priority"`
-			Enabled  *bool  `json:"enabled"`
+			Priority *int    `json:"priority"`
+			Enabled  *bool   `json:"enabled"`
 			Address  *string `json:"address"`
 			Username *string `json:"username"`
 			Secret   *string `json:"secret"`
@@ -350,7 +351,7 @@ const (
 	schedulerInterval    = 60 * time.Second
 	agentActiveWindow    = 5 * time.Minute
 	schedulerCollectTO   = 20 * time.Second
-	schedulerWorkers      = 8
+	schedulerWorkers     = 8
 	channelFailThreshold = 5
 )
 
