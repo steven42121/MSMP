@@ -7,9 +7,9 @@ server:
   # node_id: "node-a"   # 留空则自动生成 UUID 前 8 位
 
 db:
-  driver: "sqlite"      # sqlite 或 postgres
-  sqlitepath: "msmp.db"
-  # dsn: "host=localhost user=msmp password=msmp dbname=msmp port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+  driver: "postgres"
+  # sqlitepath: "msmp.db"
+  dsn: "host=127.0.0.1 user=msmp password=msmp123 dbname=msmp port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 
 jwt:
   secret: "change-me-in-production"
