@@ -200,3 +200,18 @@ curl -s http://localhost:8080/api/alert-suppressions -H "Authorization: Bearer $
 curl -s http://localhost:8080/api/alert-silences -H "Authorization: Bearer $TOKEN"
 curl -s http://localhost:8080/api/alert-escalations -H "Authorization: Bearer $TOKEN"
 ```
+
+## 2026-09-12 产品定位与多节点现状
+### 用户决策
+- Date: 2026-09-12
+- Context: 讨论 release 产物与多节点完善情况时确认
+- Instructions:
+  - 手机端定位：连接管理节点的只读查看器（查看监控面板），暂不做 APK/PWA
+  - Release 产物按「仅优化现有结构」执行：agent 独立包 + windows zip + 安装脚本，不做 Docker 镜像/deb/rpm
+
+### 多节点架构现状（盘点结论）
+- Category: Workflow & Collaboration
+- Instructions:
+  - 管道层已完成：agent ClusterRouter（轮询+熔断）、前端 ClusterClient（轮询+故障转移）、server clustering 包（节点心跳+字典序 leader 选举，follower 跳过 CollectorScheduler）
+  - 数据层空白：每节点独立 SQLite，无同步/复制；agent 轮询上报会致数据分裂；JWT secret 不共享则 token 跨节点失效
+  - 多节点真正可用前必须先做数据层方案决策（共享 PG / 数据复制 / 单主写入）
