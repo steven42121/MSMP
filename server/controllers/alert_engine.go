@@ -128,7 +128,7 @@ func EvaluateAlertsWithEngineering(host models.Host, sample models.MetricSample)
 			Message:  message,
 		}
 		db.DB.Create(&event)
-		notifyWebhook(event, host)
+		notifyAll(event, host)
 	}
 }
 
@@ -190,7 +190,7 @@ func checkEscalations() {
 			db.DB.Model(&event).Update("acknowledged", true)
 
 			log.Printf("[Alert] Escalated alert #%d for host #%d", event.ID, event.HostID)
-			notifyWebhook(upgradeEvent, hostFromID(event.HostID))
+			notifyAll(upgradeEvent, hostFromID(event.HostID))
 		}
 	}
 }

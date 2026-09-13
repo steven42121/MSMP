@@ -11,6 +11,7 @@ import (
 	"MSMP/server/config"
 	"MSMP/server/db"
 	"MSMP/server/models"
+	"MSMP/server/plugins"
 )
 
 func AlertsHandler(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +97,7 @@ func evaluateMetricAlerts(host models.Host, sample models.MetricSample) {
 			Message:  message,
 		}
 		db.DB.Create(&event)
-		notifyWebhook(event, host)
+		notifyAll(event, host)
 	}
 }
 
@@ -112,6 +113,29 @@ func matchOperator(op string, value, threshold float64) bool {
 		return value <= threshold
 	}
 	return false
+}
+
+// notifyAll 将事件分发到全部启用的通知插件实例；无启用实例时回退到既有 Webhook。
+func notifyAll(event models.HostEvent, host models.Host) {
+	title := "MSMP 告警"
+	switch event.Type {
+	case "escalation":
+		title = "MSMP 告警升级"
+	case "offline":
+		title = "MSMP 主机离线"
+	}
+	n := plugins.Notification{
+		Title:    title,
+		Message:  event.Message,
+		Level:    event.Level,
+		Hostname: host.Hostname,
+		HostUUID: host.UUID,
+		Time:     time.Now().Format("2006-01-02 15:04:05"),
+	}
+	if DispatchNotifiers(event.TenantID, n) {
+		return
+	}
+	notifyWebhook(event, host)
 }
 
 func notifyWebhook(event models.HostEvent, host models.Host) {

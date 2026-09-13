@@ -58,5 +58,6 @@ func Init(cfg *config.Config) error {
 		&models.HostProcess{},
 		&models.HostPort{},
 		&models.HostPackage{},
+		&models.PluginInstance{},
 	)
 }

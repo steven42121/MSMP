@@ -21,6 +21,7 @@ import LLMConfig from './pages/LLMConfig';
 import Probes from './pages/Probes';
 import CronJobs from './pages/CronJobs';
 import AssetInventory from './pages/AssetInventory';
+import Plugins from './pages/Plugins';
 import { useAuthStore } from './store/auth';
 import { useGlobalMouseTracker } from './hooks/useGlobalMouseTracker';
 
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="llm-config" element={<LLMConfig />} />
           <Route path="probes" element={<Probes />} />
           <Route path="cron-jobs" element={<CronJobs />} />
+          <Route path="plugins" element={<Plugins />} />
           <Route path="hosts/:uuid/assets" element={<AssetInventory />} />
         </Route>
         <Route path="*" element={<NotFound />} />

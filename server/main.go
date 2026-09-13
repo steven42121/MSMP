@@ -148,6 +148,17 @@ func main() {
 	mux.HandleFunc("/api/alert-stats", controllers.RequireRole([]string{"admin", "member"}, controllers.AlertStatsHandler))
 	mux.HandleFunc("/api/maintenance/flush-caches", controllers.RequireRole([]string{"admin"}, controllers.FlushCachesHandler))
 
+	// 插件管理
+	mux.HandleFunc("/api/plugins", controllers.RequireRole([]string{"admin"}, controllers.PluginsHandler))
+	mux.HandleFunc("/api/plugins/instances", controllers.RequireRole([]string{"admin"}, controllers.PluginInstancesHandler))
+	mux.HandleFunc("/api/plugins/instances/", controllers.RequireRole([]string{"admin"}, func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/test") {
+			controllers.PluginInstanceTestHandler(w, r)
+			return
+		}
+		controllers.PluginInstanceDetailHandler(w, r)
+	}))
+
 	// 租户和用户管理
 	mux.HandleFunc("/api/tenants", controllers.Audit("manage", "tenant", controllers.RequireRole([]string{"admin"}, controllers.TenantsHandler)))
 	mux.HandleFunc("/api/users", controllers.UsersHandler)

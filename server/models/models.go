@@ -338,3 +338,17 @@ type HostPackage struct {
 	Source    string    `gorm:"size:32" json:"source"` // dpkg, rpm, npm, pip
 	CollectedAt time.Time `gorm:"index:idx_hp_pkg_host,priority:2;not null" json:"collected_at"`
 }
+
+// PluginInstance 插件实例配置（当前为通知渠道）。
+type PluginInstance struct {
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	TenantID  uint           `gorm:"index;not null" json:"tenant_id"`
+	PluginID  string         `gorm:"size:64;not null" json:"plugin_id"`
+	Type      string         `gorm:"size:16;not null;default:'notifier'" json:"type"`
+	Name      string         `gorm:"size:128" json:"name"`
+	Config    string         `gorm:"type:text" json:"-"` // JSON，敏感字段加密存储
+	Enabled   bool           `gorm:"default:true" json:"enabled"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+}
