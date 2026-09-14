@@ -352,3 +352,14 @@ type PluginInstance struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+// ClusterNode 集群节点（平台级，管理员维护）。
+type ClusterNode struct {
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	Name      string         `gorm:"size:64;not null" json:"name"`
+	Address   string         `gorm:"size:256;not null" json:"address"` // http://host:8080
+	Enabled   bool           `gorm:"default:true" json:"enabled"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+}

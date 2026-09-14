@@ -93,6 +93,34 @@ func (c *ClusterState) RegisterNode(address, nodeID string) {
 	log.Printf("[cluster] node registered: %s (id=%s)", addr, nodeID)
 }
 
+// RefreshNodes 更新已知节点列表（配置/数据库驱动）。
+func (c *ClusterState) RefreshNodes(nodes []string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.knownNodes = append([]string(nil), nodes...)
+	if !contains(c.knownNodes, c.myAddress) {
+		c.knownNodes = append(c.knownNodes, c.myAddress)
+	}
+}
+
+// KnownNodes 返回当前已知节点列表（含本机）。
+func (c *ClusterState) KnownNodes() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return append([]string(nil), c.knownNodes...)
+}
+
+// NodeAlive 返回指定节点当前是否存活。
+func (c *ClusterState) NodeAlive(address string) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if strings.TrimRight(address, "/") == strings.TrimRight(c.myAddress, "/") {
+		return true
+	}
+	n, ok := c.nodes[strings.TrimRight(address, "/")]
+	return ok && n.Alive
+}
+
 // DeregisterDeadNodes 移除超时未收到心跳的节点。
 func (c *ClusterState) DeregisterDeadNodes() {
 	c.mu.Lock()
@@ -226,12 +254,17 @@ func (c *ClusterState) StartHeartbeatLoop() {
 }
 
 func (c *ClusterState) sendHeartbeats() {
-	healthy := c.GetHealthyNodes()
-	for _, target := range healthy {
-		if target == c.myAddress {
+	c.mu.RLock()
+	targets := make([]string, 0, len(c.knownNodes))
+	for _, n := range c.knownNodes {
+		if strings.TrimRight(n, "/") == strings.TrimRight(c.myAddress, "/") {
 			continue
 		}
-		go c.pingNode(target)
+		targets = append(targets, n)
+	}
+	c.mu.RUnlock()
+	for _, t := range targets {
+		go c.pingNode(t)
 	}
 }
 

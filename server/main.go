@@ -56,6 +56,16 @@ func main() {
 
 	// 初始化集群状态
 	clusterState := clustering.NewClusterState(cfg)
+	// 从数据库加载集群节点（优先于静态配置 server.nodes）
+	controllers.LoadClusterNodes(clusterState)
+	// 定期刷新节点列表（前端增删节点后各节点自动感知）
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			controllers.LoadClusterNodes(clusterState)
+		}
+	}()
 
 	// 初始化会话录制器
 	sessionsDir := filepath.Join("data", "sessions")
@@ -93,16 +103,14 @@ func main() {
 	}()
 
 	// 启动无 Agent 采集调度器（仅 leader 执行）
-	if cfg.Server.Nodes != nil && len(cfg.Server.Nodes) > 0 && !clusterState.IsLeader() {
+	if clusterState.Mode() == "cluster" && !clusterState.IsLeader() {
 		log.Println("[cluster] this node is follower, skipping CollectorScheduler")
 	} else {
 		controllers.StartCollectorScheduler()
 	}
 
-	// follower 节点启动心跳循环
-	if clusterState.Mode() == "cluster" && !clusterState.IsLeader() {
-		go clusterState.StartHeartbeatLoop()
-	}
+	// 启动心跳循环（所有节点互发心跳，用于节点发现与存活状态维护）
+	go clusterState.StartHeartbeatLoop()
 
 	// 注册路由
 	mux := http.NewServeMux()
@@ -239,6 +247,12 @@ func main() {
 	mux.HandleFunc("/api/cluster/leader", func(w http.ResponseWriter, r *http.Request) {
 		controllers.ClusterLeaderHandler(w, r, clusterState)
 	})
+	mux.HandleFunc("/api/cluster/nodes", controllers.RequireRole([]string{"admin"}, func(w http.ResponseWriter, r *http.Request) {
+		controllers.ClusterNodesHandler(w, r, clusterState)
+	}))
+	mux.HandleFunc("/api/cluster/nodes/", controllers.RequireRole([]string{"admin"}, func(w http.ResponseWriter, r *http.Request) {
+		controllers.ClusterNodeDetailHandler(w, r, clusterState)
+	}))
 
 	// /metrics 端点：Prometheus 抓取服务器自监控指标（无需认证）
 	mux.Handle("/metrics", http.HandlerFunc(metrics.Handler))

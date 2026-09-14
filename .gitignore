@@ -25,6 +25,7 @@ Thumbs.db
 dist/
 agent/msmp-agent.exe
 server/msmp-server
+server/server
 agent/msmp-agent
 
 # 日志

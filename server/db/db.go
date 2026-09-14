@@ -59,5 +59,6 @@ func Init(cfg *config.Config) error {
 		&models.HostPort{},
 		&models.HostPackage{},
 		&models.PluginInstance{},
+		&models.ClusterNode{},
 	)
 }

@@ -14,6 +14,12 @@
 - 集群选举补充单元测试（3 节点唯一 leader 判定）
 - 新增 `.env.example` 与 `.monkeycode/docs/CLUSTER_DEPLOY.md` 部署文档
 
+### 集群节点管理（前端）
+- 新增前端「集群节点」页面：查看节点列表与在线状态、添加/编辑/删除/启停节点
+- 节点持久化到数据库（`cluster_nodes` 表），前端操作后所有节点自动感知（30 秒周期刷新）
+- 修复节点互发现：心跳基于已知节点列表发起（此前仅依赖运行时节点，节点无法互相发现）
+- 新增集群节点 API：`GET/POST /api/cluster/nodes`、`PUT/DELETE /api/cluster/nodes/{id}`
+
 ### 插件框架
 - 通用插件框架：统一 PluginMeta / 分类型接口 / 注册中心，采集（9 种）、探测（3 种）纳管为插件元数据
 - 通知渠道插件：Webhook / 钉钉 / 飞书 / 企业微信 / 邮件 SMTP / Slack，可配置启用与测试
