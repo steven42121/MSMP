@@ -1,5 +1,6 @@
 .PHONY: build server agent frontend test lint vet run-server run-frontend \
         docker docker-up docker-down docker-logs \
+        cluster-up cluster-down cluster-logs \
         service-install service-remove service-status service-start service-stop service-restart \
         update deploy clean help
 
@@ -62,6 +63,16 @@ docker-down:
 
 docker-logs:
 	docker compose logs -f
+
+# ── 多节点集群（一键部署） ─────────────────────────────────────────────────
+cluster-up:
+	docker compose -f docker-compose.cluster.yml up -d
+
+cluster-down:
+	docker compose -f docker-compose.cluster.yml down
+
+cluster-logs:
+	docker compose -f docker-compose.cluster.yml logs -f
 
 # ── 服务部署（systemd） ─────────────────────────────────────────────────────
 INSTALL_DIR ?= /opt/msmp
@@ -128,6 +139,8 @@ help:
 	@echo "  make run-frontend   - Run frontend in dev mode"
 	@echo "  make docker         - Build and start with docker compose"
 	@echo "  make docker-logs    - Follow docker compose logs"
+	@echo "  make cluster-up     - Start multi-node cluster (3 nodes + PG + LB)"
+	@echo "  make cluster-down   - Stop multi-node cluster"
 	@echo "  make service-install - Install as systemd service"
 	@echo "  make service-status  - Check service status"
 	@echo "  make service-restart - Restart service"

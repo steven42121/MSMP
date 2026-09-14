@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+### 多节点一键部署
+- 数据库统一 PostgreSQL：`db.driver` 默认即为 `postgres`，生产部署不再纠结 SQLite 切换
+- 新增 `docker-compose.cluster.yml`：一条命令拉起 PG + 3 个 server 节点 + 前端（nginx 负载均衡）+ Agent
+- 单机 `docker-compose.yml` 增加 PostgreSQL 服务，前端 nginx 反向代理不变
+- 新增 `server.advertise_addr` 配置：节点集群内通告地址与监听地址分离，修复多节点下 leader 选举（此前各节点 myAddress 均为 `:8080` 导致全员误判为 leader）
+- 集群选举补充单元测试（3 节点唯一 leader 判定）
+- 新增 `.env.example` 与 `.monkeycode/docs/CLUSTER_DEPLOY.md` 部署文档
+
 ### 插件框架
 - 通用插件框架：统一 PluginMeta / 分类型接口 / 注册中心，采集（9 种）、探测（3 种）纳管为插件元数据
 - 通知渠道插件：Webhook / 钉钉 / 飞书 / 企业微信 / 邮件 SMTP / Slack，可配置启用与测试

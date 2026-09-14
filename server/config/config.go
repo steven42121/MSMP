@@ -37,10 +37,11 @@ type NotificationConfig struct {
 }
 
 type ServerConfig struct {
-	Addr     string   `mapstructure:"addr"`
-	Mode     string   `mapstructure:"mode"`
-	Nodes    []string `mapstructure:"nodes"`
-	NodeID   string   `mapstructure:"node_id"`
+	Addr          string   `mapstructure:"addr"`
+	AdvertiseAddr string   `mapstructure:"advertise_addr"` // 集群内通告地址（节点间心跳/leader 选举用），空则用 addr
+	Mode          string   `mapstructure:"mode"`
+	Nodes         []string `mapstructure:"nodes"`
+	NodeID        string   `mapstructure:"node_id"`
 }
 
 type DBConfig struct {
@@ -75,12 +76,14 @@ func Load() (*Config, error) {
 	v.AddConfigPath("../config")
 
 	v.SetDefault("server.addr", ":8080")
+	v.SetDefault("server.advertise_addr", "")
 	v.SetDefault("server.mode", "debug")
 	v.SetDefault("server.nodes", []string{})
 	v.SetDefault("server.node_id", "")
-	v.SetDefault("db.driver", "sqlite")
+	// 默认统一使用 PostgreSQL（多节点共享库）；sqlite 仅用于本地快速验证。
+	v.SetDefault("db.driver", "postgres")
 	v.SetDefault("db.sqlitepath", "msmp.db")
-	v.SetDefault("db.dsn", "host=localhost user=msmp password=msmp dbname=msmp port=5432 sslmode=disable TimeZone=Asia/Shanghai")
+	v.SetDefault("db.dsn", "host=127.0.0.1 user=msmp password=msmp123 dbname=msmp port=5432 sslmode=disable TimeZone=Asia/Shanghai")
 	v.SetDefault("jwt.secret", "change-me-in-production")
 	v.SetDefault("jwt.expirehour", 24)
 	v.SetDefault("agent.transport", "http")

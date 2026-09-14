@@ -1,4 +1,20 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: msmp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: msmp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-msmp123}
+      POSTGRES_DB: msmp
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U msmp"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   backend:
     build:
       context: .
@@ -7,10 +23,15 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
-    volumes:
-      - msmp-data:/app/data
     environment:
       - TZ=Asia/Shanghai
+      - MSMP_DB_DRIVER=postgres
+      - MSMP_DB_DSN=host=postgres user=msmp password=${POSTGRES_PASSWORD:-msmp123} dbname=msmp port=5432 sslmode=disable TimeZone=Asia/Shanghai
+      - MSMP_JWT_SECRET=${MSMP_JWT_SECRET:-change-me-in-production}
+      - MSMP_SECURITY_CREDENTIALKEY=${MSMP_CREDENTIAL_KEY:-vROhbPC9E2ONzrmN/HgktxJaAw2MVtBq7rw4jEORxKw=}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   frontend:
     build:
@@ -32,6 +53,8 @@ services:
     environment:
       - MSMP_SERVER_URL=http://backend:8080
       - AGENT_UUID=docker-agent
+    depends_on:
+      - backend
 
 volumes:
-  msmp-data:
+  pg-data:

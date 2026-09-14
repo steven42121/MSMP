@@ -19,7 +19,7 @@ frontend/dist/
 
 # OS
 .DS_Store
-Thumbs庵bs
+Thumbs.db
 
 # 构建产物
 dist/
@@ -27,10 +27,10 @@ agent/msmp-agent.exe
 server/msmp-server
 agent/msmp-agent
 
-# 环境变量
-.env
-.env.local
-
 # 日志
 *.log
 npm-debug.log*
+
+# 环境变量
+.env
+.env.local

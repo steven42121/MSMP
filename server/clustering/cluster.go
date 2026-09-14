@@ -42,8 +42,13 @@ func NewClusterState(cfg *config.Config) *ClusterState {
 	if nodeID == "" {
 		nodeID = "node-" + uuid.New().String()[:8]
 	}
+	// 集群内通告地址：优先 advertise_addr，否则回退监听地址。
+	myAddress := cfg.Server.AdvertiseAddr
+	if myAddress == "" {
+		myAddress = cfg.Server.Addr
+	}
 	cs := &ClusterState{
-		myAddress:  cfg.Server.Addr,
+		myAddress:  myAddress,
 		myNodeID:   nodeID,
 		nodes:      make(map[string]*NodeInfo),
 		knownNodes: cfg.Server.Nodes,

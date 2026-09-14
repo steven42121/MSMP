@@ -1,0 +1,97 @@
+# MSMP 多节点集群一键部署：`docker compose -f docker-compose.cluster.yml up -d`
+# PostgreSQL（共享库）+ 3 个 server 节点（leader/follower 自动选举）+ 前端（nginx 负载均衡）+ Agent
+
+x-server-env: &server-env
+  TZ: Asia/Shanghai
+  MSMP_DB_DRIVER: postgres
+  MSMP_DB_DSN: host=postgres user=msmp password=${POSTGRES_PASSWORD:-msmp123} dbname=msmp port=5432 sslmode=disable TimeZone=Asia/Shanghai
+  MSMP_SERVER_NODES: http://server-node-1:8080,http://server-node-2:8080,http://server-node-3:8080
+  MSMP_JWT_SECRET: ${MSMP_JWT_SECRET:-change-me-in-production}
+  MSMP_SECURITY_CREDENTIALKEY: ${MSMP_CREDENTIAL_KEY:-vROhbPC9E2ONzrmN/HgktxJaAw2MVtBq7rw4jEORxKw=}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: msmp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: msmp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-msmp123}
+      POSTGRES_DB: msmp
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U msmp"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  server-node-1:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: msmp-node-1
+    restart: unless-stopped
+    environment:
+      <<: *server-env
+      MSMP_SERVER_NODE_ID: node-1
+      MSMP_SERVER_ADVERTISE_ADDR: http://server-node-1:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  server-node-2:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: msmp-node-2
+    restart: unless-stopped
+    environment:
+      <<: *server-env
+      MSMP_SERVER_NODE_ID: node-2
+      MSMP_SERVER_ADVERTISE_ADDR: http://server-node-2:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  server-node-3:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: msmp-node-3
+    restart: unless-stopped
+    environment:
+      <<: *server-env
+      MSMP_SERVER_NODE_ID: node-3
+      MSMP_SERVER_ADVERTISE_ADDR: http://server-node-3:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.cluster
+    container_name: msmp-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server-node-1
+      - server-node-2
+      - server-node-3
+
+  agent:
+    build:
+      context: .
+      dockerfile: agent/Dockerfile
+    container_name: msmp-agent
+    restart: unless-stopped
+    environment:
+      MSMP_SERVER_URLS: http://server-node-1:8080,http://server-node-2:8080,http://server-node-3:8080
+      AGENT_UUID: docker-agent
+    depends_on:
+      - server-node-1
+
+volumes:
+  pg-data:
