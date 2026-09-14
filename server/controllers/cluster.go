@@ -21,6 +21,15 @@ func remoteAddrHost(remoteAddr string) string {
 	return remoteAddr
 }
 
+// normalizeNodeAddr 规范化节点地址：trim 空格、补 http 前缀、去尾斜杠。
+func normalizeNodeAddr(raw string) string {
+	addr := strings.TrimSpace(raw)
+	if !strings.HasPrefix(addr, "http") {
+		addr = "http://" + addr
+	}
+	return strings.TrimRight(addr, "/")
+}
+
 // LoadClusterNodes 从数据库加载启用的集群节点到集群状态。
 func LoadClusterNodes(state *clustering.ClusterState) {
 	var nodes []models.ClusterNode
@@ -71,10 +80,7 @@ func ClusterNodesHandler(w http.ResponseWriter, r *http.Request, state *clusteri
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name and address are required"})
 			return
 		}
-		addr := strings.TrimSpace(req.Address)
-		if !strings.HasPrefix(addr, "http") {
-			addr = "http://" + addr
-		}
+		addr := normalizeNodeAddr(req.Address)
 		var exists models.ClusterNode
 		if err := db.DB.Where("address = ?", addr).First(&exists).Error; err == nil {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "node address already exists"})
@@ -125,11 +131,7 @@ func ClusterNodeDetailHandler(w http.ResponseWriter, r *http.Request, state *clu
 			updates["name"] = req.Name
 		}
 		if req.Address != "" {
-			addr := strings.TrimSpace(req.Address)
-			if !strings.HasPrefix(addr, "http") {
-				addr = "http://" + addr
-			}
-			updates["address"] = strings.TrimRight(addr, "/")
+			updates["address"] = normalizeNodeAddr(req.Address)
 		}
 		if req.Enabled != nil {
 			updates["enabled"] = *req.Enabled

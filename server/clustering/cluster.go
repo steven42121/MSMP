@@ -64,18 +64,23 @@ func NewClusterState(cfg *config.Config) *ClusterState {
 
 func contains(list []string, target string) bool {
 	for _, s := range list {
-		if strings.TrimRight(s, "/") == strings.TrimRight(target, "/") {
+		if trimSlash(s) == trimSlash(target) {
 			return true
 		}
 	}
 	return false
 }
 
+// trimSlash 去除地址尾部斜杠。
+func trimSlash(s string) string {
+	return strings.TrimRight(s, "/")
+}
+
 // RegisterNode 收到心跳时更新节点状态。
 func (c *ClusterState) RegisterNode(address, nodeID string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	addr := strings.TrimRight(address, "/")
+	addr := trimSlash(address)
 	now := time.Now()
 	if existing, ok := c.nodes[addr]; ok {
 		existing.Alive = true
@@ -114,10 +119,10 @@ func (c *ClusterState) KnownNodes() []string {
 func (c *ClusterState) NodeAlive(address string) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	if strings.TrimRight(address, "/") == strings.TrimRight(c.myAddress, "/") {
+	if trimSlash(address) == trimSlash(c.myAddress) {
 		return true
 	}
-	n, ok := c.nodes[strings.TrimRight(address, "/")]
+	n, ok := c.nodes[trimSlash(address)]
 	return ok && n.Alive
 }
 
@@ -203,10 +208,10 @@ func (c *ClusterState) PublishInfo(w http.ResponseWriter) {
 	nodeList := make([]map[string]interface{}, 0, len(c.nodes)+1)
 	for addr, node := range c.nodes {
 		nodeList = append(nodeList, map[string]interface{}{
-			"address":     addr,
-			"node_id":     node.NodeID,
-			"alive":       node.Alive,
-			"last_ping":   node.LastPingAt.Format(time.RFC3339),
+			"address":   addr,
+			"node_id":   node.NodeID,
+			"alive":     node.Alive,
+			"last_ping": node.LastPingAt.Format(time.RFC3339),
 		})
 	}
 	// 确保本机在列表中
@@ -257,7 +262,7 @@ func (c *ClusterState) sendHeartbeats() {
 	c.mu.RLock()
 	targets := make([]string, 0, len(c.knownNodes))
 	for _, n := range c.knownNodes {
-		if strings.TrimRight(n, "/") == strings.TrimRight(c.myAddress, "/") {
+		if trimSlash(n) == trimSlash(c.myAddress) {
 			continue
 		}
 		targets = append(targets, n)
@@ -269,7 +274,7 @@ func (c *ClusterState) sendHeartbeats() {
 }
 
 func (c *ClusterState) pingNode(target string) {
-	url := strings.TrimRight(target, "/") + "/api/cluster/ping"
+	url := trimSlash(target) + "/api/cluster/ping"
 	payload, _ := json.Marshal(map[string]string{
 		"node_id": c.myNodeID,
 		"address": c.myAddress,
