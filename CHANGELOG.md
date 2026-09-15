@@ -20,6 +20,11 @@
 - 修复节点互发现：心跳基于已知节点列表发起（此前仅依赖运行时节点，节点无法互相发现）
 - 新增集群节点 API：`GET/POST /api/cluster/nodes`、`PUT/DELETE /api/cluster/nodes/{id}`
 
+### Release 产物扩展
+- Agent 新增 macOS 产物：darwin amd64（Intel）/ arm64（Apple Silicon）
+- Agent 新增 ESXi 产物（x86_64 静态二进制，复用 linux-amd64）+ 安装说明
+- Agent 新增 Proxmox VE 产物（Debian，复用 linux-amd64）+ systemd 安装说明
+
 ### 插件框架
 - 通用插件框架：统一 PluginMeta / 分类型接口 / 注册中心，采集（9 种）、探测（3 种）纳管为插件元数据
 - 通知渠道插件：Webhook / 钉钉 / 飞书 / 企业微信 / 邮件 SMTP / Slack，可配置启用与测试

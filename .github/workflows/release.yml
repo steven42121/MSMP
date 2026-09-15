@@ -61,6 +61,14 @@ jobs:
         working-directory: agent
         run: GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o msmp-agent-windows-amd64.exe .
 
+      - name: Build agent darwin-amd64
+        working-directory: agent
+        run: GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -o msmp-agent-darwin-amd64 .
+
+      - name: Build agent darwin-arm64
+        working-directory: agent
+        run: GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -o msmp-agent-darwin-arm64 .
+
       # ── Frontend ────────────────────────────────────────────
       - name: Install frontend deps
         working-directory: frontend
@@ -118,6 +126,33 @@ jobs:
           cp scripts/WINDOWS-AGENT.md           ${pkg}/INSTALL.md
           zip -qr ${pkg}.zip ${pkg}
 
+      - name: Package agent macos
+        run: |
+          V=${{ steps.version.outputs.VERSION }}
+          for arch in amd64 arm64; do
+            pkg=msmp-agent-${V}-darwin-${arch}
+            mkdir -p ${pkg}
+            cp agent/msmp-agent-darwin-${arch} ${pkg}/
+            cp scripts/MACOS-AGENT.md           ${pkg}/INSTALL.md
+            tar -czf ${pkg}.tar.gz ${pkg}
+          done
+
+      - name: Package agent esxi-pve
+        run: |
+          V=${{ steps.version.outputs.VERSION }}
+          # ESXi：x86_64 Linux-like，复用 linux-amd64 静态二进制
+          pkg=msmp-agent-${V}-esxi-amd64
+          mkdir -p ${pkg}
+          cp agent/msmp-agent-linux-amd64 ${pkg}/msmp-agent-esxi-amd64
+          cp scripts/ESXI-AGENT.md           ${pkg}/INSTALL.md
+          tar -czf ${pkg}.tar.gz ${pkg}
+          # PVE：Debian，复用 linux-amd64
+          pkg=msmp-agent-${V}-pve-amd64
+          mkdir -p ${pkg}
+          cp agent/msmp-agent-linux-amd64 ${pkg}/msmp-agent-pve-amd64
+          cp scripts/PVE-AGENT.md           ${pkg}/INSTALL.md
+          tar -czf ${pkg}.tar.gz ${pkg}
+
       # ── GitHub Release ─────────────────────────────────────
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -130,3 +165,6 @@ jobs:
             msmp-server-*-windows-amd64.zip
             msmp-agent-*-linux-*.tar.gz
             msmp-agent-*-windows-amd64.zip
+            msmp-agent-*-darwin-*.tar.gz
+            msmp-agent-*-esxi-amd64.tar.gz
+            msmp-agent-*-pve-amd64.tar.gz

@@ -17,9 +17,11 @@ server:
 
 agent:
 	mkdir -p dist
-	cd agent && GOOS=linux GOARCH=amd64 go build -o ../dist/msmp-agent-linux-amd64 .
-	cd agent && GOOS=linux GOARCH=arm64 go build -o ../dist/msmp-agent-linux-arm64 .
-	cd agent && GOOS=windows GOARCH=amd64 go build -o ../dist/msmp-agent-windows-amd64.exe .
+	cd agent && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ../dist/msmp-agent-linux-amd64 .
+	cd agent && GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o ../dist/msmp-agent-linux-arm64 .
+	cd agent && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o ../dist/msmp-agent-windows-amd64.exe .
+	cd agent && GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -o ../dist/msmp-agent-darwin-amd64 .
+	cd agent && GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -o ../dist/msmp-agent-darwin-arm64 .
 
 frontend:
 	cd frontend && npm install && npm run build
