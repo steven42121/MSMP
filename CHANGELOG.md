@@ -4,7 +4,7 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [v0.1.5] - 2026-09-15
 
 ### 网络安全管理模块
 - 端口暴露风险审计：基于端口清单 + 公网 IP，内置 18 类高风险端口表（SSH/数据库/缓存/Docker API 等），生成风险等级与加固建议
