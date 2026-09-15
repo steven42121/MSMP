@@ -19,6 +19,7 @@ import {
   ClockCircleOutlined,
   AppstoreOutlined,
   ClusterOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
@@ -61,6 +62,7 @@ export default function MainLayout() {
     { key: '/cron-jobs', icon: <ClockCircleOutlined />, label: '定时任务' },
     { key: '/plugins', icon: <AppstoreOutlined />, label: '插件' },
     { key: '/cluster-nodes', icon: <ClusterOutlined />, label: '集群节点' },
+    { key: '/security', icon: <SafetyOutlined />, label: '网络安全' },
     { key: '/tenants', icon: <TeamOutlined />, label: '租户' },
     { key: '/users', icon: <UserOutlined />, label: '用户' },
     { key: '/audit-logs', icon: <SettingOutlined />, label: '审计日志' },

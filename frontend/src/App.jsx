@@ -23,6 +23,7 @@ import CronJobs from './pages/CronJobs';
 import AssetInventory from './pages/AssetInventory';
 import Plugins from './pages/Plugins';
 import NodeManagement from './pages/NodeManagement';
+import Security from './pages/Security';
 import { useAuthStore } from './store/auth';
 import { useGlobalMouseTracker } from './hooks/useGlobalMouseTracker';
 
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="cron-jobs" element={<CronJobs />} />
           <Route path="plugins" element={<Plugins />} />
           <Route path="cluster-nodes" element={<NodeManagement />} />
+          <Route path="security" element={<Security />} />
           <Route path="hosts/:uuid/assets" element={<AssetInventory />} />
         </Route>
         <Route path="*" element={<NotFound />} />

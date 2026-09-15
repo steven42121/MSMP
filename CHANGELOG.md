@@ -6,13 +6,12 @@
 
 ## [Unreleased]
 
-### 多节点一键部署
-- 数据库统一 PostgreSQL：`db.driver` 默认即为 `postgres`，生产部署不再纠结 SQLite 切换
-- 新增 `docker-compose.cluster.yml`：一条命令拉起 PG + 3 个 server 节点 + 前端（nginx 负载均衡）+ Agent
-- 单机 `docker-compose.yml` 增加 PostgreSQL 服务，前端 nginx 反向代理不变
-- 新增 `server.advertise_addr` 配置：节点集群内通告地址与监听地址分离，修复多节点下 leader 选举（此前各节点 myAddress 均为 `:8080` 导致全员误判为 leader）
-- 集群选举补充单元测试（3 节点唯一 leader 判定）
-- 新增 `.env.example` 与 `.monkeycode/docs/CLUSTER_DEPLOY.md` 部署文档
+### 网络安全管理模块
+- 端口暴露风险审计：基于端口清单 + 公网 IP，内置 18 类高风险端口表（SSH/数据库/缓存/Docker API 等），生成风险等级与加固建议
+- 安全基线检查：通过 SSH 渠道执行（SSH root/密码登录、防火墙状态、SELinux、空密码账户），返回评分与加固建议
+- 防火墙管理：通过 SSH 识别 firewalld/ufw，查看规则、放行/封禁端口
+- 前端「网络安全」页面（端口风险 / 基线检查 / 防火墙管理三 Tab）
+- 修复 PG 迁移遗留的主键 sequence 不同步问题
 
 ### 集群节点管理（前端）
 - 新增前端「集群节点」页面：查看节点列表与在线状态、添加/编辑/删除/启停节点

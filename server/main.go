@@ -167,6 +167,11 @@ func main() {
 		controllers.PluginInstanceDetailHandler(w, r)
 	}))
 
+	// 网络安全管理
+	mux.HandleFunc("/api/security/risks", controllers.RequireRole([]string{"admin"}, controllers.SecurityRisksHandler))
+	mux.HandleFunc("/api/security/baseline/", controllers.RequireRole([]string{"admin"}, controllers.SecurityBaselineHandler))
+	mux.HandleFunc("/api/security/firewall/", controllers.RequireRole([]string{"admin"}, controllers.SecurityFirewallHandler))
+
 	// 租户和用户管理
 	mux.HandleFunc("/api/tenants", controllers.Audit("manage", "tenant", controllers.RequireRole([]string{"admin"}, controllers.TenantsHandler)))
 	mux.HandleFunc("/api/users", controllers.UsersHandler)
