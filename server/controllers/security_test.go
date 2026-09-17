@@ -18,6 +18,23 @@ func TestIsOpenAddr(t *testing.T) {
 	}
 }
 
+func TestIsLoopbackAddr(t *testing.T) {
+	cases := map[string]bool{
+		"127.0.0.1": true,
+		"127.0.0.2": true,
+		"::1":       true,
+		"localhost": true,
+		"0.0.0.0":   false,
+		"10.0.0.1":  false,
+		"::":        false,
+	}
+	for in, want := range cases {
+		if got := isLoopbackAddr(in); got != want {
+			t.Errorf("isLoopbackAddr(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
+
 func TestRiskPortTable(t *testing.T) {
 	// 至少覆盖常见危险端口
 	expected := []int{22, 3306, 5432, 6379, 27017, 9200, 2375, 3389}

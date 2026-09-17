@@ -78,6 +78,9 @@ func AuditPortRisks(tenantID uint) []PortRisk {
 		if !ok {
 			continue
 		}
+		if isLoopbackAddr(p.LocalAddr) {
+			continue // 监听本地回环，未对外暴露
+		}
 		h := hostMap[p.HostID]
 		key := strconv.Itoa(int(p.HostID)) + ":" + strconv.Itoa(p.LocalPort) + ":" + strings.ToLower(p.Type)
 		if seen[key] {
@@ -86,15 +89,21 @@ func AuditPortRisks(tenantID uint) []PortRisk {
 		seen[key] = true
 
 		level := def.Level
-		reason := "监听服务命中高风险端口表"
-		if h.PublicIP != "" {
+		reason := "命中高风险端口表"
+		switch {
+		case isOpenAddr(p.LocalAddr) && h.PublicIP != "":
 			level = "critical"
-			reason = "主机具有公网 IP（" + h.PublicIP + "），高风险端口对外暴露"
-		} else if isOpenAddr(p.LocalAddr) {
+			reason = "主机有公网 IP（" + h.PublicIP + "），端口监听对外地址，存在公网暴露风险"
+		case isOpenAddr(p.LocalAddr):
 			if level != "critical" {
 				level = "warning"
 			}
-			reason = "监听 0.0.0.0/::（对外地址），" + reason
+			reason = "端口监听对外地址（0.0.0.0/::）"
+		case h.PublicIP != "":
+			if level != "critical" {
+				level = "warning"
+			}
+			reason = "主机有公网 IP，端口可能对外可达"
 		}
 
 		risks = append(risks, PortRisk{
@@ -110,6 +119,11 @@ func AuditPortRisks(tenantID uint) []PortRisk {
 		})
 	}
 	return risks
+}
+
+func isLoopbackAddr(addr string) bool {
+	a := strings.TrimSpace(addr)
+	return a == "127.0.0.1" || a == "::1" || a == "localhost" || strings.HasPrefix(a, "127.")
 }
 
 func isOpenAddr(addr string) bool {

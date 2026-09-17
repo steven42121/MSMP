@@ -388,7 +388,7 @@ func AgentAssetReportHandler(w http.ResponseWriter, r *http.Request) {
 			FirstOrCreate(&models.HostProcess{HostID: host.ID, PID: proc.PID})
 	}
 
-	// 存储端口清单
+	// 存储端口清单（按 host+addr+port+type 去重 upsert）
 	for _, raw := range info.NetworkConns {
 		var conn struct {
 			Family    string `json:"family"`
@@ -401,17 +401,16 @@ func AgentAssetReportHandler(w http.ResponseWriter, r *http.Request) {
 		if err := json.Unmarshal(raw, &conn); err != nil {
 			continue
 		}
-		db.DB.Create(&models.HostPort{
-			TenantID:    host.TenantID,
-			HostID:      host.ID,
-			Family:      conn.Family,
-			Type:        conn.Type,
-			LocalAddr:   conn.LocalAddr,
-			LocalPort:   conn.LocalPort,
-			State:       conn.State,
-			PID:         conn.PID,
-			CollectedAt: now,
-		})
+		db.DB.Where("host_id = ? AND local_addr = ? AND local_port = ? AND type = ?",
+			host.ID, conn.LocalAddr, conn.LocalPort, conn.Type).
+			Assign(models.HostPort{
+				TenantID:    host.TenantID,
+				Family:      conn.Family,
+				State:       conn.State,
+				PID:         conn.PID,
+				CollectedAt: now,
+			}).
+			FirstOrCreate(&models.HostPort{})
 	}
 
 	// 存储软件包清单（按 name+version 去重）
