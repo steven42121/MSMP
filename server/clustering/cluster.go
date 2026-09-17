@@ -139,20 +139,18 @@ func (c *ClusterState) DeregisterDeadNodes() {
 	}
 }
 
-// GetHealthyNodes 返回所有存活节点地址列表（含本机）。
-func (c *ClusterState) GetHealthyNodes() []string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	var result []string
+// getHealthyNodes 返回存活节点地址列表（含本机），调用方需持锁。
+func (c *ClusterState) getHealthyNodes() []string {
+	healthy := make([]string, 0, len(c.nodes)+1)
 	for addr, node := range c.nodes {
 		if node.Alive {
-			result = append(result, addr)
+			healthy = append(healthy, addr)
 		}
 	}
-	if !contains(result, c.myAddress) {
-		result = append(result, c.myAddress)
+	if !contains(healthy, c.myAddress) {
+		healthy = append(healthy, c.myAddress)
 	}
-	return result
+	return healthy
 }
 
 // IsLeader 判断本机是否为 leader。
@@ -168,15 +166,7 @@ func (c *ClusterState) IsLeader() bool {
 }
 
 func (c *ClusterState) getSortedHealthyNodes() []string {
-	healthy := make([]string, 0, len(c.nodes)+1)
-	for addr, node := range c.nodes {
-		if node.Alive {
-			healthy = append(healthy, addr)
-		}
-	}
-	if !contains(healthy, c.myAddress) {
-		healthy = append(healthy, c.myAddress)
-	}
+	healthy := c.getHealthyNodes()
 	sort.Strings(healthy)
 	return healthy
 }

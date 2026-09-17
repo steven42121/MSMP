@@ -2,12 +2,19 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"MSMP/server/db"
 	"MSMP/server/models"
+)
+
+var (
+	errUnsupportedFirewall = errors.New("无法识别主机防火墙类型（需 firewalld 或 ufw）")
+	errInvalidAction       = errors.New("无效操作，仅支持 open/close")
 )
 
 // riskPortDef 高风险端口定义。
@@ -240,7 +247,7 @@ func evaluateBaseline(section, detail string) BaselineItem {
 		} else if detail == "" {
 			base.Status, base.Suggestion = "pass", ""
 		} else {
-			base.Status, base.Suggestion = "fail", "存在空密码账户：" + strings.Fields(detail)[0]
+			base.Status, base.Suggestion = "fail", "存在空密码账户："+strings.Fields(detail)[0]
 		}
 	}
 	return base
@@ -265,95 +272,49 @@ func sectionName(section string) string {
 	}
 }
 
-// detectFirewall 检测主机防火墙类型。
-func detectFirewall(tenantID, hostID uint) (string, error) {
-	out, err := runHostCommand(tenantID, hostID,
-		`command -v firewall-cmd >/dev/null 2>&1 && echo firewalld; command -v ufw >/dev/null 2>&1 && echo ufw`)
-	if err != nil {
-		return "", err
-	}
-	out = strings.TrimSpace(out)
-	if strings.Contains(out, "firewalld") {
-		return "firewalld", nil
-	}
-	if strings.Contains(out, "ufw") {
-		return "ufw", nil
-	}
-	return "", nil
-}
-
-// GetFirewallRules 返回主机防火墙规则文本。
+// GetFirewallRules 返回主机防火墙规则文本（一次 SSH 连接完成类型识别 + 规则读取）。
 func GetFirewallRules(tenantID, hostID uint) (string, error) {
-	fw, err := detectFirewall(tenantID, hostID)
+	const script = `if command -v firewall-cmd >/dev/null 2>&1; then echo "TYPE=firewalld"; firewall-cmd --list-all 2>/dev/null; elif command -v ufw >/dev/null 2>&1; then echo "TYPE=ufw"; ufw status verbose 2>/dev/null; else echo "TYPE=none"; fi`
+	out, err := runHostCommand(tenantID, hostID, script)
 	if err != nil {
 		return "", err
 	}
-	cmd := ""
-	switch fw {
-	case "firewalld":
-		cmd = "firewall-cmd --list-all 2>/dev/null"
-	case "ufw":
-		cmd = "ufw status verbose 2>/dev/null"
-	default:
-		return "", errUnsupportedFirewall()
+	if strings.Contains(out, "TYPE=none") {
+		return "", errUnsupportedFirewall
 	}
-	out, err := runHostCommand(tenantID, hostID, cmd)
-	if err != nil {
-		return "", err
-	}
-	return fw + "\n" + out, nil
+	return out, nil
 }
 
-// ManageFirewall 开关端口。
+// ManageFirewall 开关端口（一次 SSH 连接完成类型识别 + 操作）。
 func ManageFirewall(tenantID, hostID uint, action string, port int, proto string) (string, error) {
-	fw, err := detectFirewall(tenantID, hostID)
-	if err != nil {
-		return "", err
-	}
 	if proto == "" {
 		proto = "tcp"
 	}
-	svc := strconv.Itoa(port) + "/" + proto
-	var cmd string
-	switch fw {
-	case "firewalld":
-		switch action {
-		case "open":
-			cmd = "firewall-cmd --add-port=" + svc + " --permanent && firewall-cmd --reload"
-		case "close":
-			cmd = "firewall-cmd --remove-port=" + svc + " --permanent && firewall-cmd --reload"
-		default:
-			return "", errInvalidAction()
-		}
-	case "ufw":
-		switch action {
-		case "open":
-			cmd = "ufw allow " + svc
-		case "close":
-			cmd = "ufw delete allow " + svc
-		default:
-			return "", errInvalidAction()
-		}
-	default:
-		return "", errUnsupportedFirewall()
+	if proto != "tcp" && proto != "udp" {
+		return "", fmt.Errorf("无效协议 %q，仅支持 tcp/udp", proto)
 	}
-	out, err := runHostCommand(tenantID, hostID, cmd)
+	svc := strconv.Itoa(port) + "/" + proto
+	var fwCmd, ufwCmd string
+	switch action {
+	case "open":
+		fwCmd = "firewall-cmd --add-port=" + svc + " --permanent && firewall-cmd --reload"
+		ufwCmd = "ufw allow " + svc
+	case "close":
+		fwCmd = "firewall-cmd --remove-port=" + svc + " --permanent && firewall-cmd --reload"
+		ufwCmd = "ufw delete allow " + svc
+	default:
+		return "", errInvalidAction
+	}
+	script := fmt.Sprintf(`if command -v firewall-cmd >/dev/null 2>&1; then echo "TYPE=firewalld"; %s; elif command -v ufw >/dev/null 2>&1; then echo "TYPE=ufw"; %s; else echo "TYPE=none"; fi`, fwCmd, ufwCmd)
+	out, err := runHostCommand(tenantID, hostID, script)
 	if err != nil {
 		return "", err
 	}
-	return fw + " " + action + " " + svc + "\n" + out, nil
+	if strings.Contains(out, "TYPE=none") {
+		return "", errUnsupportedFirewall
+	}
+	return out, nil
 }
-
-func errUnsupportedFirewall() error {
-	return &securityErr{msg: "无法识别主机防火墙类型（需 firewalld 或 ufw）"}
-}
-func errInvalidAction() error {
-	return &securityErr{msg: "无效操作，仅支持 open/close"}
-}
-
-type securityErr struct{ msg string }
-
-func (e *securityErr) Error() string { return e.msg }
 
 // SecurityRisksHandler GET /api/security/risks
 func SecurityRisksHandler(w http.ResponseWriter, r *http.Request) {
