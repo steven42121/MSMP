@@ -48,26 +48,10 @@ func HostsHandler(w http.ResponseWriter, r *http.Request) {
 				"%"+keyword+"%", "%"+keyword+"%")
 		}
 
-		// 分页
-		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-		pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-		if page <= 0 {
-			page = 1
-		}
-		if pageSize <= 0 || pageSize > 100 {
-			pageSize = 20
-		}
-
-		var total int64
-		query.Model(&models.Host{}).Count(&total)
-		query.Order("last_heartbeat DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&hosts)
-
-		writeJSON(w, http.StatusOK, map[string]interface{}{
-			"data":      hosts,
-			"total":     total,
-			"page":      page,
-			"page_size": pageSize,
-		})
+		p := newPagination(r)
+		p.count(query, &models.Host{})
+		p.scope(query.Order("last_heartbeat DESC")).Find(&hosts)
+		p.write(w, hosts)
 
 	case http.MethodPost:
 		// 手动添加主机

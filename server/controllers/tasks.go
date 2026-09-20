@@ -42,22 +42,11 @@ func TasksHandler(w http.ResponseWriter, r *http.Request) {
 			query = query.Where("type = ?", typ)
 		}
 
-		var total int64
-		query.Model(&models.Task{}).Count(&total)
+		p := newPagination(r)
+		p.count(query, &models.Task{})
 
-		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-		pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-		if page <= 0 {
-			page = 1
-		}
-		if pageSize <= 0 || pageSize > 100 {
-			pageSize = 20
-		}
-
-		query.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&tasks)
-		writeJSON(w, http.StatusOK, map[string]interface{}{
-			"data": tasks, "total": total, "page": page, "page_size": pageSize,
-		})
+		p.scope(query.Order("created_at DESC")).Find(&tasks)
+		p.write(w, tasks)
 
 	case http.MethodPost:
 		var req TaskRequest

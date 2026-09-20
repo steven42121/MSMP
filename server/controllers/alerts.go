@@ -35,23 +35,11 @@ func AlertsHandler(w http.ResponseWriter, r *http.Request) {
 		query = query.Where("acknowledged = ?", ack == "true")
 	}
 
-	var total int64
-	query.Model(&models.HostEvent{}).Count(&total)
+	p := newPagination(r)
+	p.count(query, &models.HostEvent{})
 
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	if page <= 0 {
-		page = 1
-	}
-	if pageSize <= 0 || pageSize > 100 {
-		pageSize = 20
-	}
-
-	query.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&events)
-
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"data": events, "total": total, "page": page, "page_size": pageSize,
-	})
+	p.scope(query.Order("created_at DESC")).Find(&events)
+	p.write(w, events)
 }
 
 // evaluateMetricAlerts 根据告警规则生成告警事件（30 分钟内同消息不重复）

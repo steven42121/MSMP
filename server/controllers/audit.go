@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"net/http"
-	"strconv"
 
 	"MSMP/server/db"
 	"MSMP/server/models"
@@ -21,24 +20,12 @@ func AuditLogsHandler(w http.ResponseWriter, r *http.Request) {
 		query = query.Where("action = ?", action)
 	}
 
-	var total int64
-	query.Model(&models.AuditLog{}).Count(&total)
-
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	if page <= 0 {
-		page = 1
-	}
-	if pageSize <= 0 || pageSize > 100 {
-		pageSize = 20
-	}
+	p := newPagination(r)
+	p.count(query, &models.AuditLog{})
 
 	var logs []models.AuditLog
-	query.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&logs)
-
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"data": logs, "total": total, "page": page, "page_size": pageSize,
-	})
+	p.scope(query.Order("created_at DESC")).Find(&logs)
+	p.write(w, logs)
 }
 
 // auditLog 记录操作审计日志。
