@@ -4,6 +4,17 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### 生产就绪加固
+- 中间件链：RecoveryMiddleware（panic 捕获返回 500，不崩溃）、SecurityHeadersMiddleware（X-Content-Type-Options / X-Frame-Options / HSTS / Referrer-Policy / Permissions-Policy）、RequestBodyLimitMiddleware（POST/PUT/PATCH 上限 10MB，可配）
+- CORS 生产化：`allowed_origins` 白名单模式（`server.mode: release` 时启用），开发模式仍通配
+- DB 连接池配置：`max_open_conns=25`、`max_idle_conns=10`、`conn_max_lifetime=900s`、`conn_max_idle_time=5min`，可通过 config.yaml 或 `MSMP_DB_*` 环境变量调整
+- Readiness 探针：`GET /api/ready`（DB 可用返回 200，否则 503，适用于 K8s readinessProbe）
+- 结构化日志：`server.mode: release` 时切换为 slog JSON Handler
+- 后端 Dockerfile：多阶段构建（golang:1.26-alpine → alpine:3.20），含 HEALTHCHECK
+- `.env.example`：完整生产环境变量模板（MSMP_ 前缀覆盖机制）
+
 ## [v0.1.5] - 2026-09-15
 
 ### 网络安全管理模块

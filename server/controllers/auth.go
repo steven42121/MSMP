@@ -179,3 +179,13 @@ func HealthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, resp)
 }
+
+// ReadinessHandler Kubernetes readiness probe：DB 可用才接收流量。
+func ReadinessHandler(w http.ResponseWriter, r *http.Request) {
+	sqlDB, err := db.DB.DB()
+	if err != nil || sqlDB.Ping() != nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "not ready", "reason": "database unreachable"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ready"})
+}

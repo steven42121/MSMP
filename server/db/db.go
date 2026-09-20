@@ -2,6 +2,8 @@ package db
 
 import (
 	"fmt"
+	"log/slog"
+	"time"
 
 	"MSMP/server/config"
 	"MSMP/server/models"
@@ -32,6 +34,27 @@ func Init(cfg *config.Config) error {
 		return err
 	}
 	DB = gdb
+
+	// 配置连接池
+	if sqlDB, err := gdb.DB(); err == nil {
+		if cfg.DB.MaxOpenConns > 0 {
+			sqlDB.SetMaxOpenConns(cfg.DB.MaxOpenConns)
+		} else {
+			sqlDB.SetMaxOpenConns(25)
+		}
+		if cfg.DB.MaxIdleConns > 0 {
+			sqlDB.SetMaxIdleConns(cfg.DB.MaxIdleConns)
+		} else {
+			sqlDB.SetMaxIdleConns(10)
+		}
+		if cfg.DB.ConnMaxLifetime > 0 {
+			sqlDB.SetConnMaxLifetime(time.Duration(cfg.DB.ConnMaxLifetime) * time.Second)
+		} else {
+			sqlDB.SetConnMaxLifetime(15 * time.Minute)
+		}
+		sqlDB.SetConnMaxIdleTime(5 * time.Minute)
+		slog.Info("DB pool configured", "max_open", sqlDB.Stats().MaxOpenConnections)
+	}
 
 	return gdb.AutoMigrate(
 		&models.Tenant{},

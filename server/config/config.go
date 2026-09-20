@@ -37,17 +37,21 @@ type NotificationConfig struct {
 }
 
 type ServerConfig struct {
-	Addr          string   `mapstructure:"addr"`
-	AdvertiseAddr string   `mapstructure:"advertise_addr"` // 集群内通告地址（节点间心跳/leader 选举用），空则用 addr
-	Mode          string   `mapstructure:"mode"`
-	Nodes         []string `mapstructure:"nodes"`
-	NodeID        string   `mapstructure:"node_id"`
+	Addr              string   `mapstructure:"addr"`
+	AdvertiseAddr     string   `mapstructure:"advertise_addr"`
+	Mode              string   `mapstructure:"mode"`
+	Nodes             []string `mapstructure:"nodes"`
+	NodeID            string   `mapstructure:"node_id"`
+	MaxRequestBodyBytes int64  `mapstructure:"max_request_body_bytes"`
 }
 
 type DBConfig struct {
-	Driver     string
-	DSN        string
-	SqlitePath string
+	Driver          string
+	DSN             string
+	SqlitePath      string
+	MaxOpenConns    int `mapstructure:"max_open_conns"`
+	MaxIdleConns    int `mapstructure:"max_idle_conns"`
+	ConnMaxLifetime int `mapstructure:"conn_max_lifetime"` // 秒
 }
 
 type JWTConfig struct {
@@ -80,10 +84,14 @@ func Load() (*Config, error) {
 	v.SetDefault("server.mode", "debug")
 	v.SetDefault("server.nodes", []string{})
 	v.SetDefault("server.node_id", "")
+	v.SetDefault("server.max_request_body_bytes", 10<<20) // 10MB
 	// 默认统一使用 PostgreSQL（多节点共享库）；sqlite 仅用于本地快速验证。
 	v.SetDefault("db.driver", "postgres")
 	v.SetDefault("db.sqlitepath", "msmp.db")
 	v.SetDefault("db.dsn", "host=127.0.0.1 user=msmp password=msmp123 dbname=msmp port=5432 sslmode=disable TimeZone=Asia/Shanghai")
+	v.SetDefault("db.max_open_conns", 25)
+	v.SetDefault("db.max_idle_conns", 10)
+	v.SetDefault("db.conn_max_lifetime", 900) // 15 分钟
 	v.SetDefault("jwt.secret", "change-me-in-production")
 	v.SetDefault("jwt.expirehour", 24)
 	v.SetDefault("agent.transport", "http")

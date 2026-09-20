@@ -3,8 +3,9 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -24,10 +25,29 @@ const (
 	ContextUsername contextKey = "username"
 )
 
-// CORSMiddleware 处理跨域请求
+// CORSMiddleware 处理跨域请求。生产环境使用 AllowedOrigins 白名单，开发模式允许所有来源。
 func CORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := r.Header.Get("Origin")
+		allowed := config.C != nil && len(config.C.Security.AllowedOrigins) > 0
+
+		if allowed {
+			found := false
+			for _, o := range config.C.Security.AllowedOrigins {
+				if o == origin {
+					found = true
+					break
+				}
+			}
+			if !found {
+				next.ServeHTTP(w, r)
+				return
+			}
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-Id")
 		w.Header().Set("Access-Control-Max-Age", "86400")
@@ -37,6 +57,48 @@ func CORSMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		next.ServeHTTP(w, r)
+	})
+}
+
+// RecoveryMiddleware 捕获 panic 并返回 500，防止服务崩溃。
+func RecoveryMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				slog.Error("panic recovered", "error", rec, "path", r.URL.Path, "stack", string(debug.Stack()))
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
+// SecurityHeadersMiddleware 添加安全响应头。
+func SecurityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		if r.TLS != nil {
+			w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// RequestBodyLimitMiddleware 限制请求体大小，防止 DoS 攻击。
+func RequestBodyLimitMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodPatch {
+			maxBytes := int64(10 << 20) // 默认 10MB
+			if config.C != nil && config.C.Server.MaxRequestBodyBytes > 0 {
+				maxBytes = config.C.Server.MaxRequestBodyBytes
+			}
+			r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+		}
 		next.ServeHTTP(w, r)
 	})
 }
@@ -58,6 +120,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		// 公开接口，无需认证
 		publicPaths := []string{
 			"/api/health",
+			"/api/ready",
 			"/api/auth/login",
 			"/api/auth/refresh",
 			"/api/agents/register", // 注册使用一次性 token，需单独验证
@@ -111,7 +174,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		})
 
 		if err != nil || !token.Valid {
-			log.Printf("JWT parse error: %v", err)
+			slog.Warn("JWT parse failed", "error", err)
 			http.Error(w, `{"error":"invalid token"}`, http.StatusUnauthorized)
 			return
 		}

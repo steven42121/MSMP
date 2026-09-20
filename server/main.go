@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -34,6 +35,11 @@ func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	// 配置结构化日志
+	if cfg.Server.Mode == "release" {
+		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 	}
 	log.Printf("Config loaded: server=%s, db_driver=%s", cfg.Server.Addr, cfg.DB.Driver)
 	controllers.SetBuildVersion(Version)
@@ -227,8 +233,9 @@ func main() {
 	// 系统设置
 	mux.HandleFunc("/api/settings", controllers.Audit("manage", "setting", controllers.RequireRole([]string{"admin"}, controllers.SettingsHandler)))
 
-	// 健康检查
+	// 健康检查与就绪探针
 	mux.HandleFunc("/api/health", controllers.HealthHandler)
+	mux.HandleFunc("/api/ready", controllers.ReadinessHandler)
 
 	// AI 能力接口
 	mux.HandleFunc("/api/llm/settings", controllers.RequireRole([]string{"admin"}, controllers.LLMSettingsHandler))
@@ -262,10 +269,13 @@ func main() {
 	// /metrics 端点：Prometheus 抓取服务器自监控指标（无需认证）
 	mux.Handle("/metrics", http.HandlerFunc(metrics.Handler))
 
-	// 应用中间件（JWT 认证 + 多租户）
+	// 应用中间件链：CORS → Panic Recovery → 请求计数 → 安全头 → Body 限制 → JWT 认证
 	handler := controllers.CORSMiddleware(
-		requestCounterMiddleware(controllers.AuthMiddleware(mux)),
-	)
+		controllers.RecoveryMiddleware(
+			requestCounterMiddleware(
+				controllers.SecurityHeadersMiddleware(
+					controllers.RequestBodyLimitMiddleware(
+						controllers.AuthMiddleware(mux))))))
 
 	// 定期清理过期的登录失败记录（每 5 分钟）
 	go func() {

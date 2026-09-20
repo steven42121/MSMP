@@ -231,11 +231,26 @@ POST /api/auth/refresh（需有效 Authorization）
 
 ---
 
-## 健康检查
+## 健康检查与就绪探针
 
 | Method | Path | 说明 |
 |--------|------|------|
-| GET | `/api/health` | 无需认证，返回 `{"status":"running","db":"ok"}` |
+| GET | `/api/health` | 无需认证，返回 `{"status":"running","db":"ok","version":"...","uptime_sec":123}` |
+| GET | `/api/ready` | 无需认证，K8s readiness 探针。DB 可用返回 `200 {"status":"ready"}`，否则 `503` |
+| GET | `/metrics` | Prometheus 自监控指标（无需认证） |
+
+---
+
+## 安全中间件
+
+生产环境（`server.mode: release`）自动启用：
+
+| 中间件 | 作用 |
+|--------|------|
+| CORS | `allowed_origins` 白名单模式；空时通配（开发模式） |
+| SecurityHeaders | `X-Content-Type-Options: nosniff`、`X-Frame-Options: DENY`、`X-XSS-Protection`、`Referrer-Policy`、TLS 时 `HSTS` |
+| RequestBodyLimit | POST/PUT/PATCH 请求体上限（默认 10MB，`server.max_request_body_bytes` 可调） |
+| Recovery | panic 捕获，返回 500 并记录堆栈，服务不崩溃 |
 
 ---
 
