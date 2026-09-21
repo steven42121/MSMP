@@ -49,6 +49,23 @@ export default function MainLayout() {
     }
   }, [dark]);
 
+  // 页面标题动态化：精确匹配菜单项；详情子路径按前缀匹配
+  useEffect(() => {
+    const exact = menuItems.find(m => m.key === location.pathname);
+    let label = exact?.label;
+    if (!label && location.pathname.startsWith('/hosts/')) {
+      label = location.pathname.endsWith('/assets') ? '资产清单' : '主机详情';
+    } else if (!label && location.pathname.startsWith('/tasks/')) {
+      label = '任务详情';
+    }
+    document.title = (label || 'MSMP') + ' - MSMP 运维管理平台';
+  }, [location.pathname]);
+
+
+
+
+
+
   const menuItems = [
     { key: '/dashboard', icon: <DashboardOutlined />, label: '仪表盘' },
     { key: '/hosts', icon: <DesktopOutlined />, label: '主机管理' },
@@ -84,6 +101,7 @@ export default function MainLayout() {
   };
 
   const currentLabel = menuItems.find(m => m.key === location.pathname)?.label || 'MSMP';
+
 
   const navContent = (
     <>

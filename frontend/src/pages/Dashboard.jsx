@@ -12,6 +12,7 @@ import ReactECharts from 'echarts-for-react';
 import dayjs from 'dayjs';
 import client from '../api/client';
 import { useThemeStore } from '../store/theme';
+import { exportCSV } from '../utils/format';
 
 const { Text } = Typography;
 
@@ -51,19 +52,6 @@ const EXPORT_COLUMNS = [
 ];
 
 // ── 工具函数 ────────────────────────────────────────────────────────────────
-function exportCSV(rows, columns, filename) {
-  const header = columns.map((c) => c.title).join(',');
-  const lines = rows.map((r) =>
-    columns.map((c) => `"${String(r[c.dataIndex] ?? '').replace(/"/g, '""')}"`).join(','));
-  const blob = new Blob([[header, ...lines].join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 // 环形图统一配置：中心总数 + 外部标签（名称 + 百分比），适配明暗主题
 function buildPieOption(title, data, dark) {
   const total = data.reduce((s, d) => s + (d.value || 0), 0);

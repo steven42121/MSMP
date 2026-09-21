@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Table, Card, Tag, Space, Select, Button, Input, Popconfirm, InputNumber, message, Typography, Modal, Row, Col, Statistic } from 'antd';
+import { Table, Card, Tag, Space, Select, Button, Input, InputNumber, Popconfirm, message, Typography, Modal, Row, Col, Statistic } from 'antd';
 import { ReloadOutlined, AlertOutlined, SearchOutlined, BellOutlined, PauseOutlined, RobotOutlined, FireOutlined, WarningOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import client from '../api/client';
@@ -29,6 +29,8 @@ export default function Alerts() {
   const [analysisVisible, setAnalysisVisible] = useState(false);
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [silenceTarget, setSilenceTarget] = useState(null);
+  const [silenceMinutes, setSilenceMinutes] = useState(60);
 
   const loadStats = useCallback(async () => {
     setStatsLoading(true);
@@ -164,11 +166,20 @@ export default function Alerts() {
               <Button type="link" size="small" icon={<AlertOutlined />}>确认</Button>
             </Popconfirm>
           )}
-          <Popconfirm title="静音多少分钟？" icon={null} onConfirm={(e) => {
-            const m = window.prompt('静音分钟数', '60');
-            if (m) handleSilence(r.id, parseInt(m, 10));
-          }}>
-            <Button type="link" size="small" icon={<PauseOutlined />}>静音</Button>
+          <Popconfirm
+            title={
+              <Space direction="vertical" size={6}>
+                <span>静音多少分钟？</span>
+                <InputNumber min={1} max={525600} value={silenceMinutes}
+                  onChange={(v) => setSilenceMinutes(v || 60)}
+                  style={{ width: 100 }} addonAfter="分钟" />
+              </Space>
+            }
+            icon={null}
+            onConfirm={() => handleSilence(r.id, silenceMinutes)}
+          >
+            <Button type="link" size="small" icon={<PauseOutlined />}
+              onClick={() => setSilenceMinutes(60)}>静音</Button>
           </Popconfirm>
           <Button
             type="link"

@@ -19,3 +19,17 @@ export function formatNetSpeed(v) {
   if (v >= 1e3) return (v / 1e3).toFixed(1) + ' KB/s';
   return v.toFixed(0) + ' B/s';
 }
+
+// exportCSV 表格数据导出为 CSV 并触发下载（各列表页复用）。
+export function exportCSV(rows, columns, filename) {
+  const header = columns.map((c) => c.title).join(',');
+  const lines = rows.map((r) =>
+    columns.map((c) => `"${String(r[c.dataIndex] ?? '').replace(/"/g, '""')}"`).join(','));
+  const blob = new Blob([[header, ...lines].join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}

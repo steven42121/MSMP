@@ -391,6 +391,8 @@ body.msmp-dark,
   letter-spacing: -0.3px;
 }
 
+}
+
 .msmp-dark .page-title {
   color: rgba(255, 255, 255, 0.92);
 }
@@ -1495,4 +1497,31 @@ body.msmp-dark,
   .global-glow { display: none !important; }
   .liquid-glass::after,
   .liquid-glass .glass-fluid { display: none !important; }
+}
+
+/* ========== 路由懒加载骨架屏 ========== */
+.route-skeleton {
+  height: 14px;
+  border-radius: 7px;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, rgba(0,0,0,0.06) 25%, rgba(0,0,0,0.10) 37%, rgba(0,0,0,0.06) 63%);
+  background-size: 400% 100%;
+  animation: route-skeleton-shimmer 1.4s ease infinite;
+}
+
+.route-skeleton-title {
+  height: 22px;
+  width: 180px;
+  margin-bottom: 18px;
+  border-radius: 8px;
+}
+
+.msmp-dark .route-skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.12) 37%, rgba(255,255,255,0.06) 63%);
+  background-size: 400% 100%;
+}
+
+@keyframes route-skeleton-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
 }

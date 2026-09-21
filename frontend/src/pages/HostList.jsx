@@ -4,25 +4,9 @@ import { ReloadOutlined, PlusOutlined, DesktopOutlined, SearchOutlined, Download
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import { useThemeStore } from '../store/theme';
-import { formatBytes } from '../utils/format';
+import { formatBytes, exportCSV } from '../utils/format';
 
 const { Text } = Typography;
-
-function exportCSV(rows, columns, filename) {
-  const header = columns.map((c) => c.title).join(',');
-  const lines = rows.map((r) => columns.map((c) => {
-    const v = r[c.dataIndex];
-    return `"${String(v ?? '').replace(/"/g, '""')}"`;
-  }).join(','));
-  const csv = [header, ...lines].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 const statusColor = { online: 'green', offline: 'red', pending: 'gold' };
 
