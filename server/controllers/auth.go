@@ -20,9 +20,10 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token    string       `json:"token"`
-	User     UserInfo     `json:"user"`
-	ExpireAt time.Time    `json:"expire_at"`
+	Token              string       `json:"token"`
+	User               UserInfo     `json:"user"`
+	ExpireAt           time.Time    `json:"expire_at"`
+	MustChangePassword bool         `json:"must_change_password,omitempty"`
 }
 
 type UserInfo struct {
@@ -117,7 +118,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			Role:     user.Role,
 			TenantID: user.TenantID,
 		},
-		ExpireAt: expireAt,
+		ExpireAt:           expireAt,
+		MustChangePassword: user.MustChangePassword,
 	})
 }
 

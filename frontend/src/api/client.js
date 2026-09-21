@@ -80,7 +80,16 @@ class ClusterClient {
     if (token) config.headers.Authorization = `Bearer ${token}`;
     if (tenant?.id) config.headers['X-Tenant-Id'] = tenant.id;
 
-    const resp = await axios(config);
+    let resp;
+    try {
+      resp = await axios(config);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        useAuthStore.getState().logout();
+        window.location.href = '/login';
+      }
+      throw err;
+    }
     return resp.data;
   }
 

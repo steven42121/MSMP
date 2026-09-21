@@ -21,8 +21,11 @@ func newPagination(r *http.Request) pagination {
 	if page <= 0 {
 		page = 1
 	}
-	if pageSize <= 0 || pageSize > 100 {
+	if pageSize <= 0 {
 		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
 	}
 	return pagination{Page: page, PageSize: pageSize}
 }

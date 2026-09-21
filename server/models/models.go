@@ -16,15 +16,16 @@ type Tenant struct {
 }
 
 type User struct {
-	ID           uint           `gorm:"primaryKey" json:"id"`
-	TenantID     uint           `gorm:"index;not null" json:"tenant_id"`
-	Username     string         `gorm:"size:64;not null;uniqueIndex:idx_tenant_user,priority:2" json:"username"`
-	PasswordHash string         `gorm:"size:255;not null" json:"-"`
-	Email        string         `gorm:"size:128" json:"email"`
-	Role         string         `gorm:"size:32;not null;default:'member'" json:"role"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+	ID                uint           `gorm:"primaryKey" json:"id"`
+	TenantID          uint           `gorm:"index;not null" json:"tenant_id"`
+	Username          string         `gorm:"size:64;not null;uniqueIndex:idx_tenant_user,priority:2" json:"username"`
+	PasswordHash      string         `gorm:"size:255;not null" json:"-"`
+	Email             string         `gorm:"size:128" json:"email"`
+	Role              string         `gorm:"size:32;not null;default:'member'" json:"role"`
+	MustChangePassword bool          `gorm:"default:false" json:"must_change_password"`
+	CreatedAt         time.Time      `json:"created_at"`
+	UpdatedAt         time.Time      `json:"updated_at"`
+	DeletedAt         gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 type Host struct {

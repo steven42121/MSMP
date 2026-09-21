@@ -14,6 +14,11 @@
 - 结构化日志：`server.mode: release` 时切换为 slog JSON Handler
 - 后端 Dockerfile：多阶段构建（golang:1.26-alpine → alpine:3.20），含 HEALTHCHECK
 - `.env.example`：完整生产环境变量模板（MSMP_ 前缀覆盖机制）
+- 启动配置校验：release 模式拒绝已知默认 JWT secret 和数据库密码，强制用户覆盖
+- 分页 page_size clamp：请求 >100 时返回 100 行（此前静默回退到 20）
+- 前端401 拦截器：JWT 过期自动清除登录态并跳转登录页
+- User 模型新增 `must_change_password` 字段，seed 工具设置首次登录强制改密
+- DB 备份/恢复脚本：`scripts/backup-db.sh`（pg_dump + gzip + 过期清理）、`scripts/restore-db.sh`（交互确认 + 恢复）
 
 ## [v0.1.5] - 2026-09-15
 

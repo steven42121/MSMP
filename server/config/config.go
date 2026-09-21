@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -123,6 +124,26 @@ func Load() (*Config, error) {
 	if err := v.Unmarshal(&c); err != nil {
 		return nil, err
 	}
+	if err := c.Validate(); err != nil {
+		return nil, err
+	}
 	C = &c
 	return &c, nil
+}
+
+// Validate 校验生产环境配置安全性。
+func (c *Config) Validate() error {
+	if c.Server.Mode != "release" {
+		return nil
+	}
+	if c.JWT.Secret == "change-me-in-production" || c.JWT.Secret == "" {
+		return fmt.Errorf("refusing to start in release mode: jwt.secret is set to a known default; override MSMP_JWT_SECRET or config file")
+	}
+	if len(c.JWT.Secret) < 16 {
+		return fmt.Errorf("jwt.secret must be at least 16 characters in release mode")
+	}
+	if strings.Contains(c.DB.DSN, "password=msmp123") {
+		return fmt.Errorf("refusing to start in release mode: db.dsn contains default password 'msmp123'; change the database password before deploying")
+	}
+	return nil
 }
